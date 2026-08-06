@@ -32,10 +32,10 @@ namespace Game.Core.Locomotion
         float groundedStickSpeed = 2f;
 
         [Header("Camera look-ahead")]
-        [SerializeField, Tooltip("Metres the camera leads the player at full speed.")]
-        float lookAheadDistance = 1.25f;
-        [SerializeField, Tooltip("SmoothDamp time for the look-ahead offset.")]
-        float lookAheadSmoothTime = 0.35f;
+        [SerializeField, Tooltip("Metres the camera leads the player at full speed. Larger = more anticipation, more screen swing.")]
+        float lookAheadDistance = 0.8f;
+        [SerializeField, Tooltip("SmoothDamp time for the look-ahead offset. Larger = lazier lead, gentler on the eyes.")]
+        float lookAheadSmoothTime = 0.55f;
 
         public float MaxSpeed => maxSpeed;
         public float Acceleration => acceleration;

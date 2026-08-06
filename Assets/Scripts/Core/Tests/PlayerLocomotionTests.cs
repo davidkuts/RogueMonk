@@ -119,6 +119,23 @@ namespace Game.Core.Tests
         }
 
         [Test]
+        public void NormalizedVelocity_TracksDirectionAndFraction()
+        {
+            PlayerLocomotion locomotion = Make(out _);
+            Run(locomotion, Vector2.right, 1f);
+            Assert.That(locomotion.NormalizedVelocity.x, Is.EqualTo(1f).Within(Tolerance));
+            Assert.That(locomotion.NormalizedVelocity.z, Is.EqualTo(0f).Within(Tolerance));
+        }
+
+        [Test]
+        public void NormalizedVelocity_IsClampedToUnitLength()
+        {
+            PlayerLocomotion locomotion = Make(out _);
+            Run(locomotion, new Vector2(1f, 1f), 2f);
+            Assert.That(locomotion.NormalizedVelocity.magnitude, Is.LessThanOrEqualTo(1f + Tolerance));
+        }
+
+        [Test]
         public void Halt_ZeroesVelocityButKeepsFacing()
         {
             PlayerLocomotion locomotion = Make(out _);

@@ -20,5 +20,5 @@ MonoBehaviour:
   inputResponseExponent: 1.4
   gravity: -25
   groundedStickSpeed: 2
-  lookAheadDistance: 1.25
-  lookAheadSmoothTime: 0.35
+  lookAheadDistance: 0.8
+  lookAheadSmoothTime: 0.55

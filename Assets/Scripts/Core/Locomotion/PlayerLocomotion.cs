@@ -23,6 +23,10 @@ namespace Game.Core.Locomotion
         public float NormalizedSpeed =>
             settings.MaxSpeed <= 0f ? 0f : Mathf.Clamp01(Velocity.magnitude / settings.MaxSpeed);
 
+        /// <summary>Velocity as a fraction of MaxSpeed — direction of travel, magnitude 0..1.</summary>
+        public Vector3 NormalizedVelocity =>
+            settings.MaxSpeed <= 0f ? Vector3.zero : Vector3.ClampMagnitude(Velocity / settings.MaxSpeed, 1f);
+
         public PlayerLocomotion(ILocomotionSettings settings)
         {
             this.settings = settings ?? throw new ArgumentNullException(nameof(settings));

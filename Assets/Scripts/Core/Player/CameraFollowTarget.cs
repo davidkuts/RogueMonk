@@ -37,7 +37,7 @@ namespace Game.Core.Player
             if (locomotion == null)
                 return;
 
-            tracker.Tick(locomotion.Facing, locomotion.NormalizedSpeed, Time.deltaTime);
+            tracker.Tick(locomotion.NormalizedVelocity, Time.deltaTime);
             transform.position = motor.transform.position + tracker.Offset;
         }
     }

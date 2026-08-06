@@ -31,6 +31,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Known issues / TODO next: ...
 -->
 
+### 2026-08-06 — M1b: camera comfort pass + standalone playtest loop
+- Human playtest verdict on M1: speed good, movement fluid, collision good; **camera made them dizzy on direction changes**.
+- Root cause: the look-ahead offset was driven by *facing*. Reversing direction spins the capsule at 1080°/s, so the offset swept a ~1.25 m lateral arc through the perpendicular axis before settling on the far side — a fast sideways camera swing on every turnaround.
+- Fix: `LookAheadTracker` now takes **velocity** (as a fraction of max speed) instead of facing+speed. Velocity passes through zero on a reversal, so the offset retracts along a straight line and never introduces a lateral component. Locked in by `LookAheadTrackerTests.DirectionReversal_NeverSwingsSideways`. Also softened: look-ahead 1.25→0.8 m, smooth time 0.35→0.55 s, Cinemachine damping 0.35→0.5.
+- Playtest strategy (agreed): **playtest from a standalone build, never the editor.** `Builds/Win64/RogueMonk.exe` (development build, windowed 1600×900, `Builds/` gitignored). Claude rebuilds it via the MCP bridge after each change; the human runs the exe so editor overhead never contaminates a feel judgement. Editor Play Mode stays for Claude's own automated verification only.
+- Cleanup: deleted the unused Unity template `Assets/InputSystem_Actions.inputactions`. It was wired as the Input System's project-wide actions asset (`EditorBuildSettings` config object `com.unity.input.settings.actions`), so that pointer was repointed at `MonkControls.inputactions` first.
+- Known issues / TODO next: no in-game frame-time readout yet — if a build ever feels laggy we're still guessing. Cheap debug overlay is a candidate for M7 (HUD). `MonkControls` has no UI action map; add one when the pause menu/EventSystem lands in M7.
+
 ### 2026-08-06 — M1: movement + camera follow
 - Done: Simulation layer (Game.Core, engine-free): `InputCurve` (radial deadzone + response exponent), `PlayerLocomotion` (accel/decel to a target velocity, rate-limited facing turn, planar-only), `LookAheadTracker` (damped camera lead scaled by speed), `ILocomotionSettings`/`ICameraLookAheadSettings`. Adapters (Game.Core.Player): `PlayerInputReader`, `PlayerMotor` (CharacterController.Move), `CameraFollowTarget`. `Assets/Settings/Data/PlayerMovementSettings.asset` holds every number. New input asset `Assets/Settings/Input/MonkControls.inputactions` (Keyboard&Mouse + Gamepad schemes; Move/Aim/Attack/Dash/Pause declared, only Move consumed in M1). Scene: Player (CharacterController h1.8 r0.4, tag Player) + Visual capsule + CameraTarget child; CM_GameplayCamera got a CinemachineFollow (WorldSpace binding, offset 0/12/-10, position damping 0.35) tracking CameraTarget. Game.Core.asmdef now references Unity.InputSystem.
 - Verified: 32/32 EditMode tests pass (Game.Core.Tests); console clean; Play Mode driven with a synthetic gamepad through the MCP bridge — capsule accelerated to exactly 6 m/s, facing turned to the input direction, stopped hard against the +X wall at x≈9.58, and slid along +Z when pushed diagonally into it (sim velocity stayed the full diagonal; the controller resolved the slide). Camera target led the player by exactly the 1.25 m look-ahead and the Cinemachine rig followed.
@@ -44,7 +52,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
 ## Tuning values changed from DESIGN.md defaults
 <!-- Record here whenever a starting number from DESIGN.md gets re-tuned, so DESIGN.md stays the design intent and this stays the current truth. e.g. "dash distance 4m → 4.5m (felt short in large rooms)" -->
-(none yet)
+- Camera look-ahead 1.25 m → **0.8 m**, smooth time 0.35 s → **0.55 s**, Cinemachine position damping 0.35 → **0.5** (playtest 2026-08-06: direction changes were making the human dizzy). DESIGN.md's "~1–1.5 m look-ahead" is now the upper bound, not the target.
+- Human-confirmed good as of 2026-08-06: max speed 6 m/s, accel 70, decel 90, wall collision/slide.
 
 ## Open questions for the human
 - M1 feel: is 6 m/s top speed right, and does the camera damping (0.35) + look-ahead (1.25 m) read well while strafing? Answer in a playtest note and the values move to the table above.
