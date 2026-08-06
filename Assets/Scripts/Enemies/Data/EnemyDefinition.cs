@@ -42,6 +42,18 @@ namespace Game.Enemies
         [Header("Attack")]
         [SerializeField] AttackDefinition attack;
 
+        [Header("Ranged only")]
+        [SerializeField, Tooltip("Read only by ranged archetypes. Melee enemies ignore this block.")]
+        RangedProfile ranged = new RangedProfile
+        {
+            PreferredMinRange = 5f,
+            PreferredMaxRange = 9f,
+            ProjectileSpeed = 9f,
+            ProjectileLifetime = 4f,
+            ProjectileRadius = 0.35f,
+            KiteSpeedFraction = 0.7f,
+        };
+
         public string Id => name;
         public float MaxHealth => maxHealth;
         public StaggerTier Tier => tier;
@@ -56,5 +68,6 @@ namespace Game.Enemies
         public float AttackCooldownSeconds => attackCooldownSeconds;
         public float LungeDistance => lungeDistance;
         public IAttackDefinition Attack => attack;
+        public RangedProfile Ranged => ranged;
     }
 }

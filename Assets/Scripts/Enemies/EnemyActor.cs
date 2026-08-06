@@ -98,7 +98,13 @@ namespace Game.Enemies
                 return;
 
             float applied = Health.TakeDamage(context.Damage);
-            PoiseResult poiseResult = Poise.ApplyPoiseDamage(context.PoiseDamage);
+
+            // Poise only matters to something still standing. Applying it after a lethal hit
+            // would open a "punish window" on a corpse, fire Staggered at the controller and
+            // put a stagger status on a dead enemy.
+            PoiseResult poiseResult = Health.IsAlive
+                ? Poise.ApplyPoiseDamage(context.PoiseDamage)
+                : PoiseResult.Absorbed;
 
             // Immune-tier enemies get the full feedback but are never moved or interrupted.
             if (definition.Tier != StaggerTier.Immune)
@@ -115,12 +121,12 @@ namespace Game.Enemies
         void OnPoiseBroke(float duration)
         {
             Statuses.Apply(StatusEffect.Stagger, duration);
-            GameLog.Info(LogCategory.Enemy, $"POISE BREAK {definition.Id}  staggered {duration:0.00}s — punish window open");
+            GameLog.Info(LogCategory.Enemy, $"POISE BREAK {definition.Id}  staggered {duration:0.00}s - punish window open");
             Staggered?.Invoke();
         }
 
         void OnArmorStripped() =>
-            GameLog.Info(LogCategory.Enemy, $"ARMOR STRIPPED {definition.Id} — poise damage now counts");
+            GameLog.Info(LogCategory.Enemy, $"ARMOR STRIPPED {definition.Id} - poise damage now counts");
 
         void OnDied()
         {

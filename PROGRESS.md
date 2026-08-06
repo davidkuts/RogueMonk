@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M4 built and verified — awaiting human playtest before M5
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Two melee grunts now chase and attack. Watch for: the red wind-up telegraph (450 ms) being readable enough to dodge, the purple stagger colour marking the punish window, whether 60 HP / 30 poise makes them die too fast or too slow, and whether dashing through a lunge refunds a pip. **F1** for the overlay (now shows player HP too).
-- **Blocked on:** human feel-check of the melee enemy
+- **Active milestone:** M5 built and verified — awaiting human playtest before M6
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. A ranged skirmisher (Armored tier, amber telegraph, 700 ms) now kites at 5–9 m and fires dodgeable bolts, alongside the two melee grunts (red telegraph, 450 ms). Watch for: whether the two telegraph colours read as distinct threats, whether 700 ms is enough time to sidestep a bolt, and whether stripping 40 armour before the skirmisher can be staggered feels good or tedious.
+- **Blocked on:** human feel-check of the ranged enemy
 
 ## Milestones
 | # | Milestone | Status |
@@ -15,7 +15,7 @@
 | 2 | Dash: travel curve, i-frames, charges, perfect-dodge refund | ✅ done (pending feel-check) |
 | 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ✅ done (pending feel-check) |
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ✅ done (pending feel-check) |
-| 5 | Ranged enemy + projectile + telegraph | ⬜ |
+| 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ⬜ |
 | 7 | Pause menu, restart, HUD, death screen + stats | ⬜ |
 | 8 | Mixamo models + Animancer playback + toon shader pass | ⬜ |
@@ -30,6 +30,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M5: ranged enemy, projectile, telegraph (+ two bugs found by reading logs)
+- **Read the human's M4 log first, as asked. Found a real bug**: both enemy deaths logged `DEATH` immediately followed by `POISE BREAK ... punish window open` on the same frame. `EnemyActor.ApplyHit` applied health damage (firing `Died` → deactivate) and then applied poise damage unconditionally, so a corpse opened a punish window, raised `Staggered` at its controller and took a stagger status. Now poise is only applied while `Health.IsAlive`, with a regression test named after the log line that exposed it.
+- Also fixed from the log: `TrainingDummy` was writing with raw `Debug.Log`, bypassing the filter and the overlay — moved onto `GameLog`. And em dashes in log strings render as mojibake when Player.log is read as ANSI, so log messages are ASCII-only now.
+- M4 session stats: 48 swings / 27 hits / **21 whiffs (44 %)**, matching the previous session's 45 % — the auto-aim-range vs hitbox-reach mismatch is consistent, not noise. 6 poise breaks, 5 of which interrupted a telegraph (4 during wind-up), 2 enemy deaths, 3 player hits taken, **0 perfect dodges across 9 dash-cancels**.
+- M5 done, engine-free in Game.Enemies: `RangedEnemyBrain` (preferred distance *band*, not a single distance — a band gives hysteresis so the enemy cannot oscillate on the spot) and `ProjectileMotion` (fixed planar heading, no homing: DESIGN.md's read-and-react rule means a projectile must be dodgeable by moving). Adapters: `Projectile` (sweeps against walls, overlaps against targets, uses the *shooter's* resolver so projectile hits run the same modifier pipeline) and `RangedEnemyController`.
+- Data: `EnemyBolt` attack (700 ms wind-up, inside DESIGN.md's 600–800 ms ranged band, amber telegraph vs the melee grunt's red) and `RangedSkirmisher` — deliberately **Armored tier**, which finally puts tier 2 in the scene and closes M4's "no Armored enemy exists" gap. `RangedProfile` lives on the shared `EnemyDefinition` rather than duplicating a dozen fields into a parallel asset.
+- **A second bug the standalone build caught that no unit test would have**: the first ranged build fired every bolt straight over the player's head. Muzzle height 1.1 above an enemy origin already at y=0.9 put the projectile at y=2.0 while the player capsule tops out at 1.82, so all six shots flew the full 18 m into the south wall. Launch height is now derived from the target's centre, which stays correct whatever the capsule sizes are. This is exactly why playtest builds are the verification surface, not just tests.
+- Verified: 243/243 EditMode tests (21 new). Standalone run: skirmisher telegraphs 700 ms, fires at 9 m/s, bolt lands for 10 after ~0.81 s of travel; one bolt was absorbed by post-hit invulnerability; an idle player drops 100 → 22 in ~14 s against two grunts and one skirmisher.
+- Known issues / TODO next: no Immune-tier enemy yet (tier implemented and tested, unused; DESIGN.md wants 650–750 ms telegraphs for it). Projectiles `Destroy`/`Instantiate` per shot — pool them if it ever shows up in a profile. Hitstop is still owned by `PlayerAttackController` despite enemies dealing damage.
 
 ### 2026-08-06 — M4: enemies, poise/stagger tiers, telegraphed lunge
 - **Read the human's 316-entry playtest log before starting.** Findings: ~230 fps (no perf issue); 140 attacks thrown, 77 hits, **63 whiffs (45 %)**; 25 chains reached the finisher, 15 of them fully connected; 10 dash-cancels, so the mechanic is being used. See the open question about whiff rate.
@@ -112,7 +122,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
-- **45 % of swings whiffed** in the 2026-08-06 log, against stationary dummies. Likely cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Not changed unilaterally because the human said it felt nice — needs a call.
+- **~45 % of swings whiff, confirmed across two separate sessions** (63/140 then 21/48). Cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Still not changed unilaterally — the human has twice said it feels nice, so this needs an explicit call.
+- **0 perfect dodges across 9 dash-cancels** in the M4 session. The window is dash i-frames (153 ms) strictly overlapping an enemy's 100 ms active frames — possibly too tight to ever hit by accident. Worth deciding whether i-frames should cover the whole dash, or whether the refund should trigger on overlapping the *wind-up* instead.
 - Enemy numbers are first drafts: 60 HP (so punch/punch/kick ≈ 42 damage, i.e. two combos to kill), 30 poise (the kick alone breaks it), 1.2 s stagger, 1.1 s attack cooldown, 450 ms telegraph. All want a feel pass.
 - (resolved) M3 damage numbers — set against 60 HP grunts in M4; two full combos kill one.
 - (resolved) Attacks no longer root the player — human called rooting clunky on 2026-08-06. Now 0.55 punches / 0.40 kick, with facing locked while committed so strafing does not break auto-aim.

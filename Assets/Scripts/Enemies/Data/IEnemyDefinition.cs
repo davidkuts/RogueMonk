@@ -1,7 +1,36 @@
+using System;
 using Game.Combat;
+using UnityEngine;
 
 namespace Game.Enemies
 {
+    /// <summary>
+    /// Extra tuning that only ranged archetypes read. Kept on the one definition type rather
+    /// than duplicating a dozen shared fields into a parallel asset; melee enemies simply
+    /// ignore it.
+    /// </summary>
+    [Serializable]
+    public struct RangedProfile
+    {
+        [Tooltip("Closer than this and the enemy backs away instead of shooting.")]
+        public float PreferredMinRange;
+
+        [Tooltip("Further than this and the enemy closes in.")]
+        public float PreferredMaxRange;
+
+        [Tooltip("Projectile travel speed in m/s. Slow enough to dodge on reaction.")]
+        public float ProjectileSpeed;
+
+        [Tooltip("Seconds before an unspent projectile despawns.")]
+        public float ProjectileLifetime;
+
+        [Tooltip("Projectile collision radius.")]
+        public float ProjectileRadius;
+
+        [Tooltip("Fraction of MoveSpeed used while backing away. Kiting should be slower than chasing.")]
+        public float KiteSpeedFraction;
+    }
+
     /// <summary>
     /// How an enemy answers being hit (DESIGN.md § Stagger tiers).
     /// </summary>
@@ -63,5 +92,8 @@ namespace Game.Enemies
 
         /// <summary>The attack this enemy throws. One for the MVP melee humanoid.</summary>
         IAttackDefinition Attack { get; }
+
+        /// <summary>Ranged-only tuning. Ignored by melee archetypes.</summary>
+        RangedProfile Ranged { get; }
     }
 }

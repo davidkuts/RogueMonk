@@ -1,3 +1,4 @@
+using Game.Core.Diagnostics;
 using UnityEngine;
 
 namespace Game.Combat
@@ -69,10 +70,12 @@ namespace Game.Combat
 
             if (logHits)
             {
-                Debug.Log(
-                    $"[Dummy] {context.Attack.Id}: {context.Damage} dmg ({context.DamageType}), " +
-                    $"poise {context.PoiseDamage}, knockback {context.Knockback}, hitstop {context.HitstopSeconds}s " +
-                    $"— total {TotalDamageTaken} over {HitCount} hits", this);
+                // Through GameLog, not Debug.Log: otherwise these bypass the filter, never
+                // reach the overlay, and clutter Player.log outside the game's own stream.
+                GameLog.Debug(LogCategory.Combat,
+                    $"dummy hit     {context.Attack.Id}  {context.Damage:0.##} dmg ({context.DamageType})  " +
+                    $"poise {context.PoiseDamage:0.##}  knock {context.Knockback:0.##}  " +
+                    $"total {TotalDamageTaken:0.##} over {HitCount} hits");
             }
         }
 

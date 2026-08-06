@@ -38,5 +38,15 @@ namespace Game.Enemies.Tests
         public float AttackCooldownSeconds { get; set; } = 1.1f;
         public float LungeDistance { get; set; } = 2.2f;
         public IAttackDefinition Attack { get; set; } = new FakeEnemyAttack();
+
+        public RangedProfile Ranged { get; set; } = new RangedProfile
+        {
+            PreferredMinRange = 5f,
+            PreferredMaxRange = 9f,
+            ProjectileSpeed = 9f,
+            ProjectileLifetime = 4f,
+            ProjectileRadius = 0.35f,
+            KiteSpeedFraction = 0.7f,
+        };
     }
 }

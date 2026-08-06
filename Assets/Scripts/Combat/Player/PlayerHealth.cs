@@ -83,7 +83,7 @@ namespace Game.Combat
                 if (motor.Dash.TryRegisterPerfectDodge())
                 {
                     GameLog.Info(LogCategory.Combat,
-                        $"PERFECT DODGE  {context.Attack.Id} phased through dash i-frames — charge refunded");
+                        $"PERFECT DODGE  {context.Attack.Id} phased through dash i-frames - charge refunded");
                     PerfectDodged?.Invoke();
                 }
 
@@ -93,7 +93,7 @@ namespace Game.Combat
             if (invulnerabilityRemaining > 0f)
             {
                 GameLog.Debug(LogCategory.Combat,
-                    $"ignored {context.Attack.Id} — {invulnerabilityRemaining:0.00}s of post-hit invulnerability left");
+                    $"ignored {context.Attack.Id} - {invulnerabilityRemaining:0.00}s of post-hit invulnerability left");
                 return;
             }
 
