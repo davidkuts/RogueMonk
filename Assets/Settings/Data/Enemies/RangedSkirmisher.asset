@@ -28,7 +28,7 @@ MonoBehaviour:
   ranged:
     PreferredMinRange: 5
     PreferredMaxRange: 9
-    ProjectileSpeed: 9
+    ProjectileSpeed: 11.5
     ProjectileLifetime: 4
     ProjectileRadius: 0.35
     KiteSpeedFraction: 0.7

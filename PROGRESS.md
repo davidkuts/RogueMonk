@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M5 built and verified — awaiting human playtest before M6
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. A ranged skirmisher (Armored tier, amber telegraph, 700 ms) now kites at 5–9 m and fires dodgeable bolts, alongside the two melee grunts (red telegraph, 450 ms). Watch for: whether the two telegraph colours read as distinct threats, whether 700 ms is enough time to sidestep a bolt, and whether stripping 40 armour before the skirmisher can be staggered feels good or tedious.
-- **Blocked on:** human feel-check of the ranged enemy
+- **Active milestone:** M6 built and verified — awaiting human playtest before M7
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. It is now a **full seeded level**: 6–7 rooms, waves gated by doors, camera confined per room. Clear a room and the door opens; walk through it to advance. The seed is logged at run start (F1 overlay, or Player.log) — quote it back to me to reproduce any run exactly. Watch for: whether wave sizes escalate sensibly, whether the three room shapes read differently, and whether the door/transition is clear enough without any UI prompt.
+- **Blocked on:** human feel-check of the level flow
 
 ## Milestones
 | # | Milestone | Status |
@@ -16,7 +16,7 @@
 | 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ✅ done (pending feel-check) |
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ✅ done (pending feel-check) |
 | 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
-| 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ⬜ |
+| 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ done (pending feel-check) |
 | 7 | Pause menu, restart, HUD, death screen + stats | ⬜ |
 | 8 | Mixamo models + Animancer playback + toon shader pass | ⬜ |
 | 9 | SFX, VFX, rumble, polish | ⬜ |
@@ -30,6 +30,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M6: seeded level generation, waves, door gating, confiner
+- Tuning from playtest: projectile speed **9 → 11.5 m/s** (human: 700 ms telegraph was enough, projectile slightly too slow). Travel time from 7 m drops 0.78 s → 0.61 s, still well clear of the ~250 ms reaction floor.
+- Done, engine-free: `XorShiftRandom` + `IRandomSource` + `RunContext` in Game.Core.Rng — **deliberately not `System.Random`**, whose algorithm is not contractually stable across .NET versions or platforms and would silently break the one property the type exists to guarantee. `LevelGenerator` (room count, template order, wave count, spawn population, all from the seed in a fixed draw order), `LevelPlan`/`RoomPlan`/`WavePlan`, and `LevelValidator`, which is where the definition of "solvable" lives so the soak test does not restate it.
+- **Soak test as DESIGN.md requires: 2000 seeds all produce solvable levels**, plus a second soak over a deliberately hostile content set (one template, one spawn point, enemies too expensive for the budget). Any future change to generation has to keep both passing.
+- Runtime: `RoomInstance` (authored entry point, spawn points, door blocker, exit trigger, camera bounds), `RoomRunner` (wave sequencing by subscribing to enemy death rather than polling, so a room cannot be locked forever by an enemy that died unexpectedly), `LevelDirector` (owns the run, validates the plan before playing it, walks rooms one at a time, retargets the Cinemachine confiner). Three gray-box room prefabs: Arena 20×20/6 spawns, Corridor 14×26/4, Vault 24×18/8.
+- Decisions made: **only one room exists at a time** — it keeps the confiner, the enemy count and the future NavMesh story simple. **Spawn point count is read off the prefab**, never typed into the template asset, so the generator can never disagree with the geometry. **A wave is never allowed to be empty** — that would be a room that clears itself and silently skips a fight, and it is the invariant the validator leans on hardest. The **no-consecutive-repeats rule relaxes rather than fails** when the template set is too small to satisfy it. The old fixed `Environment`/`Enemies`/`TrainingDummies` objects are deactivated, not deleted, since generated rooms would overlap them.
+- **A Unity trap worth remembering**: three ScriptableObject classes shared one file (`LevelContentDefinitions.cs`). Unity only binds a MonoScript to the type whose name matches the filename, so every generated asset came out with "missing script" and the build failed with a null settings reference. Split into one file per `UnityEngine.Object` type. Plain C# classes can still share a file — only Unity object types are affected.
+- Verified: 281/281 EditMode tests (48 new). Live: a seeded run built 6 rooms / 62 enemies; killing wave 1 spawned wave 2; clearing the last wave deactivated the door blocker and enabled the exit trigger; walking into it destroyed room 1, moved the player to room 2's entry point and retargeted the confiner to `Room_2_Arena`. Standalone build logs `RUN START seed …` and `LEVEL PLAN seed … 7 rooms 45 enemies` with no exceptions.
+- Known issues / TODO next: **no NavMesh** — enemies still steer directly, which is fine in convex gray-box rooms but will need the per-room bake DESIGN.md specifies once rooms have real obstacles. Rooms have no visual variety beyond size. No "room cleared" or "exit this way" feedback beyond the door opening. Level completion logs and fires an event but has nowhere to go until M7's death/victory screens. Enemy prefabs find the player by tag at spawn.
 
 ### 2026-08-06 — M5: ranged enemy, projectile, telegraph (+ two bugs found by reading logs)
 - **Read the human's M4 log first, as asked. Found a real bug**: both enemy deaths logged `DEATH` immediately followed by `POISE BREAK ... punish window open` on the same frame. `EnemyActor.ApplyHit` applied health damage (firing `Died` → deactivate) and then applied poise damage unconditionally, so a corpse opened a punish window, raised `Staggered` at its controller and took a stagger status. Now poise is only applied while `Health.IsAlive`, with a regression test named after the log line that exposed it.
@@ -125,6 +135,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - **~45 % of swings whiff, confirmed across two separate sessions** (63/140 then 21/48). Cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Still not changed unilaterally — the human has twice said it feels nice, so this needs an explicit call.
 - **0 perfect dodges across 9 dash-cancels** in the M4 session. The window is dash i-frames (153 ms) strictly overlapping an enemy's 100 ms active frames — possibly too tight to ever hit by accident. Worth deciding whether i-frames should cover the whole dash, or whether the refund should trigger on overlapping the *wind-up* instead.
 - Enemy numbers are first drafts: 60 HP (so punch/punch/kick ≈ 42 damage, i.e. two combos to kill), 30 poise (the kick alone breaks it), 1.2 s stagger, 1.1 s attack cooldown, 450 ms telegraph. All want a feel pass.
+- Level shape is a first draft too: 6–7 rooms, 1–3 waves each, budget 3 + 1.2/room, cap 5 per wave. A generated level currently holds 45–62 enemies — that may be far too long for a single sitting.
+- (resolved) Projectile speed 9 → 11.5 m/s on 2026-08-06; 700 ms telegraph confirmed good.
 - (resolved) M3 damage numbers — set against 60 HP grunts in M4; two full combos kill one.
 - (resolved) Attacks no longer root the player — human called rooting clunky on 2026-08-06. Now 0.55 punches / 0.40 kick, with facing locked while committed so strafing does not break auto-aim.
 - Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one. (Unanswerable until enemies exist in M4 — carry it forward.)

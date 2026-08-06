@@ -2,7 +2,10 @@
     "name": "Game.Level",
     "rootNamespace": "Game.Level",
     "references": [
-        "Game.Core"
+        "Game.Core",
+        "Game.Combat",
+        "Game.Enemies",
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

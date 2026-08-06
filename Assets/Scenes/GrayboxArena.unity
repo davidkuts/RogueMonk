@@ -954,6 +954,54 @@ PhysicsMaterial:
   m_Bounciness: 0
   m_FrictionCombine: 0
   m_BounceCombine: 0
+--- !u!1 &673184059
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 673184061}
+  - component: {fileID: 673184060}
+  m_Layer: 0
+  m_Name: LevelDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &673184060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673184059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbf40e2240e9fc4aac1a95be31170b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Level::Game.Level.LevelDirector
+  settings: {fileID: 11400000, guid: 6dc6dd9569ae68247ac45a8fb8235e27, type: 2}
+  player: {fileID: 1949805134}
+  gameplayCamera: {fileID: 1243274634}
+  fixedSeed: 0
+--- !u!4 &673184061
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673184059}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &674026211
 GameObject:
   m_ObjectHideFlags: 0
@@ -1568,7 +1616,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &855808051
 Transform:
   m_ObjectHideFlags: 0
@@ -2616,7 +2664,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1527262954
 Transform:
   m_ObjectHideFlags: 0
@@ -3314,7 +3362,6 @@ MonoBehaviour:
   blockingLayers:
     serializedVersion: 2
     m_Bits: 1
-  muzzleHeight: 1.1
   turnSpeedDegPerSec: 360
   gravity: -25
   groundedStickSpeed: 2
@@ -3742,7 +3789,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2076506483
 Transform:
   m_ObjectHideFlags: 0
@@ -3774,3 +3821,4 @@ SceneRoots:
   - {fileID: 2076506483}
   - {fileID: 209475366}
   - {fileID: 855808051}
+  - {fileID: 673184061}
