@@ -863,7 +863,10 @@ MonoBehaviour:
   - {fileID: 1258732865}
   - {fileID: 1608140774}
   readyColor: {r: 0.29, g: 0.85, b: 0.92, a: 1}
-  rechargingColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.45}
+  rechargingColor: {r: 0.22, g: 0.62, b: 0.67, a: 0.55}
+  pulseSpeedHz: 0.9
+  readyPulseDepth: 0.35
+  rechargingPulseDepth: 0.15
 --- !u!114 &847019511
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M2 revised after playtest — awaiting human re-check before M3
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Dash is now **✕ / buttonSouth** on the DualSense (Space or right mouse on KB&M). Check that the two pips bottom-left refill one at a time at 1.5 s each, and say whether 1.5 s is the right number.
-- **Blocked on:** human re-check of dash recharge + pip readability
+- **Active milestone:** M2 complete pending a final look — M3 (combat data system) is next
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` for a last look at the pulsing pips, then give the go-ahead for M3 (AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo/cancel windows, input buffer).
+- **Blocked on:** human go-ahead for M3
 
 ## Milestones
 | # | Milestone | Status |
@@ -37,7 +37,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - **Dash pips added** (partial M7, pulled forward by request): `Game.UI.DashPipsView` drives two filled uGUI Images from `DashCharges.GetChargeFill(i)` — the sim decides which pip is refilling, so the display cannot disagree with it. Canvas is Screen Space Overlay, scaled to a 1920×1080 reference, pips bottom-left in reserved-saturated cyan. `Game.UI.asmdef` now references `UnityEngine.UI`. No new packages (com.unity.ugui was already present).
 - **Dash rebound** from Circle (buttonEast) to **✕ (buttonSouth)** on the DualSense; keyboard Space / right mouse unchanged.
 - Verified: 89/89 EditMode tests. Live in Play Mode: dash action resolves to `/DualSenseGamepadHID/buttonSouth`; with both charges spent, pip0 read 0.50 at half a period while pip1 stayed empty, then pip0 full / pip1 0.01 after one period, then both full after two — sequential recharge confirmed through the view, not just the sim.
-- Known issues / TODO next: pip size (102×16 at 1920×1080 reference) is a guess — easy to resize on the `DashPips` group. Still no HP bar; that stays M7.
+- Follow-up same day: pips now **pulse** — a sine on `Time.unscaledTime` (so the HUD keeps breathing through hitstop and pause) scales pip brightness. Ready pips pulse deeply (depth 0.35, brightness 0.553–0.850 over a 1.11 s period); the refilling pip pulses subtly (depth 0.15) on a dimmer base colour with lower alpha, so "ready" still reads first. Rate and depth are serialized fields on the view — deliberately not a ScriptableObject, since they are view dressing rather than gameplay tuning and the human plans to redesign this element.
+- Known issues / TODO next: pip size (102×16 at 1920×1080 reference) is a guess — easy to resize on the `DashPips` group. Still no HP bar; that stays M7. Human has flagged the whole pip element for a future redesign, so don't invest further in it.
 
 ### 2026-08-06 — M2: dash
 - Human verdict on M1/M1b: camera and movement "perfect", keyboard and DualSense both good. M1 closed.
@@ -74,9 +75,9 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
-- Is 1.5 s per charge (3.0 s to refill both) the right economy now that recharge is sequential?
-- Are the pips readable at that size/position, and should the recharging pip animate (pulse) rather than just fill?
-- Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one.
+- Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one. (Unanswerable until enemies exist in M4 — carry it forward.)
+- (resolved) Pip pulse — added 2026-08-06. Human confirmed the whole element is slated for a redesign later, so keep effort here minimal.
+- (resolved) Sequential recharge at 1.5 s per charge — human confirmed good on 2026-08-06.
 - (resolved) M2 dash feel — distance, smoothness, direction confirmed good on 2026-08-06.
 - (resolved) M1 feel — camera and movement confirmed good on 2026-08-06.
 - (resolved) 2026-08-06 cleanup questions: human delegated the call; template assets and 6 unused packages removed, McpBridgeBootstrap kept permanently as self-healing infra, build settings now list GrayboxArena only.
