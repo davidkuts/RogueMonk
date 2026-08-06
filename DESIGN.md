@@ -32,7 +32,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Built-in CharacterController (collide-and-slide vs walls), fully code-driven; no Rigidbody movement; root motion OFF everywhere
 - Knockback = manual velocity impulse
 - Dash: ~4 m over ~0.18 s; i-frames cover first ~85% of the dash; never crosses room boundaries
-- **2 dash charges**, ~2.5 s recharge each, staggered independent recharge; two pips on HUD
+- **2 dash charges**, **sequential recharge — only one charge refills at a time**, ~1.5 s each (revised 2026-08-06 after playtest; was "2.5 s each, independent parallel timers", which made both charges return together and removed the cost of burning them back-to-back); two pips on HUD
 - **Perfect dodge:** if dash i-frames overlap an attack's active frames, the charge is refunded instantly (distinct SFX/flash). Strict overlap required.
 - Dash charges are a shared offense/defense resource (see cancel rule)
 

@@ -27,8 +27,8 @@ namespace Game.Core.Locomotion
         [Header("Charges")]
         [SerializeField, Tooltip("Charges held at once. Two pips on the HUD.")]
         int maxCharges = 2;
-        [SerializeField, Tooltip("Recharge time for one spent charge. Charges recharge independently.")]
-        float rechargeSeconds = 2.5f;
+        [SerializeField, Tooltip("Recharge time for one charge. Recharge is sequential — spending both means waiting this long twice.")]
+        float rechargeSeconds = 1.5f;
 
         [Header("Input")]
         [SerializeField, Tooltip("How long a dash press stays queued while the player cannot act on it.")]

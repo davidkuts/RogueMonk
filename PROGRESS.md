@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M2 built and verified — awaiting human playtest before M3
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and tune the dash — Circle/B on the pad, Space or right mouse on KB&M. Judge distance (4 m), duration (0.18 s), the travel curve's punch, recharge (2.5 s × 2 charges), and how much speed you keep on exit. DESIGN.md says tune M2 until perfect before M3.
-- **Blocked on:** human feel-check of the dash
+- **Active milestone:** M2 revised after playtest — awaiting human re-check before M3
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Dash is now **✕ / buttonSouth** on the DualSense (Space or right mouse on KB&M). Check that the two pips bottom-left refill one at a time at 1.5 s each, and say whether 1.5 s is the right number.
+- **Blocked on:** human re-check of dash recharge + pip readability
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M2b: sequential recharge, dash pips, ✕ rebind
+- Human verdict on M2: dash distance, smoothness and direction all "perfect". Three changes requested.
+- **Recharge is now sequential.** M2 gave each spent charge its own parallel timer, so spending both back-to-back returned both together — no cost to burning them. Now a single timer refills one charge at a time; the second waits its full turn. Recharge dropped 2.5 s → **1.5 s** so a single dash recovers faster while a double dash costs 3.0 s total. **This changes a locked DESIGN.md decision — DESIGN.md § Movement & dash was updated to match.** A perfect-dodge refund keeps any accumulated progress on the charge still refilling rather than discarding it.
+- **Dash pips added** (partial M7, pulled forward by request): `Game.UI.DashPipsView` drives two filled uGUI Images from `DashCharges.GetChargeFill(i)` — the sim decides which pip is refilling, so the display cannot disagree with it. Canvas is Screen Space Overlay, scaled to a 1920×1080 reference, pips bottom-left in reserved-saturated cyan. `Game.UI.asmdef` now references `UnityEngine.UI`. No new packages (com.unity.ugui was already present).
+- **Dash rebound** from Circle (buttonEast) to **✕ (buttonSouth)** on the DualSense; keyboard Space / right mouse unchanged.
+- Verified: 89/89 EditMode tests. Live in Play Mode: dash action resolves to `/DualSenseGamepadHID/buttonSouth`; with both charges spent, pip0 read 0.50 at half a period while pip1 stayed empty, then pip0 full / pip1 0.01 after one period, then both full after two — sequential recharge confirmed through the view, not just the sim.
+- Known issues / TODO next: pip size (102×16 at 1920×1080 reference) is a guess — easy to resize on the `DashPips` group. Still no HP bar; that stays M7.
 
 ### 2026-08-06 — M2: dash
 - Human verdict on M1/M1b: camera and movement "perfect", keyboard and DualSense both good. M1 closed.
@@ -62,9 +70,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 <!-- Record here whenever a starting number from DESIGN.md gets re-tuned, so DESIGN.md stays the design intent and this stays the current truth. e.g. "dash distance 4m → 4.5m (felt short in large rooms)" -->
 - Camera look-ahead 1.25 m → **0.8 m**, smooth time 0.35 s → **0.55 s**, Cinemachine position damping 0.35 → **0.5** (playtest 2026-08-06: direction changes were making the human dizzy). DESIGN.md's "~1–1.5 m look-ahead" is now the upper bound, not the target.
 - Human-confirmed good as of 2026-08-06: max speed 6 m/s, accel 70, decel 90, wall collision/slide, camera look-ahead 0.8 m / 0.55 s / damping 0.5, and both KB&M + DualSense input.
-- Dash starting values (unplayed as of writing): 4 m / 0.18 s / i-frames 85 % / 2 charges / 2.5 s recharge / 0.15 s buffer / exit speed 1.0× walk, travel curve front-loaded (tangents 2.2 → 0.15).
+- Human-confirmed good 2026-08-06: dash 4 m / 0.18 s / front-loaded travel curve (tangents 2.2 → 0.15) / direction handling / exit speed 1.0× walk.
+- Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
-- M2 feel: is the dash punchy enough (travel curve is front-loaded), and is 2.5 s recharge per charge too generous or too tight? Also: should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one.
+- Is 1.5 s per charge (3.0 s to refill both) the right economy now that recharge is sequential?
+- Are the pips readable at that size/position, and should the recharging pip animate (pulse) rather than just fill?
+- Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one.
+- (resolved) M2 dash feel — distance, smoothness, direction confirmed good on 2026-08-06.
 - (resolved) M1 feel — camera and movement confirmed good on 2026-08-06.
 - (resolved) 2026-08-06 cleanup questions: human delegated the call; template assets and 6 unused packages removed, McpBridgeBootstrap kept permanently as self-healing infra, build settings now list GrayboxArena only.

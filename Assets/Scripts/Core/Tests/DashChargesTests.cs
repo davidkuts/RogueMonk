@@ -49,37 +49,77 @@ namespace Game.Core.Tests
         }
 
         [Test]
-        public void ChargesRechargeIndependently_NotAsASharedCooldown()
+        public void RechargeIsSequential_NotParallel()
         {
-            // DESIGN.md: staggered independent recharge. Spending a second charge must not
-            // restart or delay the first one's timer.
+            // Both charges spent back-to-back must come back one at a time, a full
+            // recharge apart — never together.
             DashCharges charges = Make(out FakeDashSettings settings);
             charges.TrySpend();
-            charges.Tick(1f);
             charges.TrySpend();
             Assert.That(charges.Available, Is.EqualTo(0));
 
-            charges.Tick(settings.RechargeSeconds - 1f + 0.01f); // first timer elapses
-            Assert.That(charges.Available, Is.EqualTo(1));
+            charges.Tick(settings.RechargeSeconds + 0.01f);
+            Assert.That(charges.Available, Is.EqualTo(1), "only one charge may return per recharge period");
 
-            charges.Tick(1f); // second timer elapses one second later
+            charges.Tick(settings.RechargeSeconds);
             Assert.That(charges.Available, Is.EqualTo(2));
         }
 
         [Test]
-        public void RefundReturnsTheMostRecentSpend()
+        public void SpendingASecondCharge_DoesNotRestartTheRunningTimer()
         {
             DashCharges charges = Make(out FakeDashSettings settings);
             charges.TrySpend();
-            charges.Tick(2f); // first charge is nearly back
+            charges.Tick(settings.RechargeSeconds - 0.1f); // first charge is nearly back
             charges.TrySpend();
 
+            charges.Tick(0.11f);
+            Assert.That(charges.Available, Is.EqualTo(1), "the first charge keeps its original schedule");
+        }
+
+        [Test]
+        public void FullPoolDrainsAndRefillsOverTwoPeriods()
+        {
+            DashCharges charges = Make(out FakeDashSettings settings);
+            charges.TrySpend();
+            charges.TrySpend();
+
+            charges.Tick(settings.RechargeSeconds * 2f + 0.01f);
+            Assert.That(charges.Available, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ALongFrameCompletesMoreThanOneCharge()
+        {
+            DashCharges charges = Make(out FakeDashSettings settings);
+            charges.TrySpend();
+            charges.TrySpend();
+            charges.Tick(settings.RechargeSeconds * 5f);
+            Assert.That(charges.Available, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void RefundReturnsAChargeImmediately()
+        {
+            DashCharges charges = Make(out _);
+            charges.TrySpend();
             charges.Refund();
+            Assert.That(charges.Available, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void RefundKeepsProgressOnTheRemainingCharge()
+        {
+            DashCharges charges = Make(out FakeDashSettings settings);
+            charges.TrySpend();
+            charges.Tick(settings.RechargeSeconds - 0.1f);
+            charges.TrySpend(); // now 0 available, timer 0.1 s from returning one
+
+            charges.Refund(); // perfect dodge
 
             Assert.That(charges.Available, Is.EqualTo(1));
-            // The older, nearly-complete timer must survive the refund.
-            charges.Tick(settings.RechargeSeconds - 2f + 0.01f);
-            Assert.That(charges.Available, Is.EqualTo(2));
+            charges.Tick(0.11f);
+            Assert.That(charges.Available, Is.EqualTo(2), "accumulated recharge progress must survive a refund");
         }
 
         [Test]
@@ -114,6 +154,45 @@ namespace Game.Core.Tests
         }
 
         [Test]
+        public void PipFill_FullPoolReadsAllFull()
+        {
+            DashCharges charges = Make(out _);
+            Assert.That(charges.GetChargeFill(0), Is.EqualTo(1f));
+            Assert.That(charges.GetChargeFill(1), Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void PipFill_OnlyOnePipFillsAtATime()
+        {
+            DashCharges charges = Make(out FakeDashSettings settings);
+            charges.TrySpend();
+            charges.TrySpend();
+            charges.Tick(settings.RechargeSeconds * 0.5f);
+
+            Assert.That(charges.GetChargeFill(0), Is.EqualTo(0.5f).Within(0.01f), "the first empty pip fills");
+            Assert.That(charges.GetChargeFill(1), Is.EqualTo(0f), "the second waits its turn");
+        }
+
+        [Test]
+        public void PipFill_KeptPipStaysFullWhileTheOtherRecharges()
+        {
+            DashCharges charges = Make(out FakeDashSettings settings);
+            charges.TrySpend();
+            charges.Tick(settings.RechargeSeconds * 0.5f);
+
+            Assert.That(charges.GetChargeFill(0), Is.EqualTo(1f));
+            Assert.That(charges.GetChargeFill(1), Is.EqualTo(0.5f).Within(0.01f));
+        }
+
+        [Test]
+        public void PipFill_OutOfRangeIndexIsEmpty()
+        {
+            DashCharges charges = Make(out _);
+            Assert.That(charges.GetChargeFill(-1), Is.EqualTo(0f));
+            Assert.That(charges.GetChargeFill(2), Is.EqualTo(0f));
+        }
+
+        [Test]
         public void RefillAll_ClearsEveryTimer()
         {
             DashCharges charges = Make(out _);
@@ -121,6 +200,7 @@ namespace Game.Core.Tests
             charges.TrySpend();
             charges.RefillAll();
             Assert.That(charges.Available, Is.EqualTo(2));
+            Assert.That(charges.NextChargeProgress, Is.EqualTo(1f));
         }
     }
 }

@@ -41,5 +41,5 @@ MonoBehaviour:
   exitSpeedFraction: 1
   iFrameFraction: 0.85
   maxCharges: 2
-  rechargeSeconds: 2.5
+  rechargeSeconds: 1.5
   bufferSeconds: 0.15

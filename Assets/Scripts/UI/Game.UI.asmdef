@@ -3,7 +3,8 @@
     "rootNamespace": "Game.UI",
     "references": [
         "Game.Core",
-        "Game.Combat"
+        "Game.Combat",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
