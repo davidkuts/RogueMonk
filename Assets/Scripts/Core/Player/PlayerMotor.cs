@@ -74,9 +74,9 @@ namespace Game.Core.Player
                     actions.CancelForDash();
             }
 
-            // Attacks root or slow the player; scaling the axis lets the sim decelerate normally.
-            if (actions != null)
-                moveAxis *= Mathf.Clamp01(actions.MoveSpeedMultiplier);
+            // Attacks slow the player and may take ownership of facing.
+            float speedMultiplier = actions != null ? actions.MoveSpeedMultiplier : 1f;
+            bool allowTurning = actions == null || actions.AllowsTurning;
 
             // Dash.Tick always runs — it owns charge recharge whether or not a dash is live.
             bool wasDashing = Dash.IsDashing;
@@ -91,7 +91,7 @@ namespace Game.Core.Player
             }
             else
             {
-                Locomotion.Tick(moveAxis, deltaTime);
+                Locomotion.Tick(moveAxis, deltaTime, speedMultiplier, allowTurning);
                 planarMotion = Locomotion.Velocity * deltaTime;
             }
 

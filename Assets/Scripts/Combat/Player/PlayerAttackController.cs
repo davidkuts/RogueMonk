@@ -64,6 +64,12 @@ namespace Game.Combat
         /// <summary>Wind-up and active frames are committed; recovery is dash-cancellable.</summary>
         public bool AllowsDash => !attacks.IsAttacking || attacks.IsCancellable;
 
+        /// <summary>
+        /// The attack owns facing while committed, so auto-aim survives the player strafing.
+        /// Turning frees up again in recovery, for repositioning between combo hits.
+        /// </summary>
+        public bool AllowsTurning => !attacks.IsCommitted;
+
         public void CancelForDash()
         {
             if (attacks.IsAttacking)

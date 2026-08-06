@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M3 built and verified — awaiting human playtest before M4
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and beat on the three training dummies. Attack is **□ / buttonWest** on the DualSense (left mouse on KB&M). Judge the combo rhythm, hitstop weight, screenshake, auto-aim pull, and the dash-cancel out of recovery. Frame data is DESIGN.md's starting numbers and almost certainly needs tuning.
-- **Blocked on:** human feel-check of the combo
+- **Active milestone:** M3 revised after playtest — awaiting human re-check before M4
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. You can now move while attacking (55 % speed on punches, 40 % on the kick) and strafe without breaking auto-aim. Judge whether those percentages are right, then the combo rhythm/hitstop as before.
+- **Blocked on:** human re-check of attack mobility
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M3b: mobile attacks
+- Human verdict on M3: square lands hits and the dummies take damage, but **rooting during attacks felt clunky and unresponsive**. Rooting is reversed.
+- Two changes, because raising the multiplier alone would have been wrong:
+  1. `PlayerLocomotion.Tick` now takes a **speed multiplier that scales the resulting speed, not the input**. The old adapter scaled the raw input axis, which then went back through the deadzone and response curve — "half speed" actually came out around a third. The multiplier now means what it says.
+  2. Added `allowTurning`. With movement enabled during attacks the movement stick would otherwise re-aim the character every frame and fight auto-aim, since `PlayerLocomotion.Tick` turns toward the input direction. Facing is now owned by the attack while committed (wind-up + active) and released in recovery, so **the player strafes around a locked-on target instead of spinning off it**.
+- Values: punches `moveSpeedMultiplier` 0.55, kick 0.40 (heavier attack, less mobility). Per-attack data, so any of them is one field.
+- Verified: 167/167 EditMode tests, including new coverage that the multiplier scales speed linearly and that `allowTurning: false` still moves the player while leaving facing untouched.
+- Input status (answering "no other buttons did anything"): only **□ attack** and **✕ dash** are wired to behaviour. `Aim` (right stick / mouse position) and `Pause` (Options / Esc) exist in `MonkControls.inputactions` but nothing consumes them yet — Pause arrives in M7, Aim when it is needed. Every other pad button is unbound on purpose.
 
 ### 2026-08-06 — M3: combat data system
 - Done, all engine-free in Game.Combat: `AttackStateMachine` (windup→active→recovery timed off total elapsed, not per-phase counters), `ComboTracker`, `HitContext` + `IHitModifier` + `HitResolver` (the boon seam — ordered pipeline, empty in MVP), `IDamageable` + `StatusEffectContainer`, `HitstopController`, `AimAssist` (cone target selection + rate-limited facing rotation). Data: `AttackDefinition`/`ComboDefinition` SOs with Punch1/Punch2/Kick + MonkCombo assets carrying DESIGN.md's starting frame data. Adapter: `PlayerAttackController` (input buffer → combo → state machine → physics hitbox query → resolver → hitstop + Cinemachine impulse). `TrainingDummy` (3 in the scene on a new `Hittable` layer) so the combo is playtestable before enemies exist.
@@ -80,11 +89,12 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Camera look-ahead 1.25 m → **0.8 m**, smooth time 0.35 s → **0.55 s**, Cinemachine position damping 0.35 → **0.5** (playtest 2026-08-06: direction changes were making the human dizzy). DESIGN.md's "~1–1.5 m look-ahead" is now the upper bound, not the target.
 - Human-confirmed good as of 2026-08-06: max speed 6 m/s, accel 70, decel 90, wall collision/slide, camera look-ahead 0.8 m / 0.55 s / damping 0.5, and both KB&M + DualSense input.
 - Human-confirmed good 2026-08-06: dash 4 m / 0.18 s / front-loaded travel curve (tangents 2.2 → 0.15) / direction handling / exit speed 1.0× walk.
+- Attack `moveSpeedMultiplier` **0 → 0.55** (punches) / **0.40** (kick), playtest 2026-08-06: rooting felt clunky. Facing stays locked while committed.
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
 - M3 damage numbers (punch 10 / punch 12 / kick 20) are invented — DESIGN.md never fixed enemy health. Set enemy HP in M4 and these follow.
-- Should attacks root the player completely? `moveSpeedMultiplier` is 0 on all three; a small drift (0.2–0.3) is one field away if rooting feels stiff.
+- (resolved) Attacks no longer root the player — human called rooting clunky on 2026-08-06. Now 0.55 punches / 0.40 kick, with facing locked while committed so strafing does not break auto-aim.
 - Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one. (Unanswerable until enemies exist in M4 — carry it forward.)
 - (resolved) Pip pulse — added 2026-08-06. Human confirmed the whole element is slated for a redesign later, so keep effort here minimal.
 - (resolved) Sequential recharge at 1.5 s per charge — human confirmed good on 2026-08-06.

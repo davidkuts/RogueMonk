@@ -11,6 +11,12 @@ namespace Game.Core.Player
         /// <summary>Walk speed multiplier this action imposes. 1 = unrestricted, 0 = rooted.</summary>
         float MoveSpeedMultiplier { get; }
 
+        /// <summary>
+        /// False while the action owns facing — an attack aiming at its target must not be
+        /// spun off it by the movement stick. The player strafes instead.
+        /// </summary>
+        bool AllowsTurning { get; }
+
         /// <summary>False while the action is committed (attack wind-up and active frames).</summary>
         bool AllowsDash { get; }
 

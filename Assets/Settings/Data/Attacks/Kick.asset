@@ -30,4 +30,4 @@ MonoBehaviour:
   autoAimConeDegrees: 45
   autoAimRangeMeters: 3.2
   aimSnapSpeedDegPerSec: 420
-  moveSpeedMultiplier: 0
+  moveSpeedMultiplier: 0.4

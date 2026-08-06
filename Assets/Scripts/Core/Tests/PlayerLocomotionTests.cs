@@ -136,6 +136,51 @@ namespace Game.Core.Tests
         }
 
         [Test]
+        public void SpeedMultiplier_ScalesTheResultingSpeedLinearly()
+        {
+            // Scaling the input instead would run it back through the deadzone and response
+            // curve, so "half speed" would silently come out well below half.
+            PlayerLocomotion locomotion = Make(out FakeMovementSettings settings);
+            for (int i = 0; i < 120; i++)
+                locomotion.Tick(Vector2.up, Step, speedMultiplier: 0.5f);
+
+            Assert.That(locomotion.Velocity.magnitude, Is.EqualTo(settings.MaxSpeed * 0.5f).Within(Tolerance));
+        }
+
+        [Test]
+        public void SpeedMultiplierZero_BringsThePlayerToRest()
+        {
+            PlayerLocomotion locomotion = Make(out _);
+            Run(locomotion, Vector2.up, 1f);
+            for (int i = 0; i < 120; i++)
+                locomotion.Tick(Vector2.up, Step, speedMultiplier: 0f);
+
+            Assert.That(locomotion.Velocity, Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void AllowTurningFalse_MovesWithoutRotating()
+        {
+            // Strafing during an attack must not spin the character off its aim target.
+            PlayerLocomotion locomotion = Make(out _);
+            Vector3 facingBefore = locomotion.Facing;
+
+            for (int i = 0; i < 60; i++)
+                locomotion.Tick(Vector2.right, Step, speedMultiplier: 1f, allowTurning: false);
+
+            Assert.That(locomotion.Velocity.x, Is.GreaterThan(0f), "the player should still move");
+            Assert.That(locomotion.Facing, Is.EqualTo(facingBefore), "but facing must be untouched");
+        }
+
+        [Test]
+        public void AllowTurningTrue_IsTheDefault()
+        {
+            PlayerLocomotion locomotion = Make(out _);
+            Run(locomotion, Vector2.right, 1f);
+            Assert.That(Vector3.Angle(locomotion.Facing, Vector3.right), Is.LessThan(0.5f));
+        }
+
+        [Test]
         public void Halt_ZeroesVelocityButKeepsFacing()
         {
             PlayerLocomotion locomotion = Make(out _);

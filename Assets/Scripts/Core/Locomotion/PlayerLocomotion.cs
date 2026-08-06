@@ -36,8 +36,15 @@ namespace Game.Core.Locomotion
         /// Advances the simulation. <paramref name="rawMoveInput"/> is the unconditioned
         /// stick/WASD vector; X maps to world +X and Y to world +Z, which is correct because
         /// the gameplay camera yaw is fixed at 0 (see DESIGN.md § Camera).
+        ///
+        /// <paramref name="speedMultiplier"/> scales the <em>resulting speed</em>, not the
+        /// input — scaling the input would run it back through the deadzone and response
+        /// curve, so "half speed" would silently come out as a third.
+        ///
+        /// <paramref name="allowTurning"/> is false while another system owns facing (an
+        /// attack aiming at its target), letting the player strafe without breaking the aim.
         /// </summary>
-        public void Tick(Vector2 rawMoveInput, float deltaTime)
+        public void Tick(Vector2 rawMoveInput, float deltaTime, float speedMultiplier = 1f, bool allowTurning = true)
         {
             if (deltaTime <= 0f)
                 return;
@@ -45,14 +52,15 @@ namespace Game.Core.Locomotion
             Vector2 conditioned = InputCurve.Condition(
                 rawMoveInput, settings.InputDeadzone, settings.InputResponseExponent);
 
-            Vector3 desired = new Vector3(conditioned.x, 0f, conditioned.y) * settings.MaxSpeed;
-            bool hasInput = desired.sqrMagnitude > 0f;
+            bool hasInput = conditioned.sqrMagnitude > 0f;
+            float topSpeed = settings.MaxSpeed * Mathf.Max(0f, speedMultiplier);
+            Vector3 desired = new Vector3(conditioned.x, 0f, conditioned.y) * topSpeed;
 
             float rate = hasInput ? settings.Acceleration : settings.Deceleration;
             Velocity = Vector3.MoveTowards(Velocity, desired, rate * deltaTime);
 
-            if (hasInput)
-                TurnToward(desired.normalized, deltaTime);
+            if (hasInput && allowTurning)
+                TurnToward(new Vector3(conditioned.x, 0f, conditioned.y).normalized, deltaTime);
         }
 
         /// <summary>Zeroes velocity without touching facing (used on room transitions / respawn).</summary>
