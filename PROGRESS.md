@@ -3,16 +3,16 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M1 built and verified — awaiting human playtest before M2
-- **Next action:** Human: Play Mode in GrayboxArena, drive the capsule with WASD/left stick. Judge feel (top speed, accel/decel snap, turn rate, camera damping + look-ahead) and report tuning changes. Then M2 (dash).
-- **Blocked on:** human feel-check of M1 movement
+- **Active milestone:** M2 built and verified — awaiting human playtest before M3
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and tune the dash — Circle/B on the pad, Space or right mouse on KB&M. Judge distance (4 m), duration (0.18 s), the travel curve's punch, recharge (2.5 s × 2 charges), and how much speed you keep on exit. DESIGN.md says tune M2 until perfect before M3.
+- **Blocked on:** human feel-check of the dash
 
 ## Milestones
 | # | Milestone | Status |
 |---|---|---|
 | 0 | Repo, packages, asmdefs, LFS, MCP bridge, gray-box room, Cinemachine rig | ✅ done |
 | 1 | CharacterController movement + wall slide + camera follow (capsule) | ✅ done (pending feel-check) |
-| 2 | Dash: travel curve, i-frames, charges, perfect-dodge refund | ⬜ |
+| 2 | Dash: travel curve, i-frames, charges, perfect-dodge refund | ✅ done (pending feel-check) |
 | 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ⬜ |
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ⬜ |
 | 5 | Ranged enemy + projectile + telegraph | ⬜ |
@@ -30,6 +30,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M2: dash
+- Human verdict on M1/M1b: camera and movement "perfect", keyboard and DualSense both good. M1 closed.
+- Done: Simulation (engine-free, Game.Core): `PlayerDash` (fixed-direction burst along a travel curve, i-frames on the leading fraction, one-refund-per-dash perfect dodge with a `PerfectDodged` event), `DashCharges` (per-charge independent recharge timers, refund returns the newest spend), `InputBuffer` (generic press buffer in `Game.Core.Input`, window supplied by the caller — M3 reuses it for attacks). `IDashSettings` + `DashSettings.asset` hold every number, including the travel curve as an `AnimationCurve`. `PlayerMotor` now arbitrates walk vs dash and hands momentum back on dash exit; `PlayerInputReader` exposes the Dash edge; `PlayerLocomotion.SetVelocity` added for the handoff.
+- Verified: 81/81 EditMode tests pass. Play Mode integration driven through the bridge: dash covered 4.14 m along facing (4.00 dash + 0.14 of exit momentum), ran 9 frames at dt=0.02 = 0.18 s, i-frames on 7 of those 9 (85 % window sampled at 60 Hz), charge spent then recharging; dashing at a wall from 2 m away stopped at x=9.58 with no tunnelling; perfect dodge refunded 1→2 and rejected the second attempt; dash-during-dash rejected.
+- Decisions made: dash direction is the stick, or facing when the stick is neutral; no steering mid-dash. Perfect dodge refunds **once per dash** so a multi-hit attack cannot farm charges (DESIGN.md doesn't specify — revisit if it feels stingy). `PlayerDash.Tick` owns charge recharge whether or not a dash is live, so the adapter can't double-tick it. Exit speed is a fraction of walking top speed (default 1.0) and is deliberately not clamped, leaving room for an over-speed exit. The 150 ms buffer window lives in `DashSettings.bufferSeconds` for now; M3 may promote it to a shared input-settings asset when attacks need one.
+- Testing note: driving synthetic input from `execute_code` only works while the **editor window has focus** — unfocused, the player loop freezes (observed stuck at frame 2) and the Input System soft-resets injected devices. Workaround used: invoke `PlayerMotor.Update` directly for a fixed number of frames, which still exercises the real CharacterController. The input edge itself was verified separately (`WasPressedThisFrame` → reader → true).
+- Known issues / TODO next: `PlayerSettings.preloadedAssets` lost its `MonkControls` entry during the session and was restored by hand — if it vanishes again, that's the Input System revalidating project-wide actions; harmless because `PlayerInputReader` holds a direct serialized reference. No HUD pips yet (M7). Perfect dodge has no SFX/flash yet (M9) — only the event.
 
 ### 2026-08-06 — M1b: camera comfort pass + standalone playtest loop
 - Human playtest verdict on M1: speed good, movement fluid, collision good; **camera made them dizzy on direction changes**.
@@ -53,8 +61,10 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 ## Tuning values changed from DESIGN.md defaults
 <!-- Record here whenever a starting number from DESIGN.md gets re-tuned, so DESIGN.md stays the design intent and this stays the current truth. e.g. "dash distance 4m → 4.5m (felt short in large rooms)" -->
 - Camera look-ahead 1.25 m → **0.8 m**, smooth time 0.35 s → **0.55 s**, Cinemachine position damping 0.35 → **0.5** (playtest 2026-08-06: direction changes were making the human dizzy). DESIGN.md's "~1–1.5 m look-ahead" is now the upper bound, not the target.
-- Human-confirmed good as of 2026-08-06: max speed 6 m/s, accel 70, decel 90, wall collision/slide.
+- Human-confirmed good as of 2026-08-06: max speed 6 m/s, accel 70, decel 90, wall collision/slide, camera look-ahead 0.8 m / 0.55 s / damping 0.5, and both KB&M + DualSense input.
+- Dash starting values (unplayed as of writing): 4 m / 0.18 s / i-frames 85 % / 2 charges / 2.5 s recharge / 0.15 s buffer / exit speed 1.0× walk, travel curve front-loaded (tangents 2.2 → 0.15).
 
 ## Open questions for the human
-- M1 feel: is 6 m/s top speed right, and does the camera damping (0.35) + look-ahead (1.25 m) read well while strafing? Answer in a playtest note and the values move to the table above.
+- M2 feel: is the dash punchy enough (travel curve is front-loaded), and is 2.5 s recharge per charge too generous or too tight? Also: should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one.
+- (resolved) M1 feel — camera and movement confirmed good on 2026-08-06.
 - (resolved) 2026-08-06 cleanup questions: human delegated the call; template assets and 6 unused packages removed, McpBridgeBootstrap kept permanently as self-healing infra, build settings now list GrayboxArena only.

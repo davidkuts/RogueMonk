@@ -61,6 +61,17 @@ namespace Game.Core.Locomotion
             Velocity = Vector3.zero;
         }
 
+        /// <summary>
+        /// Overrides the planar velocity — used to hand momentum back after a dash so the
+        /// player exits running rather than from a standstill. Not clamped to MaxSpeed:
+        /// an over-speed exit is a legitimate feel choice, and Tick decelerates it back.
+        /// </summary>
+        public void SetVelocity(Vector3 velocity)
+        {
+            velocity.y = 0f;
+            Velocity = velocity;
+        }
+
         /// <summary>Forces facing to a planar direction. Ignored if the direction is degenerate.</summary>
         public void SetFacing(Vector3 direction)
         {

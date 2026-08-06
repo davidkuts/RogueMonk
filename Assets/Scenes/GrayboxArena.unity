@@ -1632,6 +1632,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Core::Game.Core.Player.PlayerMotor
   settings: {fileID: 11400000, guid: 3cf260fff90883d4098fcb81bd9964f7, type: 2}
+  dashSettings: {fileID: 11400000, guid: 2469dc318f019ca42b4deb6fd6230ff6, type: 2}
   input: {fileID: 1949805132}
 --- !u!114 &1949805132
 MonoBehaviour:
