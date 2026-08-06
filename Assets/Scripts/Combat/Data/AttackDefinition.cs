@@ -48,6 +48,10 @@ namespace Game.Combat
         [SerializeField, Range(0f, 1f), Tooltip("Walk speed while this attack runs. 0 roots the attacker.")]
         float moveSpeedMultiplier;
 
+        [Header("Telegraph")]
+        [SerializeField, Tooltip("Colour flashed during wind-up. Same colour must always mean the same threat (DESIGN.md § Telegraph grammar). Saturated hues are reserved for exactly this.")]
+        Color telegraphColor = new Color(1f, 0.25f, 0.2f, 1f);
+
         public string Id => name;
         public float WindupSeconds => windupSeconds;
         public float ActiveSeconds => activeSeconds;
@@ -64,6 +68,9 @@ namespace Game.Combat
         public float AutoAimRangeMeters => autoAimRangeMeters;
         public float AimSnapSpeedDegPerSec => aimSnapSpeedDegPerSec;
         public float MoveSpeedMultiplier => moveSpeedMultiplier;
+
+        /// <summary>Wind-up telegraph colour. Not part of <see cref="IAttackDefinition"/> — presentation, not simulation.</summary>
+        public Color TelegraphColor => telegraphColor;
 
         /// <summary>Total length of the attack, for tooling and tests.</summary>
         public float TotalSeconds => windupSeconds + activeSeconds + recoverySeconds;

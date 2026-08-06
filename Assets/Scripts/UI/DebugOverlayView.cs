@@ -19,6 +19,7 @@ namespace Game.UI
         [SerializeField] GameLogBootstrap log;
         [SerializeField] PlayerAttackController attacks;
         [SerializeField] PlayerMotor motor;
+        [SerializeField] PlayerHealth health;
 
         [Header("Display")]
         [SerializeField, Tooltip("Start with the overlay already visible.")]
@@ -39,6 +40,7 @@ namespace Game.UI
             if (log == null) log = FindAnyObjectByType<GameLogBootstrap>();
             if (attacks == null) attacks = FindAnyObjectByType<PlayerAttackController>();
             if (motor == null) motor = FindAnyObjectByType<PlayerMotor>();
+            if (health == null) health = FindAnyObjectByType<PlayerHealth>();
         }
 
         void OnDestroy()
@@ -88,6 +90,16 @@ namespace Game.UI
             builder.AppendFormat("fps {0:000}   ", 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime));
             builder.AppendFormat("timeScale {0:0.00}", Time.timeScale);
             Line(builder.ToString(), Color.white);
+
+            if (health != null)
+            {
+                builder.Clear();
+                builder.AppendFormat("hp    {0:0}/{1:0}", health.CurrentHealth, health.MaxHealth);
+                builder.AppendFormat("   invulnerable {0}", health.IsInvulnerable);
+                Line(builder.ToString(), health.HealthFraction > 0.35f
+                    ? new Color(0.6f, 0.95f, 0.65f)
+                    : new Color(1f, 0.45f, 0.4f));
+            }
 
             if (motor != null && motor.Dash != null)
             {

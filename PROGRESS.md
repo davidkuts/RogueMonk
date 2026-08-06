@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** Diagnostics + combo feedback done (M3c). **M4 (enemies) is the next milestone and has not been started.**
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. **F1** toggles the debug overlay (F2 clears it) — it shows live dash/attack/combo state plus the rolling log. The combo meter sits above the dash pips: bright = that step connected, dim = swung and missed, dark = not thrown. Judge attack mobility (0.55 punches / 0.40 kick) and combo readability, then give the go-ahead for M4.
-- **Blocked on:** human check of attack mobility + combo feedback, then M4 go-ahead
+- **Active milestone:** M4 built and verified — awaiting human playtest before M5
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Two melee grunts now chase and attack. Watch for: the red wind-up telegraph (450 ms) being readable enough to dodge, the purple stagger colour marking the punish window, whether 60 HP / 30 poise makes them die too fast or too slow, and whether dashing through a lunge refunds a pip. **F1** for the overlay (now shows player HP too).
+- **Blocked on:** human feel-check of the melee enemy
 
 ## Milestones
 | # | Milestone | Status |
@@ -14,7 +14,7 @@
 | 1 | CharacterController movement + wall slide + camera follow (capsule) | ✅ done (pending feel-check) |
 | 2 | Dash: travel curve, i-frames, charges, perfect-dodge refund | ✅ done (pending feel-check) |
 | 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ✅ done (pending feel-check) |
-| 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ⬜ |
+| 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ✅ done (pending feel-check) |
 | 5 | Ranged enemy + projectile + telegraph | ⬜ |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ⬜ |
 | 7 | Pause menu, restart, HUD, death screen + stats | ⬜ |
@@ -30,6 +30,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M4: enemies, poise/stagger tiers, telegraphed lunge
+- **Read the human's 316-entry playtest log before starting.** Findings: ~230 fps (no perf issue); 140 attacks thrown, 77 hits, **63 whiffs (45 %)**; 25 chains reached the finisher, 15 of them fully connected; 10 dash-cancels, so the mechanic is being used. See the open question about whiff rate.
+- Done, engine-free in Game.Enemies: `Health` (no Heal method — DESIGN.md's no-healing rule is enforced by absence), `PoiseSystem` (all three tiers), `MeleeEnemyBrain` (Idle/Chase/Attacking/Cooldown/Staggered). Data: `EnemyDefinition` SO + `MeleeGrunt` asset, `EnemyLunge` attack (450 ms wind-up, matching DESIGN.md's melee telegraph band). Adapters: `EnemyActor` (damageable body: health, poise, hit flash, stagger colour, knockback, death), `MeleeEnemyController` (chase, telegraph, lunge, hitbox query). `PlayerHealth` closes the loop: post-hit invulnerability, no heal, and the perfect-dodge refund.
+- **The enemy attack runs on the same `AttackStateMachine` the player uses**, so enemy frame data means exactly what player frame data means, and enemy wind-ups are as committed and as readable.
+- Verified: 222/222 EditMode tests (40 new). Live: punch→punch→kick took a grunt 60→50→38→18 hp with poise 30→20→10→0, **breaking on the finisher**; the enemy chased, telegraphed and lunged for 12 damage with post-hit invulnerability engaging; and **dashing into an incoming lunge dealt zero damage and refunded the charge (1→2)** — M2's perfect dodge finally exercised against a real attack.
+- Decisions made: **armour does not regenerate** — stripping it is a one-off opening cost, so an Armored enemy is "tough to crack, normal thereafter" rather than a wall that resets. **Armour overkill does not carry into poise**, so stripping armour is its own beat rather than a stagger in disguise. **The regen delay starts when a stagger *ends*, not when it begins**, so the vulnerability window is the stagger plus the delay. **Being staggered out of a wind-up imposes the attack cooldown**, so an enemy cannot retaliate the instant it recovers. Movement is direct steering — NavMesh arrives with the room prefabs in M6, since DESIGN.md bakes it per room and the gray-box arena has none.
+- A test caught a real bug: a single long frame spent its whole delta on the poise regen delay and discarded the remainder. Fixed with carry-over, same as the dash-charge case.
+- Also fixed: development builds attach a stack trace to every `Debug.Log`, which made a 316-entry playtest produce a 755 KB Player.log that was ~90 % noise. Traces are now off for Log/Warning and kept for errors.
+- Known issues / TODO next: no Immune-tier or Armored enemy asset exists yet — both tiers are implemented and unit-tested, but nothing in the scene uses them, and DESIGN.md wants Immune telegraphs at 650–750 ms. Enemies have no death VFX beyond deactivating. Player death fires an event and logs, but there is no death screen until M7. Hitstop is still owned by `PlayerAttackController` even though enemies now deal damage — move it to a neutral driver.
 
 ### 2026-08-06 — M3c: diagnostics + combo feedback
 - Human asked for a logger for errors/warnings and one for combat data, and asked how a player would know they landed a combo. Both delivered; **M4 deliberately not started** so the tooling gets a playtest first (it is what M4's poise/stagger work will be verified through).
@@ -102,7 +112,9 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
-- M3 damage numbers (punch 10 / punch 12 / kick 20) are invented — DESIGN.md never fixed enemy health. Set enemy HP in M4 and these follow.
+- **45 % of swings whiffed** in the 2026-08-06 log, against stationary dummies. Likely cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Not changed unilaterally because the human said it felt nice — needs a call.
+- Enemy numbers are first drafts: 60 HP (so punch/punch/kick ≈ 42 damage, i.e. two combos to kill), 30 poise (the kick alone breaks it), 1.2 s stagger, 1.1 s attack cooldown, 450 ms telegraph. All want a feel pass.
+- (resolved) M3 damage numbers — set against 60 HP grunts in M4; two full combos kill one.
 - (resolved) Attacks no longer root the player — human called rooting clunky on 2026-08-06. Now 0.55 punches / 0.40 kick, with facing locked while committed so strafing does not break auto-aim.
 - Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one. (Unanswerable until enemies exist in M4 — carry it forward.)
 - (resolved) Pip pulse — added 2026-08-06. Human confirmed the whole element is slated for a redesign later, so keep effort here minimal.

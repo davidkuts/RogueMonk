@@ -24,6 +24,12 @@ namespace Game.Core.Diagnostics
 
         void Awake()
         {
+            // A development build attaches a full stack trace to every Debug.Log, which made a
+            // 316-entry playtest produce a 755 KB Player.log that was 90 % noise. Errors keep
+            // their traces — those are the ones worth reading.
+            Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+            Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
+
             GameLog.Reset();
             GameLog.TimeProvider = () => Time.unscaledTime;
             GameLog.FrameProvider = () => Time.frameCount;
