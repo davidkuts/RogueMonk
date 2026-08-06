@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M2 complete pending a final look — M3 (combat data system) is next
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` for a last look at the pulsing pips, then give the go-ahead for M3 (AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo/cancel windows, input buffer).
-- **Blocked on:** human go-ahead for M3
+- **Active milestone:** M3 built and verified — awaiting human playtest before M4
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and beat on the three training dummies. Attack is **□ / buttonWest** on the DualSense (left mouse on KB&M). Judge the combo rhythm, hitstop weight, screenshake, auto-aim pull, and the dash-cancel out of recovery. Frame data is DESIGN.md's starting numbers and almost certainly needs tuning.
+- **Blocked on:** human feel-check of the combo
 
 ## Milestones
 | # | Milestone | Status |
@@ -13,7 +13,7 @@
 | 0 | Repo, packages, asmdefs, LFS, MCP bridge, gray-box room, Cinemachine rig | ✅ done |
 | 1 | CharacterController movement + wall slide + camera follow (capsule) | ✅ done (pending feel-check) |
 | 2 | Dash: travel curve, i-frames, charges, perfect-dodge refund | ✅ done (pending feel-check) |
-| 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ⬜ |
+| 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ✅ done (pending feel-check) |
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ⬜ |
 | 5 | Ranged enemy + projectile + telegraph | ⬜ |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ⬜ |
@@ -30,6 +30,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M3: combat data system
+- Done, all engine-free in Game.Combat: `AttackStateMachine` (windup→active→recovery timed off total elapsed, not per-phase counters), `ComboTracker`, `HitContext` + `IHitModifier` + `HitResolver` (the boon seam — ordered pipeline, empty in MVP), `IDamageable` + `StatusEffectContainer`, `HitstopController`, `AimAssist` (cone target selection + rate-limited facing rotation). Data: `AttackDefinition`/`ComboDefinition` SOs with Punch1/Punch2/Kick + MonkCombo assets carrying DESIGN.md's starting frame data. Adapter: `PlayerAttackController` (input buffer → combo → state machine → physics hitbox query → resolver → hitstop + Cinemachine impulse). `TrainingDummy` (3 in the scene on a new `Hittable` layer) so the combo is playtestable before enemies exist.
+- Verified: 163/163 EditMode tests (89 Core + 74 Combat). Live in Play Mode: full chain Punch1→Punch2→Kick landed 10/12/20 = 42 damage with the combo cursor wrapping 1→2→0 and each attack hitting exactly once; a dash press during **wind-up** was refused with no charge spent and the attack survived, while during **recovery** it started the dash, spent a charge (2→1) and cancelled the attack; auto-aim acquired a dummy 15° off facing and rotated facing to 14.8° by the time the hitbox opened; hitstop fired and drove `Time.timeScale` to 0.
+- Decisions made (none of these are spelled out in DESIGN.md): **starting an attack during recovery is allowed** — that is precisely how a combo chains, and recovery being attack-cancellable is separate from it being *dash*-cancellable at the cost of a charge. **Combo window is measured from when an attack ends**, not when it starts; measuring from the start would leave a 0.34 s punch almost no window. **Attacks root the player** (`moveSpeedMultiplier` 0, per-attack data so it can be relaxed). **The active window always opens and closes even if one long frame swallows it**, so damage cannot silently vanish on a slow machine. Hitstop requests take the max rather than summing, so a flurry cannot freeze the game.
+- Architecture note: `PlayerMotor` consults combat through `Game.Core.Player.IPlayerActionState`, resolved by `GetComponent`, so Game.Core never references Game.Combat — the dependency still only runs one way.
+- Known issues / TODO next: `PlayerAttackController` owns the global `Time.timeScale` for hitstop; when enemies can hit the player (M4) that ownership should move to a neutral driver. Poise/stagger is modelled (`StatusEffect.Stagger`, `PoiseDamage` on every attack) but nothing consumes it until M4. Damage numbers (10/12/20) are invented — DESIGN.md never set enemy health. Attack has no animation, so the only read on frame data is the dummy's flash and the hitstop.
+- Testing note: driving physics queries while the play loop is frozen needs an explicit `Physics.SyncTransforms()` after moving transforms — `Physics.autoSyncTransforms` is off by default, so queries otherwise use stale positions and silently find nothing. Cost one false "the hitbox doesn't work" scare.
 
 ### 2026-08-06 — M2b: sequential recharge, dash pips, ✕ rebind
 - Human verdict on M2: dash distance, smoothness and direction all "perfect". Three changes requested.
@@ -75,6 +83,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
+- M3 damage numbers (punch 10 / punch 12 / kick 20) are invented — DESIGN.md never fixed enemy health. Set enemy HP in M4 and these follow.
+- Should attacks root the player completely? `moveSpeedMultiplier` is 0 on all three; a small drift (0.2–0.3) is one field away if rooting feels stiff.
 - Should a multi-hit attack be able to refund more than one charge per dash? Currently capped at one. (Unanswerable until enemies exist in M4 — carry it forward.)
 - (resolved) Pip pulse — added 2026-08-06. Human confirmed the whole element is slated for a redesign later, so keep effort here minimal.
 - (resolved) Sequential recharge at 1.5 s per charge — human confirmed good on 2026-08-06.

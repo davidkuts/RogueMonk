@@ -22,6 +22,9 @@ namespace Game.Core.Player
         readonly InputBuffer dashBuffer = new InputBuffer();
         float verticalSpeed;
 
+        /// <summary>Combat's veto on movement and dashing. Null when nothing restricts the player.</summary>
+        IPlayerActionState actions;
+
         /// <summary>The walking simulation — read by the camera rig and, later, combat.</summary>
         public PlayerLocomotion Locomotion { get; private set; }
 
@@ -36,6 +39,9 @@ namespace Game.Core.Player
             controller = GetComponent<CharacterController>();
             if (input == null)
                 input = GetComponent<PlayerInputReader>();
+
+            // Resolved by interface so Game.Core never has to reference Game.Combat.
+            actions = GetComponent<IPlayerActionState>();
 
             if (settings == null || dashSettings == null)
             {
@@ -58,11 +64,19 @@ namespace Game.Core.Player
                 dashBuffer.Press();
             dashBuffer.Tick(deltaTime, dashSettings.BufferSeconds);
 
-            if (dashBuffer.HasInput && Dash.CanStart && Dash.TryStart(ResolveDashDirection(moveAxis)))
+            // An attack's wind-up and active frames are committed; recovery is dash-cancellable.
+            bool dashAllowed = actions == null || actions.AllowsDash;
+            if (dashAllowed && dashBuffer.HasInput && Dash.CanStart && Dash.TryStart(ResolveDashDirection(moveAxis)))
             {
                 dashBuffer.Clear();
                 Locomotion.SetFacing(Dash.Direction);
+                if (actions != null)
+                    actions.CancelForDash();
             }
+
+            // Attacks root or slow the player; scaling the axis lets the sim decelerate normally.
+            if (actions != null)
+                moveAxis *= Mathf.Clamp01(actions.MoveSpeedMultiplier);
 
             // Dash.Tick always runs — it owns charge recharge whether or not a dash is live.
             bool wasDashing = Dash.IsDashing;

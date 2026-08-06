@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ffd0d5c003bac4fb4c0c31aa228dc5, type: 3}
+  m_Name: MonkCombo
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.ComboDefinition
+  attacks:
+  - {fileID: 11400000, guid: 02e2ceead778cb64f9e636fd7c0a0269, type: 2}
+  - {fileID: 11400000, guid: 407b53fb5181e1d40ac42eff9a6b4a33, type: 2}
+  - {fileID: 11400000, guid: 3faa7fd9446cfb342aec792521a17039, type: 2}
+  inputBufferSeconds: 0.15
