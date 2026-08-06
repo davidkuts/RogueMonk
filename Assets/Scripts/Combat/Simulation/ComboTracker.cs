@@ -35,6 +35,15 @@ namespace Game.Combat
         /// <summary>Seconds left before the combo lapses back to the first attack. Zero when not counting.</summary>
         public float WindowRemaining => Index == 0 ? 0f : Mathf.Max(0f, activeWindow - idleTime);
 
+        /// <summary>Length of the window currently being counted against, for HUD drain bars.</summary>
+        public float WindowDuration => activeWindow;
+
+        /// <summary>Raised when the final attack of the chain starts — the full combo went through.</summary>
+        public event Action ChainCompleted;
+
+        /// <summary>Raised when the window lapses mid-chain. Not raised by a manual <see cref="Reset"/>.</summary>
+        public event Action ChainDropped;
+
         /// <summary>Call when an attack actually starts. Advances the cursor and arms the window.</summary>
         public IAttackDefinition Consume()
         {
@@ -42,6 +51,10 @@ namespace Game.Combat
             activeWindow = Mathf.Max(0f, started.ComboWindowSeconds);
             idleTime = 0f;
             Index = (Index + 1) % sequence.Count;
+
+            if (Index == 0)
+                ChainCompleted?.Invoke();
+
             return started;
         }
 
@@ -56,7 +69,10 @@ namespace Game.Combat
 
             idleTime += deltaTime;
             if (idleTime > activeWindow)
+            {
                 Reset();
+                ChainDropped?.Invoke();
+            }
         }
 
         public void Reset()

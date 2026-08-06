@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M3 revised after playtest — awaiting human re-check before M4
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. You can now move while attacking (55 % speed on punches, 40 % on the kick) and strafe without breaking auto-aim. Judge whether those percentages are right, then the combo rhythm/hitstop as before.
-- **Blocked on:** human re-check of attack mobility
+- **Active milestone:** Diagnostics + combo feedback done (M3c). **M4 (enemies) is the next milestone and has not been started.**
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. **F1** toggles the debug overlay (F2 clears it) — it shows live dash/attack/combo state plus the rolling log. The combo meter sits above the dash pips: bright = that step connected, dim = swung and missed, dark = not thrown. Judge attack mobility (0.55 punches / 0.40 kick) and combo readability, then give the go-ahead for M4.
+- **Blocked on:** human check of attack mobility + combo feedback, then M4 go-ahead
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-06 — M3c: diagnostics + combo feedback
+- Human asked for a logger for errors/warnings and one for combat data, and asked how a player would know they landed a combo. Both delivered; **M4 deliberately not started** so the tooling gets a playtest first (it is what M4's poise/stagger work will be verified through).
+- **Logging** (`Game.Core.Diagnostics`): `GameLog` static hub → filter → N sinks. `RingBufferSink` feeds the in-game overlay, `UnityConsoleSink` mirrors to the Unity console *and therefore Player.log*, so a standalone playtest can be read back afterwards with no extra file plumbing. `LogSettings` SO holds per-category minimum levels so verbosity is data, not code. `GameLogBootstrap` also funnels **Unity's own warnings, errors and uncaught exceptions** into the same stream (with a re-entrancy guard, since our console sink writes through `Debug.Log` and comes straight back) — so the overlay shows real failures, not just messages we remembered to write. A throwing sink can never break gameplay: sink exceptions are swallowed, and there is a test for it.
+- **What combat logs**: attack start (id, step n/N, frame data), HIT (damage — showing base too whenever the modifier pipeline changed it — damage type, poise, knockback, hitstop), whiff (active window closed with nothing in range: the tuning signal for hitbox reach), dash-cancel with the phase it cut, COMBO LANDED with how many steps connected, and combo dropped. M4 should add poise accrual, poise break, stagger apply/expire, armour strip and enemy death.
+- **Debug overlay** (`DebugOverlayView`, F1/F2): IMGUI on purpose — a debug overlay must work in any build without font assets or canvas setup, and must not look like shipping UI. Shows fps, timeScale, dash charges/i-frames, attack phase/hitstop/move multiplier, the combo strip, and the rolling log.
+- **Combo feedback** (`ComboMeterView`, above the dash pips): one chevron per chain step — dark = not thrown, dim = thrown and missed, bright saturated = connected — plus a drain bar for the combo window and a flash when the final step connects. The per-step outcome is tracked in `PlayerAttackController` (`ComboSteps`), so the meter distinguishes *swinging* a combo from *landing* one. New events: `ComboLanded`, `ComboDropped`, `Hit`, `Whiffed`; `ComboTracker` gained `ChainCompleted`/`ChainDropped`/`WindowDuration`.
+- Verified: 182/182 EditMode tests (13 new for the log hub and ring buffer). Live: threw the chain with a deliberate miss on the second swing; step states read Connected/Whiffed/Connected and the log ended with `COMBO LANDED 2/3 steps connected`. Overlay screenshotted rendering in Play Mode.
+- Known issues / TODO next: overlay panel background renders washed out (cosmetic, IMGUI box tint). Combo meter fades out once the chain lapses — intended, but it means it is invisible at rest.
 
 ### 2026-08-06 — M3b: mobile attacks
 - Human verdict on M3: square lands hits and the dummies take damage, but **rooting during attacks felt clunky and unresponsive**. Rooting is reversed.
