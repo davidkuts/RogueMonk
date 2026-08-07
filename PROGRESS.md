@@ -3,9 +3,11 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M7 built and verified — awaiting human playtest before M8
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. **Esc / Start** opens the pause menu (Resume / Restart level / Quit, up-down + Enter or Cross). HP bar sits above the dash pips with a red chip bar showing what the last hit cost. Dying or winning brings up a proper stats screen — **hold** Enter/Cross to run again, or tap **R** to replay the same seed. Then M8: Mixamo models, Animancer playback, toon shader.
-- **Blocked on:** human feel-check of the UI
+- **Active milestone:** M8 partly done — **toon shader + palette + animation playback layer are in; character models need the human**
+- **Next action:** Human, two things only you can do:
+  1. **Download Mixamo clips** (needs an Adobe account). Get one Humanoid character plus: idle, run, dash/roll, 2 punches, 1 kick, hit reaction, death. Export FBX "with skin" for the model and "without skin" for the clips, 30 fps, **no in-place root motion**. Drop them in `Assets/Art/Characters/`, set the rig to **Humanoid**, then assign the clips into `Assets/Settings/Data/Animation/MonkAnimations.asset`. The playback layer picks them up automatically — nothing else to wire.
+  2. **Decide on Animancer** (~$70 Asset Store). I built the free Playables path DESIGN.md allows; Animancer only becomes worth it if clip-level control gets fiddly. CLAUDE.md says no packages without asking, so I have not bought or added anything.
+- **Blocked on:** Mixamo assets + the Animancer decision
 
 ## Milestones
 | # | Milestone | Status |
@@ -18,7 +20,7 @@
 | 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ **done** (human-signed-off 2026-08-07) |
 | 7 | Pause menu, restart, HUD, death screen + stats | ✅ done (pending feel-check) |
-| 8 | Mixamo models + Animancer playback + toon shader pass | ⬜ |
+| 8 | Mixamo models + Animancer playback + toon shader pass | 🔨 toon pass + playback layer done; **models blocked on the human** |
 | 9 | SFX, VFX, rumble, polish | ⬜ |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -30,6 +32,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M8 (part 1): toon shader, palette, code-driven animation playback
+- M8 has three parts and only two were mine to do. **Mixamo models need an Adobe account** and **Animancer is a paid Asset Store package** — CLAUDE.md forbids adding packages without asking, so neither was bought nor downloaded. Everything that does not depend on a purchase or a login is done.
+- **`Monk/Toon` shader** (`Assets/Settings/Shaders/MonkToon.shader`), hand-written URP ShaderLab rather than Flat Kit / Toony Colors Pro 2 (both paid). Four passes: inverted-hull outline, banded forward lit, shadow caster, depth only. Posterises the main light into 3 hard bands with a narrow soft edge, tints shadows instead of crushing them to black (a limited palette goes muddy otherwise), and adds a rim term. Verified: compiles with 0 errors and 0 messages, 4 passes.
+- **Outline width bug caught by screenshotting it**: the shell is widened in view space and multiplied by depth to hold a constant screen thickness, so at the ~13 m camera distance a width of 0.016 expanded capsules by 0.21 world units — characters looked like black blobs. Range capped at 0.008, defaults now 0.0016 environment / 0.0026 characters. Numbers alone would not have caught this.
+- **Six-colour environment palette** (Stone dark/mid/light, warm clay, muted moss, pale bone) plus four character materials, all muted — saturated hues stay reserved for gameplay information per DESIGN.md. Each room template gets a different pairing so the three read as distinct places. Enemy/player materials keep a `_BaseColor` so the existing telegraph, stagger, boss-tint and hit-flash property blocks still work untouched.
+- **Animation playback layer**, the free Playables path DESIGN.md permits: `AnimationSet` (clip data), `ClipPlayer` (two-slot cross-fading Playable graph), `PlayerAnimationDriver` (simulation state → clip). Deliberately one-directional — animation reads gameplay and never drives it, and root motion stays off, so a missing or mis-trimmed clip can change how the game looks but never how it plays. **Everything no-ops safely with no clips assigned**, which is why the gray-box capsules still work today.
+- Verified the graph really drives transforms without needing Mixamo files: generated a clip in code, played it through `ClipPlayer`, and sampled the animated scale at t=0.5 — got exactly the 1.500 the curve specifies.
+- 286/286 tests still pass; build clean.
 
 ### 2026-08-07 — M7: pause menu, HUD, death screen
 - **`GameClock` now solely owns `Time.timeScale`** (Game.Core.Timing). This was the TODO carried since M3. Combat's hitstop used to set the time scale directly; adding a pause menu would have given the value two independent owners, and whichever wrote last would win — unpausing mid-hitstop, or a hitstop ending while paused, would have resumed the game underneath the menu. Pause now outranks freeze, and **a freeze does not tick down while paused**, so a hitstop still owing when the player pauses plays out on resume rather than being eaten. Verified: request a 0.40 s freeze → pause → the remaining time is held exactly → resume leaves `timeScale` at 0 until the owed freeze finishes.

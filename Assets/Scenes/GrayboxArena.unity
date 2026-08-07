@@ -2805,7 +2805,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: d5f5a10bcbb0d8d45b2735704e250dc5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5106,6 +5106,8 @@ GameObject:
   - component: {fileID: 1949805136}
   - component: {fileID: 1949805135}
   - component: {fileID: 1949805137}
+  - component: {fileID: 1949805139}
+  - component: {fileID: 1949805138}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -5277,6 +5279,37 @@ MonoBehaviour:
   motor: {fileID: 0}
   hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
   flashIntervalSeconds: 0.08
+--- !u!114 &1949805138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39dc02d4b6d4bcb4893246c5a772801e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.PlayerAnimationDriver
+  animations: {fileID: 11400000, guid: 780d5143516d45c48add9b367d6a3f22, type: 2}
+  player: {fileID: 1949805139}
+  motor: {fileID: 1949805131}
+  attacks: {fileID: 1949805135}
+  health: {fileID: 1949805137}
+  runThreshold: 0.1
+--- !u!114 &1949805139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cfa2eaadb8d6d148ace8389f2c04862, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core::Game.Core.Animation.ClipPlayer
+  animator: {fileID: 0}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

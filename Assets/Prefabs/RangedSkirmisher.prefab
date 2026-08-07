@@ -69,7 +69,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 33a426984bdf455428bbcc8176fa6cea, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -131,6 +131,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyActor
   definition: {fileID: 11400000, guid: 933c7940569efc74ea39e8baec3c39b6, type: 2}
+  telegraphPulseHz: 6
+  telegraphMinIntensity: 0.45
   hitFlashColor: {r: 1, g: 0.95, b: 0.9, a: 1}
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
