@@ -363,6 +363,8 @@ GameObject:
   - component: {fileID: 209475368}
   - component: {fileID: 209475369}
   - component: {fileID: 209475370}
+  - component: {fileID: 209475372}
+  - component: {fileID: 209475371}
   m_Layer: 0
   m_Name: Diagnostics
   m_TagString: Untagged
@@ -463,6 +465,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 926caa2f5d27a604da49837396c29d08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Core::Game.Core.Timing.GameClock
+--- !u!114 &209475371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0aeaf113f47a456498631cbe2301accc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core::Game.Core.Feedback.RumbleDirector
+  intensityScale: 1
+  decayPerSecond: 4
+--- !u!114 &209475372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b397616a1121af408ec1f0e3f44282b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core::Game.Core.Audio.AudioDirector
+  sounds: {fileID: 11400000, guid: 69bde257463bd2648be409d6466bcf9b, type: 2}
+  voiceCount: 12
+  masterVolume: 0.8
 --- !u!1 &261461479
 GameObject:
   m_ObjectHideFlags: 0
@@ -5090,6 +5121,7 @@ GameObject:
   - component: {fileID: 1949805139}
   - component: {fileID: 1949805138}
   - component: {fileID: 1949805140}
+  - component: {fileID: 1949805141}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -5313,6 +5345,30 @@ MonoBehaviour:
   ghostLifetime: 0.28
   ghostColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.55}
   perfectDodgeColor: {r: 1, g: 0.86, b: 0.35, a: 0.85}
+--- !u!114 &1949805141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7cc458dd022e904f9a4523a87a4cbe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.CombatFeedback
+  attacks: {fileID: 1949805135}
+  health: {fileID: 1949805137}
+  motor: {fileID: 1949805131}
+  sparkPrefab: {fileID: 5491846766670523293, guid: 9f5245d3d2804814eb782a9507bd0138, type: 3}
+  sparkPoolSize: 12
+  lightHitColor: {r: 1, g: 0.85, b: 0.45, a: 0.9}
+  heavyHitColor: {r: 1, g: 0.55, b: 0.25, a: 1}
+  heavyHitstopThreshold: 0.08
+  lightRumble: {x: 0.25, y: 0.45}
+  heavyRumble: {x: 0.6, y: 0.8}
+  hurtRumble: {x: 0.7, y: 0.3}
+  perfectDodgeRumble: {x: 0.15, y: 0.7}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

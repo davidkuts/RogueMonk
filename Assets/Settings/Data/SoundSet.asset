@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0c5c27549f9d264bbc4b795529b66c8, type: 3}
+  m_Name: SoundSet
+  m_EditorClassIdentifier: Game.Core::Game.Core.Audio.SoundSet
+  entries:
+  - Sound: 0
+    Clip: {fileID: 8300000, guid: 0cd99a9bc75355042bc51b9e63bcceb2, type: 3}
+    Volume: 0.35
+    PitchVariance: 0.12
+    MinIntervalSeconds: 0.05
+  - Sound: 1
+    Clip: {fileID: 8300000, guid: ae55e2ed3216c2548adc7f29bd662606, type: 3}
+    Volume: 0.65
+    PitchVariance: 0.1
+    MinIntervalSeconds: 0.03
+  - Sound: 2
+    Clip: {fileID: 8300000, guid: 2ec2f842884f62946b1ac3664861e65c, type: 3}
+    Volume: 0.8
+    PitchVariance: 0.08
+    MinIntervalSeconds: 0.05
+  - Sound: 3
+    Clip: {fileID: 8300000, guid: 7d1c289fa786ae04e994930761353cc4, type: 3}
+    Volume: 0.5
+    PitchVariance: 0.1
+    MinIntervalSeconds: 0.08
+  - Sound: 4
+    Clip: {fileID: 8300000, guid: 9f636f94f32a0c44db4cd8e1f411d6bb, type: 3}
+    Volume: 0.75
+    PitchVariance: 0.03
+    MinIntervalSeconds: 0.1
+  - Sound: 5
+    Clip: {fileID: 8300000, guid: fb9570d441d3af940b2bea86740e2edc, type: 3}
+    Volume: 0.6
+    PitchVariance: 0.14
+    MinIntervalSeconds: 0.09
+  - Sound: 6
+    Clip: {fileID: 8300000, guid: bb6a161526dcf9e4ab0da48801ee31ef, type: 3}
+    Volume: 0.75
+    PitchVariance: 0.06
+    MinIntervalSeconds: 0.15
+  - Sound: 7
+    Clip: {fileID: 8300000, guid: 22a921511e8904047bea90b0639b6a64, type: 3}
+    Volume: 0.55
+    PitchVariance: 0
+    MinIntervalSeconds: 0.5

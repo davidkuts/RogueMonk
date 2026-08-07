@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M8 built and verified (character animating) — awaiting human playtest before M9
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. The **run now plays in place** (was travelling 3.65 m per cycle). Attacks were confirmed snappy. Watch for: whether the run cycle's speed matches the 6 m/s movement — `runPlaybackSpeed` on the animation set is the dial for foot-sliding — and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
-- **Blocked on:** human feel-check of the character and animation timing
+- **Active milestone:** **M9 built and verified — all 9 MVP milestones are now complete.**
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` for a full playthrough with sound, hit sparks and rumble. **The SFX are synthesised placeholders** — crude on purpose, and swappable by dropping real files over `Assets/Audio/Placeholder/*.wav` or repointing `SoundSet.asset`. Judge the *timing and mix* of the feedback rather than the sounds themselves.
+- **Blocked on:** human feel-check of M9, then a decision about what comes after the MVP
 
 ## Milestones
 | # | Milestone | Status |
@@ -19,7 +19,7 @@
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ **done** (human-signed-off 2026-08-07) |
 | 7 | Pause menu, restart, HUD, death screen + stats | ✅ done (pending feel-check) |
 | 8 | Mixamo models + Animancer playback + toon shader pass | ✅ done (pending feel-check) — Playables instead of Animancer, by decision |
-| 9 | SFX, VFX, rumble, polish | ⬜ |
+| 9 | SFX, VFX, rumble, polish | ✅ done (pending feel-check) — SFX are synthesised placeholders |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -30,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M9: SFX, hit VFX, rumble (MVP complete)
+- **Sound files cannot be authored or downloaded from inside the project**, and silent placeholders would have left the whole audio path unverifiable. So `Assets/Editor/PlaceholderSfxGenerator.cs` **synthesises eight .wav assets** (whiff, light/heavy hit, dash, perfect dodge, enemy death, player hurt, room clear) from envelopes over oscillators and noise. They are deliberately crude and exist to be replaced: the game only ever references them through `SoundSet.asset`, so dropping real files over them changes nothing else. Menu: *Monk / Regenerate Placeholder SFX*.
+- `AudioDirector`: 12-voice pool, per-sound volume/pitch/rate-limit as data. Two decisions worth knowing. **Pitch variation draws from a separate RNG, not the RunContext one** — a seeded run must replay identically, and if cosmetic audio consumed gameplay randomness then simply hearing more hits would change the generated level. And **repeats are rate-limited per sound**, because a wave dying on the same frame otherwise stacks into one loud smear. Sounds are 2D: on a fixed top-down camera, panning by world position is more confusing than helpful.
+- `RumbleDirector`: pulses take the **max rather than summing** (same reasoning as hitstop — a flurry must not build into a permanent buzz), decay on the **unscaled** clock so a hit does not freeze the motors on full for the whole hitstop, and stop on focus loss so the pad cannot be left buzzing on the desktop.
+- `HitSpark` + `Monk/Spark` shader: camera-facing quads that scale and fade, driven on the **unscaled clock** — a spark ticking on the scaled clock would freeze on its first frame for the whole hitstop and then vanish, exactly when it is meant to be selling the hit. First version reused `Monk/Ghost`, whose silhouette-rim shading made a flat quad render as **hard orange squares**; the dedicated shader uses a radial falloff so the quad's own shape never reads.
+- `CombatFeedback` is the single place events become presentation, so the layer stays removable and the simulation never learns about audio. Heavy versus light is derived from the attack's own hitstop rather than a second hand-maintained flag.
+- Verified: all 8 sounds play through the pool; a light hit produces 1 spark and rumble (0.25, 0.45) while a heavy hit produces stronger (0.60, 0.80); a following perfect-dodge request correctly did **not** stack on top. Sparks screenshotted rendering as soft flashes.
+- Known issues / TODO next: no music, no ambience. No enemy hurt sound distinct from death. Sparks are a flat colour rather than per-damage-type — the hook is there via `HitContext.DamageType` when elemental boons arrive.
 
 ### 2026-08-07 — Fix: run animation travelled instead of playing in place
 - Human: the run animation moves the character rather than running in place, and Mixamo does not export it in place by default. **My bug, and my earlier instruction was misleading.**

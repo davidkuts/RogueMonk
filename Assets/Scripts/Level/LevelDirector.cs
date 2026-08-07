@@ -239,6 +239,7 @@ namespace Game.Level
         void OnRoomCleared()
         {
             Run.RecordRoomCleared();
+            Game.Core.Audio.AudioDirector.PlaySound(Game.Core.Audio.GameSound.RoomClear);
 
             // The final room needs no door: clearing it ends the level.
             if (roomIndex >= Plan.RoomCount - 1)
@@ -261,6 +262,8 @@ namespace Game.Level
         {
             if (Run != null)
                 Run.RecordKill();
+
+            Game.Core.Audio.AudioDirector.PlaySound(Game.Core.Audio.GameSound.EnemyDeath);
         }
 
         void OnPlayerDealtDamage(HitContext context)
