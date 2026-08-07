@@ -58,12 +58,105 @@ namespace Game.Level.Tests
         [Test]
         public void RoomCountStaysInsideTheConfiguredRange()
         {
-            var settings = new FakeGenerationSettings { MinRooms = 6, MaxRooms = 7 };
+            var settings = new FakeGenerationSettings { MinStandardRooms = 5, MaxStandardRooms = 6 };
 
             for (uint seed = 1; seed <= 500; seed++)
             {
                 LevelPlan plan = Generate(seed, settings);
                 Assert.That(plan.RoomCount, Is.InRange(6, 7), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void TheBossRoomIsAlwaysLastAndAlwaysExactlyOne()
+        {
+            var settings = new FakeGenerationSettings();
+
+            for (uint seed = 1; seed <= 500; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+
+                int bossCount = 0;
+                foreach (RoomPlan room in plan.Rooms)
+                {
+                    if (room.IsBossRoom)
+                        bossCount++;
+                }
+
+                Assert.That(bossCount, Is.EqualTo(1), $"seed {seed}");
+                Assert.That(plan.FinalRoom.IsBossRoom, Is.True, $"seed {seed}");
+                Assert.That(plan.BossRoomIndex, Is.EqualTo(plan.RoomCount - 1), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void TheBossArrivesAfterTheConfiguredNumberOfOrdinaryRooms()
+        {
+            // The human asked for the boss after 5 rooms; that is what this pins.
+            var settings = new FakeGenerationSettings { MinStandardRooms = 5, MaxStandardRooms = 5 };
+
+            for (uint seed = 1; seed <= 200; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+                Assert.That(plan.RoomCount, Is.EqualTo(6), $"seed {seed}");
+                Assert.That(plan.BossRoomIndex, Is.EqualTo(5), $"seed {seed}");
+
+                for (int r = 0; r < 5; r++)
+                    Assert.That(plan.Rooms[r].Role, Is.EqualTo(RoomRole.Standard), $"seed {seed} room {r}");
+            }
+        }
+
+        [Test]
+        public void OnlyTemplatesThatSupportBossCanHostIt()
+        {
+            var settings = new FakeGenerationSettings
+            {
+                Templates = new List<IRoomTemplate>
+                {
+                    new FakeRoomTemplate { Id = "arena", SpawnPointCount = 6, SupportedRoles = RoomRole.Standard },
+                    new FakeRoomTemplate { Id = "throne", SpawnPointCount = 8, SupportedRoles = RoomRole.Boss },
+                },
+            };
+
+            for (uint seed = 1; seed <= 200; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+                Assert.That(plan.FinalRoom.TemplateId, Is.EqualTo("throne"), $"seed {seed}");
+
+                for (int r = 0; r < plan.RoomCount - 1; r++)
+                    Assert.That(plan.Rooms[r].TemplateId, Is.EqualTo("arena"), $"seed {seed} room {r}");
+            }
+        }
+
+        [Test]
+        public void TheBossRoomFightIsDenserThanAnOrdinaryOne()
+        {
+            var settings = new FakeGenerationSettings { BossBudgetBonus = 6f, BossRoomWaves = 1 };
+            float ordinaryPerWave = 0f, bossPerWave = 0f;
+
+            for (uint seed = 1; seed <= 200; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+                RoomPlan first = plan.Rooms[0];
+                RoomPlan boss = plan.FinalRoom;
+
+                ordinaryPerWave += first.TotalEnemies / (float)first.Waves.Count;
+                bossPerWave += boss.TotalEnemies / (float)boss.Waves.Count;
+            }
+
+            Assert.That(bossPerWave, Is.GreaterThan(ordinaryPerWave));
+        }
+
+        [Test]
+        public void TheBossRoomUsesItsOwnWaveCount()
+        {
+            var settings = new FakeGenerationSettings { BossRoomWaves = 1, MinWavesPerRoom = 3, MaxWavesPerRoom = 3 };
+
+            for (uint seed = 1; seed <= 100; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+                Assert.That(plan.FinalRoom.Waves.Count, Is.EqualTo(1), $"seed {seed}");
+                Assert.That(plan.Rooms[0].Waves.Count, Is.EqualTo(3), $"seed {seed}");
             }
         }
 
@@ -127,19 +220,25 @@ namespace Game.Level.Tests
         [Test]
         public void WavesEscalateAcrossTheLevel()
         {
-            // Later rooms get a bigger budget, so on average they hold more enemies.
-            var settings = new FakeGenerationSettings { MinRooms = 7, MaxRooms = 7, BudgetGrowthPerRoom = 2f };
-            float firstRoomTotal = 0f, lastRoomTotal = 0f;
+            // Later rooms get a bigger budget, so on average they hold more enemies. Compared
+            // between ordinary rooms only, so the boss bonus cannot mask a broken curve.
+            var settings = new FakeGenerationSettings
+            {
+                MinStandardRooms = 6, MaxStandardRooms = 6, BudgetGrowthPerRoom = 2f,
+            };
+            float firstRoomTotal = 0f, lastStandardTotal = 0f;
 
             for (uint seed = 1; seed <= 200; seed++)
             {
                 LevelPlan plan = Generate(seed, settings);
-                firstRoomTotal += plan.Rooms[0].TotalEnemies / (float)plan.Rooms[0].Waves.Count;
-                RoomPlan last = plan.FinalRoom;
-                lastRoomTotal += last.TotalEnemies / (float)last.Waves.Count;
+                RoomPlan first = plan.Rooms[0];
+                RoomPlan lastStandard = plan.Rooms[plan.RoomCount - 2];
+
+                firstRoomTotal += first.TotalEnemies / (float)first.Waves.Count;
+                lastStandardTotal += lastStandard.TotalEnemies / (float)lastStandard.Waves.Count;
             }
 
-            Assert.That(lastRoomTotal, Is.GreaterThan(firstRoomTotal));
+            Assert.That(lastStandardTotal, Is.GreaterThan(firstRoomTotal));
         }
 
         [Test]
@@ -179,15 +278,15 @@ namespace Game.Level.Tests
         }
 
         [Test]
-        public void TheFinalRoomAlwaysUsesATemplateAllowedToBeFinal()
+        public void TheFinalRoomAlwaysUsesABossCapableTemplate()
         {
             var settings = new FakeGenerationSettings
             {
                 Templates = new List<IRoomTemplate>
                 {
-                    new FakeRoomTemplate { Id = "arena", SpawnPointCount = 6, CanBeFinalRoom = false },
-                    new FakeRoomTemplate { Id = "corridor", SpawnPointCount = 4, CanBeFinalRoom = false },
-                    new FakeRoomTemplate { Id = "vault", SpawnPointCount = 5, CanBeFinalRoom = true },
+                    new FakeRoomTemplate { Id = "arena", SpawnPointCount = 6, SupportedRoles = RoomRole.Standard },
+                    new FakeRoomTemplate { Id = "corridor", SpawnPointCount = 4, SupportedRoles = RoomRole.Standard },
+                    new FakeRoomTemplate { Id = "vault", SpawnPointCount = 5, SupportedRoles = RoomRole.Boss },
                 },
             };
 
@@ -235,12 +334,12 @@ namespace Game.Level.Tests
             Assert.That(new LevelGenerator(noArchetypes).CanGenerate(out reason), Is.False);
             Assert.That(reason, Does.Contain("archetype"));
 
-            var noFinal = new FakeGenerationSettings
+            var noBossRoom = new FakeGenerationSettings
             {
-                Templates = new List<IRoomTemplate> { new FakeRoomTemplate { Id = "a", CanBeFinalRoom = false } },
+                Templates = new List<IRoomTemplate> { new FakeRoomTemplate { Id = "a", SupportedRoles = RoomRole.Standard } },
             };
-            Assert.That(new LevelGenerator(noFinal).CanGenerate(out reason), Is.False);
-            Assert.That(reason, Does.Contain("final"));
+            Assert.That(new LevelGenerator(noBossRoom).CanGenerate(out reason), Is.False);
+            Assert.That(reason, Does.Contain("boss"));
 
             Assert.That(new LevelGenerator(new FakeGenerationSettings()).CanGenerate(out reason), Is.True);
             Assert.That(reason, Is.Null);
@@ -292,8 +391,8 @@ namespace Game.Level.Tests
             // expensive enemies.
             var settings = new FakeGenerationSettings
             {
-                MinRooms = 6,
-                MaxRooms = 7,
+                MinStandardRooms = 5,
+                MaxStandardRooms = 6,
                 MaxEnemiesPerWave = 2,
                 BaseWaveBudget = 1f,
                 BudgetGrowthPerRoom = 0f,
@@ -330,7 +429,7 @@ namespace Game.Level.Tests
         [Test]
         public void RejectsARoomWithNoWaves()
         {
-            var plan = new LevelPlan(1u, new List<RoomPlan> { new RoomPlan("arena", 0, new List<WavePlan>()) });
+            var plan = new LevelPlan(1u, new List<RoomPlan> { new RoomPlan("vault", 0, new List<WavePlan>(), RoomRole.Boss) });
             Assert.That(LevelValidator.IsSolvable(plan, null, out string reason), Is.False);
             Assert.That(reason, Does.Contain("no waves"));
         }
@@ -339,7 +438,7 @@ namespace Game.Level.Tests
         public void RejectsAnEmptyWave()
         {
             var waves = new List<WavePlan> { new WavePlan(new List<SpawnAssignment>()) };
-            var plan = new LevelPlan(1u, new List<RoomPlan> { new RoomPlan("arena", 0, waves) });
+            var plan = new LevelPlan(1u, new List<RoomPlan> { new RoomPlan("vault", 0, waves, RoomRole.Boss) });
 
             Assert.That(LevelValidator.IsSolvable(plan, null, out string reason), Is.False);
             Assert.That(reason, Does.Contain("clear itself"));
@@ -355,7 +454,7 @@ namespace Game.Level.Tests
             };
             var plan = new LevelPlan(1u, new List<RoomPlan>
             {
-                new RoomPlan("arena", 0, new List<WavePlan> { new WavePlan(spawns) }),
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
             });
 
             Assert.That(LevelValidator.IsSolvable(plan, null, out string reason), Is.False);
@@ -365,11 +464,11 @@ namespace Game.Level.Tests
         [Test]
         public void RejectsAnUnknownArchetype()
         {
-            var settings = new FakeGenerationSettings { MinRooms = 1, MaxRooms = 1 };
+            var settings = new FakeGenerationSettings { MinStandardRooms = 0, MaxStandardRooms = 0 };
             var spawns = new List<SpawnAssignment> { new SpawnAssignment("dragon", 0) };
             var plan = new LevelPlan(1u, new List<RoomPlan>
             {
-                new RoomPlan("arena", 0, new List<WavePlan> { new WavePlan(spawns) }),
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
             });
 
             Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);
@@ -379,11 +478,11 @@ namespace Game.Level.Tests
         [Test]
         public void RejectsASpawnPointTheTemplateDoesNotHave()
         {
-            var settings = new FakeGenerationSettings { MinRooms = 1, MaxRooms = 1 };
+            var settings = new FakeGenerationSettings { MinStandardRooms = 0, MaxStandardRooms = 0 };
             var spawns = new List<SpawnAssignment> { new SpawnAssignment("melee", 99) };
             var plan = new LevelPlan(1u, new List<RoomPlan>
             {
-                new RoomPlan("arena", 0, new List<WavePlan> { new WavePlan(spawns) }),
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
             });
 
             Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);

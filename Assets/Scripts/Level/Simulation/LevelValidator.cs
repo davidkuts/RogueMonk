@@ -34,6 +34,27 @@ namespace Game.Level
                 return false;
             }
 
+            // Exactly one boss room, and it must be last — otherwise the level either has no
+            // climax or ends on an ordinary fight.
+            int bossCount = 0;
+            for (int i = 0; i < plan.Rooms.Count; i++)
+            {
+                if (plan.Rooms[i].IsBossRoom)
+                    bossCount++;
+            }
+
+            if (bossCount != 1)
+            {
+                reason = $"level has {bossCount} boss rooms, expected exactly 1";
+                return false;
+            }
+
+            if (!plan.FinalRoom.IsBossRoom)
+            {
+                reason = "the boss room is not the last room";
+                return false;
+            }
+
             var templatesById = BuildTemplateLookup(settings);
             var archetypeIds = BuildArchetypeLookup(settings);
 
@@ -54,9 +75,9 @@ namespace Game.Level
                     return false;
                 }
 
-                if (template != null && r == plan.Rooms.Count - 1 && !template.CanBeFinalRoom)
+                if (template != null && (template.SupportedRoles & room.Role) == 0)
                 {
-                    reason = $"final room uses template '{room.TemplateId}', which is not allowed to be final";
+                    reason = $"room {r} is {room.Role} but template '{room.TemplateId}' only supports {template.SupportedRoles}";
                     return false;
                 }
 

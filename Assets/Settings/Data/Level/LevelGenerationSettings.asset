@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb58dc4eb3914024cb23456eac1846d8, type: 3}
   m_Name: LevelGenerationSettings
   m_EditorClassIdentifier: Game.Level::Game.Level.LevelGenerationSettings
-  minRooms: 6
-  maxRooms: 7
+  minStandardRooms: 5
+  maxStandardRooms: 5
   minWavesPerRoom: 1
   maxWavesPerRoom: 3
+  bossRoomWaves: 1
+  bossBudgetBonus: 3
   baseWaveBudget: 3
   budgetGrowthPerRoom: 1.2
   maxEnemiesPerWave: 5

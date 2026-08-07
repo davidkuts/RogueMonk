@@ -13,13 +13,13 @@ namespace Game.Level
         RoomInstance prefab;
         [SerializeField, Tooltip("Relative likelihood of being picked. 0 excludes it entirely.")]
         float selectionWeight = 1f;
-        [SerializeField, Tooltip("May this room be the last one in a level?")]
-        bool canBeFinalRoom = true;
+        [SerializeField, Tooltip("Which roles this authored room can serve. The boss room is always last and always exactly one per level.")]
+        RoomRole supportedRoles = RoomRole.Standard;
 
         public string Id => name;
         public RoomInstance Prefab => prefab;
         public float SelectionWeight => selectionWeight;
-        public bool CanBeFinalRoom => canBeFinalRoom;
+        public RoomRole SupportedRoles => supportedRoles;
 
         /// <summary>
         /// Read off the prefab rather than typed in, so the generator can never disagree with

@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Level::Game.Level.RoomTemplateDefinition
   prefab: {fileID: 776046015966253995, guid: d627b21914a23714f8901b33dde6c90f, type: 3}
   selectionWeight: 1
-  canBeFinalRoom: 1
+  supportedRoles: 2

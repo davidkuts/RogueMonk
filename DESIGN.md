@@ -61,6 +61,8 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 
 ### Level structure
 - **6–7 rooms per level**, hand-authored room prefabs (8–12 templates) with tagged spawn points; randomize room selection, order, spawn population. NO fully-procedural geometry.
+- **Rooms are discrete, Hades-style** (decided 2026-08-07): one room exists at a time and the exit door swaps it for the next — the player does not walk through connected geometry. This is what makes per-room camera confinement and per-room NavMesh baking work.
+- **The last room is a boss room** (decided 2026-08-07): 5 ordinary rooms, then the boss. It is appended rather than drawn, so it is always last. Boss mechanics are not in the MVP yet; the room is signalled by tint, banner and an advance warning.
 - **Wave spawns** within rooms
 - Doors gate until room cleared; level complete when final room cleared
 - NavMesh baked per room prefab offline

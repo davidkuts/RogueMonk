@@ -51,6 +51,15 @@ namespace Game.Level
         /// <summary>Raised when the final room is cleared.</summary>
         public event Action LevelCompleted;
 
+        /// <summary>Raised as each room is built, so UI can announce it.</summary>
+        public event Action<RoomPlan> RoomEntered;
+
+        /// <summary>True once the player is standing in the boss room.</summary>
+        public bool InBossRoom => Plan != null && roomIndex >= 0 && roomIndex < Plan.RoomCount && Plan.Rooms[roomIndex].IsBossRoom;
+
+        /// <summary>True when clearing the current room opens the door to the boss.</summary>
+        public bool BossRoomIsNext => Plan != null && roomIndex >= 0 && roomIndex + 1 < Plan.RoomCount && Plan.Rooms[roomIndex + 1].IsBossRoom;
+
         /// <summary>True once the level is won. Stops the director doing anything further.</summary>
         public bool IsComplete { get; private set; }
 
@@ -206,8 +215,11 @@ namespace Game.Level
             }
 
             currentRoom = Instantiate(template.Prefab, Vector3.zero, Quaternion.identity);
-            currentRoom.name = $"Room_{roomIndex + 1}_{roomPlan.TemplateId}";
+            currentRoom.name = $"Room_{roomIndex + 1}_{roomPlan.TemplateId}{(roomPlan.IsBossRoom ? "_BOSS" : string.Empty)}";
             currentRoom.ExitReached += OnExitReached;
+            currentRoom.ApplyRole(roomPlan.Role);
+
+            RoomEntered?.Invoke(roomPlan);
 
             MovePlayerTo(currentRoom.EntryPoint);
             ApplyCameraBounds(currentRoom);

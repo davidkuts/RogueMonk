@@ -8,11 +8,17 @@ namespace Game.Level
     public sealed class LevelGenerationSettings : ScriptableObject, ILevelGenerationSettings
     {
         [Header("Shape")]
-        [SerializeField, Tooltip("DESIGN.md: 6-7 rooms per level.")]
-        int minRooms = 6;
-        [SerializeField] int maxRooms = 7;
+        [SerializeField, Tooltip("Ordinary fight rooms before the boss. The boss room is appended on top, so 5 here means the boss is the 6th room.")]
+        int minStandardRooms = 5;
+        [SerializeField] int maxStandardRooms = 5;
         [SerializeField] int minWavesPerRoom = 1;
         [SerializeField] int maxWavesPerRoom = 3;
+
+        [Header("Boss room")]
+        [SerializeField, Tooltip("Waves in the boss room. One placeholder wave until real boss mechanics exist.")]
+        int bossRoomWaves = 1;
+        [SerializeField, Tooltip("Extra budget the boss room gets, so the placeholder fight is denser than an ordinary room.")]
+        float bossBudgetBonus = 3f;
 
         [Header("Difficulty")]
         [SerializeField, Tooltip("Spend budget for the first room's waves.")]
@@ -31,8 +37,15 @@ namespace Game.Level
         readonly List<IRoomTemplate> templateView = new List<IRoomTemplate>();
         readonly List<IEnemyArchetype> archetypeView = new List<IEnemyArchetype>();
 
-        public int MinRooms => minRooms;
-        public int MaxRooms => maxRooms;
+        public int MinStandardRooms => minStandardRooms;
+        public int MaxStandardRooms => maxStandardRooms;
+
+        // Totals include the appended boss room.
+        public int MinRooms => minStandardRooms + 1;
+        public int MaxRooms => maxStandardRooms + 1;
+
+        public int BossRoomWaves => bossRoomWaves;
+        public float BossBudgetBonus => bossBudgetBonus;
         public int MinWavesPerRoom => minWavesPerRoom;
         public int MaxWavesPerRoom => maxWavesPerRoom;
         public float BaseWaveBudget => baseWaveBudget;

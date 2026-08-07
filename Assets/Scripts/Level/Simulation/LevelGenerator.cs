@@ -45,29 +45,29 @@ namespace Game.Level
                 return false;
             }
 
-            bool anyUsableTemplate = false;
-            bool anyFinalRoom = false;
+            bool anyStandardRoom = false;
+            bool anyBossRoom = false;
             for (int i = 0; i < settings.Templates.Count; i++)
             {
                 IRoomTemplate template = settings.Templates[i];
-                if (template == null || template.SelectionWeight <= 0f)
+                if (template == null || template.SelectionWeight <= 0f || template.SpawnPointCount <= 0)
                     continue;
 
-                if (template.SpawnPointCount > 0)
-                    anyUsableTemplate = true;
-                if (template.CanBeFinalRoom)
-                    anyFinalRoom = true;
+                if ((template.SupportedRoles & RoomRole.Standard) != 0)
+                    anyStandardRoom = true;
+                if ((template.SupportedRoles & RoomRole.Boss) != 0)
+                    anyBossRoom = true;
             }
 
-            if (!anyUsableTemplate)
+            if (!anyStandardRoom)
             {
-                reason = "no template has both positive weight and at least one spawn point";
+                reason = "no template can host a standard room with positive weight and at least one spawn point";
                 return false;
             }
 
-            if (!anyFinalRoom)
+            if (!anyBossRoom)
             {
-                reason = "no template is allowed to be the final room";
+                reason = "no template can host the boss room";
                 return false;
             }
 
@@ -94,38 +94,46 @@ namespace Game.Level
         public LevelPlan Generate(RunContext run)
         {
             IRandomSource random = run.Random;
-            int roomCount = random.NextInt(
-                Mathf.Max(1, settings.MinRooms),
-                Mathf.Max(1, settings.MaxRooms) + 1);
 
-            var rooms = new List<RoomPlan>(roomCount);
+            // The boss room is appended, not drawn: the player must always face it last, and
+            // always after the same number of ordinary rooms.
+            int standardRooms = random.NextInt(
+                Mathf.Max(1, settings.MinStandardRooms),
+                Mathf.Max(1, settings.MaxStandardRooms) + 1);
+
+            var rooms = new List<RoomPlan>(standardRooms + 1);
             IRoomTemplate previous = null;
 
-            for (int index = 0; index < roomCount; index++)
+            for (int index = 0; index < standardRooms; index++)
             {
-                bool isFinal = index == roomCount - 1;
-                IRoomTemplate template = PickTemplate(random, previous, isFinal);
+                IRoomTemplate template = PickTemplate(random, previous, RoomRole.Standard);
                 previous = template;
-
-                rooms.Add(new RoomPlan(template.Id, index, BuildWaves(random, template, index)));
+                rooms.Add(new RoomPlan(template.Id, index, BuildWaves(random, template, index), RoomRole.Standard));
             }
+
+            IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
+            rooms.Add(new RoomPlan(
+                bossTemplate.Id,
+                standardRooms,
+                BuildBossWaves(random, bossTemplate, standardRooms),
+                RoomRole.Boss));
 
             return new LevelPlan(run.Seed, rooms);
         }
 
-        IRoomTemplate PickTemplate(IRandomSource random, IRoomTemplate previous, bool mustAllowFinal)
+        IRoomTemplate PickTemplate(IRandomSource random, IRoomTemplate previous, RoomRole role)
         {
-            IRoomTemplate picked = TryPickTemplate(random, previous, mustAllowFinal);
+            IRoomTemplate picked = TryPickTemplate(random, previous, role);
 
             // Relax the no-repeats rule rather than fail: with a small template set it can be
             // impossible to satisfy, and a repeated room beats no level at all.
             if (picked == null)
-                picked = TryPickTemplate(random, null, mustAllowFinal);
+                picked = TryPickTemplate(random, null, role);
 
             return picked;
         }
 
-        IRoomTemplate TryPickTemplate(IRandomSource random, IRoomTemplate exclude, bool mustAllowFinal)
+        IRoomTemplate TryPickTemplate(IRandomSource random, IRoomTemplate exclude, RoomRole role)
         {
             weightScratch.Clear();
             IReadOnlyList<IRoomTemplate> templates = settings.Templates;
@@ -136,7 +144,7 @@ namespace Game.Level
                 bool usable = template != null
                               && template.SelectionWeight > 0f
                               && template.SpawnPointCount > 0
-                              && (!mustAllowFinal || template.CanBeFinalRoom)
+                              && (template.SupportedRoles & role) != 0
                               && (settings.AllowConsecutiveRepeats || exclude == null || template.Id != exclude.Id);
 
                 weightScratch.Add(usable ? template.SelectionWeight : 0f);
@@ -144,6 +152,25 @@ namespace Game.Level
 
             int index = random.PickWeighted(weightScratch);
             return index >= 0 ? templates[index] : null;
+        }
+
+        /// <summary>
+        /// The boss room's fight. Deliberately a single wave: until a real boss exists this is
+        /// a placeholder encounter, and one dense wave reads as "the fight" far better than a
+        /// trickle of ordinary waves would.
+        /// </summary>
+        List<WavePlan> BuildBossWaves(IRandomSource random, IRoomTemplate template, int roomIndex)
+        {
+            int waveCount = Mathf.Max(1, settings.BossRoomWaves);
+            float budget = settings.BaseWaveBudget
+                           + settings.BudgetGrowthPerRoom * roomIndex
+                           + settings.BossBudgetBonus;
+
+            var waves = new List<WavePlan>(waveCount);
+            for (int w = 0; w < waveCount; w++)
+                waves.Add(BuildWave(random, template, budget));
+
+            return waves;
         }
 
         List<WavePlan> BuildWaves(IRandomSource random, IRoomTemplate template, int roomIndex)

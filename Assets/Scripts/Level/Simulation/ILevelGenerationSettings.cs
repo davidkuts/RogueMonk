@@ -13,8 +13,8 @@ namespace Game.Level
         /// <summary>Relative likelihood of being picked. Zero excludes the template.</summary>
         float SelectionWeight { get; }
 
-        /// <summary>True if this template may be used as the level's final room.</summary>
-        bool CanBeFinalRoom { get; }
+        /// <summary>Roles this authored room is suitable for.</summary>
+        RoomRole SupportedRoles { get; }
     }
 
     /// <summary>An enemy archetype as the generator sees it.</summary>
@@ -32,8 +32,19 @@ namespace Game.Level
     /// <summary>Tuning for level generation. All values are data (CLAUDE.md hard rule 2).</summary>
     public interface ILevelGenerationSettings
     {
+        /// <summary>Ordinary fight rooms before the boss.</summary>
+        int MinStandardRooms { get; }
+        int MaxStandardRooms { get; }
+
+        /// <summary>Total rooms including the boss room, which is always appended last.</summary>
         int MinRooms { get; }
         int MaxRooms { get; }
+
+        /// <summary>Waves in the boss room. One placeholder wave until boss mechanics exist.</summary>
+        int BossRoomWaves { get; }
+
+        /// <summary>Extra budget the boss room gets on top of normal escalation.</summary>
+        float BossBudgetBonus { get; }
 
         int MinWavesPerRoom { get; }
         int MaxWavesPerRoom { get; }

@@ -50,7 +50,50 @@ namespace Game.Level
         /// <summary>Raised when the player touches the exit trigger of a cleared room.</summary>
         public event Action ExitReached;
 
+        [Header("Boss signalling")]
+        [SerializeField, Tooltip("Tint applied to the room's geometry when it hosts the boss, so the space itself reads as different before anything attacks.")]
+        Color bossTint = new Color(0.42f, 0.16f, 0.22f);
+        [SerializeField, Tooltip("Optional object enabled only in the boss room.")]
+        GameObject bossMarker;
+
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        /// <summary>What this room is being used for this run.</summary>
+        public RoomRole Role { get; private set; } = RoomRole.Standard;
+
         void Awake() => SetDoorOpen(false);
+
+        /// <summary>
+        /// Applies the room's role. For the boss room this is the only thing distinguishing it
+        /// until real mechanics exist, so it deliberately changes the whole space rather than
+        /// adding a small badge.
+        /// </summary>
+        public void ApplyRole(RoomRole role)
+        {
+            Role = role;
+
+            if (bossMarker != null)
+                bossMarker.SetActive(role == RoomRole.Boss);
+
+            if (role != RoomRole.Boss)
+                return;
+
+            var block = new MaterialPropertyBlock();
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
+            {
+                if (renderer == null)
+                    continue;
+
+                renderer.GetPropertyBlock(block);
+                Material material = renderer.sharedMaterial;
+                Color baseColor = material != null && material.HasProperty(BaseColorId)
+                    ? material.GetColor(BaseColorId)
+                    : Color.white;
+
+                block.SetColor(BaseColorId, Color.Lerp(baseColor, bossTint, 0.75f));
+                renderer.SetPropertyBlock(block);
+            }
+        }
 
         public Transform GetSpawnPoint(int index)
         {

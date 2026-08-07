@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M6 fixed after playtest — **blocked on a design decision about the room concept** before M7
-- **Next action:** Human: (1) run `Builds/Win64/RogueMonk.exe` and confirm the camera follows properly again and that death/victory now read clearly (R or Start restarts, T replays the same seed). (2) Answer the room-concept question: discrete rooms swapped at a door (current, Hades-like) versus physically connected rooms you walk between.
-- **Blocked on:** room-concept decision + camera re-check
+- **Active milestone:** M6 complete with boss room — awaiting human playtest before M7
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and play a full level. 5 ordinary rooms then a **boss room** (red-tinted Vault, banner on entry, "the next door leads to the boss" warning the room before). Confirm the camera follows properly again and that death/victory read clearly (R or Start restarts, T replays the same seed). Then M7: pause menu, HUD, proper death screen.
+- **Blocked on:** human feel-check of the full level flow
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Boss room (signalled, no mechanics)
+- **Room concept decided by the human: Hades-like discrete rooms stay.** One room exists at a time, the exit door swaps it for the next. Connected/walkable rooms were considered and rejected. Recorded here because it settles a question DESIGN.md left open, and it is what justifies per-room camera confinement and the future per-room NavMesh bake.
+- Level shape is now **5 ordinary rooms then a boss room**. The boss room is *appended*, never drawn, so the player always faces it last after the same number of ordinary rooms. `RoomRole` (flags: Standard/Boss) replaces the old `CanBeFinalRoom` bool; templates declare which roles they can host, and the Vault is now boss-only.
+- Boss signalling, since mechanics are explicitly out of scope: the whole room is tinted red on entry (`RoomInstance.ApplyRole` — the space itself reads different before anything attacks), a `BOSS ROOM` banner with "placeholder encounter - no boss mechanics yet", a **"the next door leads to the boss"** warning on the room before, distinct log lines, and `_BOSS` in the room object's name.
+- The boss room gets **one dense wave** (`BossRoomWaves` 1, `BossBudgetBonus` 3) rather than a trickle of ordinary waves — one wave reads as "the fight". Placeholder until a real boss exists.
+- Verified: 286/286 EditMode tests (6 new pinning boss-last, exactly-one-boss, boss-after-5, boss-only templates, denser boss wave, own wave count). Soaked **1000 seeds against the real content assets** (not just the test fakes): 0 unsolvable, boss always last at index 5. A build generates 6 rooms / ~29 enemies with no exceptions.
+- Side effect worth noting: total enemies per level dropped from 45–62 to ~29, because standard rooms are capped at 5 and the boss room is a single wave. That is closer to a playtestable run length.
 
 ### 2026-08-07 — M6 fixes: camera confiner bug, death/victory feedback
 - **Camera confiner was broken, and it was my bug.** I confined the camera to the *room's* volume. A top-down camera sits ~13 m above and 10 m behind the room, i.e. entirely outside that box, so Cinemachine clamped it to the nearest face every frame and it stopped following. The confiner volume is now derived: the room's play area pushed into camera space by the vcam's follow offset, and 30 m tall so the camera's height is comfortably inside. Verified: player at x=6.0 → camera at x=3.5, clamping only at the room edge as intended. `confinerMargin` on the LevelDirector is the follow-versus-see-past-the-walls knob (now 2.5/1.0; set 0 for the fully unconfined feel).

@@ -50,7 +50,8 @@ namespace Game.Level
         public void Begin()
         {
             GameLog.Info(LogCategory.Level,
-                $"ROOM {plan.Index + 1} start  template {plan.TemplateId}  {plan.Waves.Count} wave(s), {plan.TotalEnemies} enemies");
+                $"{(plan.IsBossRoom ? "BOSS ROOM" : "ROOM")} {plan.Index + 1} start  template {plan.TemplateId}  " +
+                $"{plan.Waves.Count} wave(s), {plan.TotalEnemies} enemies");
             room.SetDoorOpen(false);
             AdvanceWave();
         }
@@ -63,7 +64,10 @@ namespace Game.Level
             {
                 IsCleared = true;
                 room.SetDoorOpen(true);
-                GameLog.Info(LogCategory.Level, $"ROOM {plan.Index + 1} CLEARED - door open");
+                GameLog.Info(LogCategory.Level,
+                    plan.IsBossRoom
+                        ? $"BOSS ROOM {plan.Index + 1} CLEARED"
+                        : $"ROOM {plan.Index + 1} CLEARED - door open");
                 Cleared?.Invoke();
                 return;
             }

@@ -35,14 +35,20 @@ namespace Game.Level
     /// <summary>One room in the level: which template to build, and what fights happen in it.</summary>
     public sealed class RoomPlan
     {
-        public RoomPlan(string templateId, int index, IReadOnlyList<WavePlan> waves)
+        public RoomPlan(string templateId, int index, IReadOnlyList<WavePlan> waves, RoomRole role = RoomRole.Standard)
         {
             TemplateId = templateId;
             Index = index;
             Waves = waves ?? new List<WavePlan>();
+            Role = role;
         }
 
         public string TemplateId { get; }
+
+        /// <summary>What this room is for. Exactly one room per level is <see cref="RoomRole.Boss"/>.</summary>
+        public RoomRole Role { get; }
+
+        public bool IsBossRoom => Role == RoomRole.Boss;
 
         /// <summary>Position in the level, zero-based.</summary>
         public int Index { get; }
@@ -82,6 +88,21 @@ namespace Game.Level
         public int RoomCount => Rooms.Count;
 
         public RoomPlan FinalRoom => Rooms.Count > 0 ? Rooms[Rooms.Count - 1] : null;
+
+        /// <summary>Zero-based index of the boss room, or -1 if there somehow isn't one.</summary>
+        public int BossRoomIndex
+        {
+            get
+            {
+                for (int i = 0; i < Rooms.Count; i++)
+                {
+                    if (Rooms[i].IsBossRoom)
+                        return i;
+                }
+
+                return -1;
+            }
+        }
 
         public int TotalEnemies
         {
