@@ -81,10 +81,12 @@ namespace Game.UI
 
         void OnGUI()
         {
+            EnsureStyles();
+            DrawClearedHint();
+
             if (remaining <= 0f || string.IsNullOrEmpty(bannerText))
                 return;
 
-            EnsureStyles();
 
             float alpha = fadeSeconds > 0f ? Mathf.Clamp01(remaining / fadeSeconds) : 1f;
             Color previous = GUI.color;
@@ -98,6 +100,27 @@ namespace Game.UI
             if (!string.IsNullOrEmpty(subText))
                 GUI.Label(new Rect(0f, rect.y + 42f, Screen.width, 24f), subText, subStyle);
 
+            GUI.color = previous;
+        }
+
+        /// <summary>
+        /// Stays on screen for as long as a cleared room has not been left. Without it the only
+        /// sign the door had opened was the blocker vanishing at the far end of the room, which
+        /// is easy to miss and left the player believing they were stuck.
+        /// </summary>
+        void DrawClearedHint()
+        {
+            if (director == null || director.CurrentRoom == null || !director.CurrentRoom.IsCleared || director.IsComplete)
+                return;
+
+            Color previous = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, 0.75f + Mathf.PingPong(Time.unscaledTime * 0.6f, 0.25f));
+
+            string message = director.BossRoomIsNext
+                ? "ROOM CLEAR  -  the door ahead leads to the BOSS"
+                : "ROOM CLEAR  -  head through the open door";
+
+            GUI.Label(new Rect(0f, Screen.height - 64f, Screen.width, 26f), message, subStyle);
             GUI.color = previous;
         }
 

@@ -145,6 +145,11 @@ namespace Game.Level
         {
             if (Run != null)
                 Run.Tick(Time.deltaTime);
+
+            // Cheap safety net against a room that can never be cleared because an enemy left
+            // the alive list by some route other than dying.
+            if (currentRunner != null && !currentRunner.IsCleared && currentRunner.AliveCount > 0)
+                currentRunner.PruneAndCheckCleared();
         }
 
         public void BeginRun(uint seed)
@@ -240,6 +245,16 @@ namespace Game.Level
         }
 
         void OnExitReached() => AdvanceRoom();
+
+        /// <summary>Debug aid: jump straight to the next room, cleared or not.</summary>
+        public void SkipToNextRoom()
+        {
+            if (Plan == null || IsComplete)
+                return;
+
+            GameLog.Warn(LogCategory.Level, $"DEBUG: skipping from room {roomIndex + 1}");
+            AdvanceRoom();
+        }
 
         void OnEnemyKilled()
         {

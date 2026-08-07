@@ -119,6 +119,21 @@ namespace Game.Level
         {
             alive.Remove(actor);
             EnemyKilled?.Invoke();
+            PruneAndCheckCleared();
+        }
+
+        /// <summary>
+        /// Drops anything destroyed or dead that never raised its event, then advances if the
+        /// wave is empty. Insurance: without it, one enemy removed by any route other than its
+        /// own Died event would lock the room shut forever.
+        /// </summary>
+        public void PruneAndCheckCleared()
+        {
+            for (int i = alive.Count - 1; i >= 0; i--)
+            {
+                if (alive[i] == null || !alive[i].IsAlive)
+                    alive.RemoveAt(i);
+            }
 
             if (alive.Count == 0 && !IsCleared)
                 AdvanceWave();

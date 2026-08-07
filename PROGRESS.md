@@ -31,6 +31,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Known issues / TODO next: ...
 -->
 
+### 2026-08-07 — Fix: stuck in a cleared room
+- Human: got stuck in room 1 after clearing it; the debug clear-room button appeared to do nothing; a later attempt advanced "after a long time".
+- **Root cause: `OnTriggerEnter` never fires for an overlap that already existed when the collider was enabled.** The exit trigger is disabled until the room is cleared, so killing the last enemy while standing in the doorway enabled the collider underneath the player and produced no event. The player had to wander out and back in — exactly the "took a long time" symptom. Trigger geometry was checked first and was fine (1.15 m of reachable overlap), so this was not a sizing problem.
+- Fix: `RoomExitTrigger` now also checks containment every frame while enabled, using `Collider.ClosestPoint` (which returns the query point itself when inside), guarded on `volume.enabled` since a disabled collider returns the point too. Enter events still work; this only closes the already-overlapping hole. Verified by parking the player inside the volume, clearing the room, and watching it advance **without the player moving at all**.
+- The clear-room button "doing nothing" was the same bug plus a second one: pressing it in an already-cleared room hit an early return. It now skips to the next room instead, so the button always does something visible.
+- Added two defences against a room ever hanging again: `RoomRunner.PruneAndCheckCleared` drops enemies that left the alive list by any route other than their own death event, and `LevelDirector` calls it each frame while a room has survivors.
+- Added a persistent **"ROOM CLEAR - head through the open door"** hint (and a boss variant) that stays up until the room is left. Previously the only sign the door had opened was a blocker vanishing at the far end of the room.
+
 ### 2026-08-07 — Dash phases through enemies (M6 closed)
 - Human: "it feels nice for the beginning few levels", one addition — the dash should pass through enemies. Done, and **M6 is signed off**.
 - Implemented with `CharacterController.excludeLayers` rather than `Physics.IgnoreLayerCollision` (global state that would leak across the whole project) or per-collider `IgnoreCollision` (needs bookkeeping for every enemy that spawns or dies mid-dash). The mask is **recomputed every frame from the dash state instead of toggled on start/end events**, so it is self-healing: a cancelled or interrupted dash can never strand the player permanently phased through enemies.

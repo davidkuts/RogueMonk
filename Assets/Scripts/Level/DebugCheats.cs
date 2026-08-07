@@ -33,7 +33,17 @@ namespace Game.Level
             if (director == null || director.CurrentRoom == null)
                 return;
 
-            if (WasClearPressed())
+            if (!WasClearPressed())
+                return;
+
+            // Pressing it again in an already-cleared room used to do nothing at all, which
+            // read as the button being broken. Now it moves you on.
+            if (director.CurrentRoom.IsCleared)
+            {
+                GameLog.Warn(LogCategory.Level, "DEBUG: room already cleared - skipping to the next one");
+                director.SkipToNextRoom();
+            }
+            else
             {
                 GameLog.Warn(LogCategory.Level, "DEBUG: clear-room requested");
                 director.CurrentRoom.ForceClear();
