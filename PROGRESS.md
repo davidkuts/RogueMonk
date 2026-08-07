@@ -4,7 +4,7 @@
 
 ## Current status
 - **Active milestone:** M8 built and verified (character animating) — awaiting human playtest before M9
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and check the character. Idle/run loop, the combo plays Punch1 → Punch2 → Kick with **each clip auto-sped to finish exactly as its attack does** (2.55× / 3.50× / 3.23×), and the dash is carried by afterimages rather than a clip. Watch for: whether the sped-up swings read as snappy or frantic — `maxAttackSpeed` on the animation set is the dial — and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. The **run now plays in place** (was travelling 3.65 m per cycle). Attacks were confirmed snappy. Watch for: whether the run cycle's speed matches the 6 m/s movement — `runPlaybackSpeed` on the animation set is the dial for foot-sliding — and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
 - **Blocked on:** human feel-check of the character and animation timing
 
 ## Milestones
@@ -30,6 +30,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Fix: run animation travelled instead of playing in place
+- Human: the run animation moves the character rather than running in place, and Mixamo does not export it in place by default. **My bug, and my earlier instruction was misleading.**
+- The rule with `applyRootMotion = false`: whatever is **baked into the pose is visible**, whatever is **extracted as root motion is discarded**. I set Root Transform Position (XZ) "Bake Into Pose" **on**, which kept the horizontal travel in the body — so the character ran away from its own transform. It must be **off**, so the travel is extracted and then thrown away.
+- Fixed on all seven clips. Y stays baked so the run keeps its vertical bob, and rotation stays baked so a clip that turns the body still reads, while gameplay keeps ownership of facing. **Mixamo's "In Place" export option is not needed** — the importer handles it, which is worth knowing before re-downloading anything.
+- Measured before: the hips travelled **3.65 m across the 0.70 s cycle**. After: hips oscillate within **~0.07 m** across several seconds of continuous running.
+- Two verification traps hit while measuring, both recorded so they are not repeated: `AnimationClip.SampleAnimation` **bypasses the Animator's root-motion extraction**, so it reports the raw travel regardless of import settings and cannot be used to check this; and a `Stopwatch` busy-wait inside one script call blocks the main thread, so no frames elapse and the pose appears frozen. Sampling across separate calls, where real frames pass, is what worked.
 
 ### 2026-08-07 — Clips auto-fitted to frame data (Mixamo clips run slow)
 - Human: "usually on mixamo the animations are slow", judgment call left to me. Chose **auto-fitting playback speed over hand-trimming seven clips** — trimming is manual work that has to be redone whenever frame data is re-tuned, whereas fitting stays correct by construction. Gameplay frame data remains the authority; the animation bends to it, never the reverse.
