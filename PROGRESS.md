@@ -5,7 +5,7 @@
 ## Current status
 - **Active milestone:** M8 partly done — **toon shader + palette + animation playback layer are in; character models need the human**
 - **Next action:** Human, two things only you can do:
-  1. **Download Mixamo clips** (needs an Adobe account). Get one Humanoid character plus: idle, run, dash/roll, 2 punches, 1 kick, hit reaction, death. Export FBX "with skin" for the model and "without skin" for the clips, 30 fps, **no in-place root motion**. Drop them in `Assets/Art/Characters/`, set the rig to **Humanoid**, then assign the clips into `Assets/Settings/Data/Animation/MonkAnimations.asset`. The playback layer picks them up automatically — nothing else to wire.
+  1. **Download Mixamo clips** (needs an Adobe account). Get one Humanoid character plus: idle, run, 2 punches, 1 kick, hit reaction, death. **No dash clip is needed** — the dash is VFX-driven (see the afterimage entry below). Export FBX "with skin" for the model and "without skin" for the clips, 30 fps, **no in-place root motion**. Drop them in `Assets/Art/Characters/`, set the rig to **Humanoid**, then assign the clips into `Assets/Settings/Data/Animation/MonkAnimations.asset`. The playback layer picks them up automatically — nothing else to wire.
   2. **Decide on Animancer** (~$70 Asset Store). I built the free Playables path DESIGN.md allows; Animancer only becomes worth it if clip-level control gets fiddly. CLAUDE.md says no packages without asking, so I have not bought or added anything.
 - **Blocked on:** Mixamo assets + the Animancer decision
 
@@ -32,6 +32,18 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Dash afterimages (the dash needs no clip)
+- Human could not find a dash animation on Mixamo. **There isn't one, and that is the convention rather than a gap**: at 0.18 s the dash is about five frames at 30 fps, so a bespoke clip would be invisible. The genre sells a dash with VFX while the body keeps its current pose. Recorded in DESIGN.md; `AnimationSet.Dash` is now explicitly optional.
+- Built `DashAfterimage`: drops fading ghost copies of the character along the dash path in the reserved dash cyan, matching the HUD pips so the resource and the move read as the same thing. A **perfect dodge recolours the trail gold**, so the refund is visible in the same beat it happens rather than only as a number on the HUD.
+- Works with capsules now and with skinned characters later — a `SkinnedMeshRenderer` is snapshotted with `BakeMesh` at spawn, since a live skinned renderer would keep animating after the ghost is dropped.
+- `Monk/Ghost` shader: unlit, transparent, rim-brightened so a ghost reads as an outline of the body rather than a blob. Deliberately separate from `Monk/Toon` — a ghost must not be lit, outlined or shadowed.
+- Three bugs found and fixed along the way, two of them mine and one in my verification method:
+  1. Read `_GhostColor` from the **GPU instancing buffer** while setting it through a `MaterialPropertyBlock`, so it returned zero alpha and every ghost was invisible. Now a plain material property, the same way the enemy telegraph tint works.
+  2. **Additive blending** washed out completely against the light arena floor. Switched to alpha blending, and the alpha fade was squared, which dropped the trail to nothing almost immediately — now linear.
+  3. My screenshots kept showing no trail because ghosts live 0.32 s and the capture call lands seconds after the spawn call. **The effect had been rendering correctly for at least one of those attempts.** Verified properly by holding the lifetime open, which showed three clean cyan afterimages behind the player.
+- Cleaned up a leftover: `RunOutcomeView` was deleted in M7 but its component was still on the Diagnostics object, logging a missing-script error every load.
+- 286/286 tests, build clean.
 
 ### 2026-08-07 — M8 (part 1): toon shader, palette, code-driven animation playback
 - M8 has three parts and only two were mine to do. **Mixamo models need an Adobe account** and **Animancer is a paid Asset Store package** — CLAUDE.md forbids adding packages without asking, so neither was bought nor downloaded. Everything that does not depend on a purchase or a login is done.

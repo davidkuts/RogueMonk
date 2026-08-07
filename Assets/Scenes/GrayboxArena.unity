@@ -360,7 +360,6 @@ GameObject:
   - component: {fileID: 209475366}
   - component: {fileID: 209475365}
   - component: {fileID: 209475364}
-  - component: {fileID: 209475367}
   - component: {fileID: 209475368}
   - component: {fileID: 209475369}
   - component: {fileID: 209475370}
@@ -419,18 +418,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &209475367
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 209475363}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f97939f19416ae94b9d99ad6c9d48e33, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.UI::Game.UI.RunOutcomeView
 --- !u!114 &209475368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5108,6 +5095,7 @@ GameObject:
   - component: {fileID: 1949805137}
   - component: {fileID: 1949805139}
   - component: {fileID: 1949805138}
+  - component: {fileID: 1949805140}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -5277,6 +5265,7 @@ MonoBehaviour:
   maxHealth: 100
   postHitInvulnerabilitySeconds: 0.5
   motor: {fileID: 0}
+  afterimage: {fileID: 1949805140}
   hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
   flashIntervalSeconds: 0.08
 --- !u!114 &1949805138
@@ -5310,6 +5299,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Core::Game.Core.Animation.ClipPlayer
   animator: {fileID: 0}
+--- !u!114 &1949805140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a4bfaaad94263a43b5ea066c47d3642, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.DashAfterimage
+  motor: {fileID: 1949805131}
+  sources:
+  - {fileID: 930694850}
+  ghostMaterial: {fileID: 2100000, guid: 6152e4ca5a99dbb41a7c7513afbc15f3, type: 2}
+  ghostCount: 6
+  ghostLifetime: 0.28
+  ghostColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.55}
+  perfectDodgeColor: {r: 1, g: 0.86, b: 0.35, a: 0.85}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

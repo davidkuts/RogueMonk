@@ -83,6 +83,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Strict limited palette (~6 environment colors); saturated hues reserved for gameplay info
 - Shader: Flat Kit or Toony Colors Pro 2 (URP)
 - Gray-box (capsules) until milestone 8; animations from Mixamo (Humanoid rig, retargeted to enemies), root motion off, clips trimmed to match frame data
+- **The dash has no animation clip** (decided 2026-08-07). Mixamo has none, and at 0.18 s — about five frames at 30 fps — a bespoke clip would be invisible. Genre convention is to sell a dash with VFX: afterimage ghosts in the reserved dash hue plus a trail, while the body keeps whatever pose it already had. `AnimationSet.Dash` stays optional; assigning a roll or dodge clip is possible but not required.
 - Animation playback: Animancer (preferred) or Playables API — clips driven from code, no Animator Controller graphs
 
 ### UI

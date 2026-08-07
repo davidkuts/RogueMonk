@@ -20,6 +20,8 @@ namespace Game.Combat
         [SerializeField, Tooltip("Mandatory invulnerability after taking a hit (DESIGN.md § Player health).")]
         float postHitInvulnerabilitySeconds = 0.5f;
         [SerializeField] PlayerMotor motor;
+        [SerializeField, Tooltip("Optional. Recoloured on a perfect dodge.")]
+        DashAfterimage afterimage;
 
         [Header("Feedback")]
         [SerializeField] Color hitFlashColor = new Color(1f, 0.3f, 0.3f);
@@ -57,6 +59,8 @@ namespace Game.Combat
         {
             if (motor == null)
                 motor = GetComponent<PlayerMotor>();
+            if (afterimage == null)
+                afterimage = GetComponent<DashAfterimage>();
 
             CurrentHealth = maxHealth;
 
@@ -84,6 +88,12 @@ namespace Game.Combat
                 {
                     GameLog.Info(LogCategory.Combat,
                         $"PERFECT DODGE  {context.Attack.Id} phased through dash i-frames - charge refunded");
+
+                    // Recolour the dash trail in the same beat, so the reward is visible rather
+                    // than only being a number on the HUD.
+                    if (afterimage != null)
+                        afterimage.FlagPerfectDodge();
+
                     PerfectDodged?.Invoke();
                 }
 
