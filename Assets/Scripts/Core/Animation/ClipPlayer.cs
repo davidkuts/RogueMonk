@@ -38,6 +38,9 @@ namespace Game.Core.Animation
         /// <summary>The clip currently being faded to, or null.</summary>
         public AnimationClip CurrentClip { get; private set; }
 
+        /// <summary>Playback speed of the current clip. Exposed for the debug overlay and tests.</summary>
+        public float CurrentSpeed { get; private set; } = 1f;
+
         void Awake()
         {
             if (animator == null)
@@ -75,7 +78,13 @@ namespace Game.Core.Animation
                 return;
 
             if (!restart && CurrentClip == clip)
+            {
+                // Already playing it, but the speed may have changed — the run cycle scales
+                // with movement speed every frame. Update in place rather than restarting,
+                // which would reset the walk cycle continuously.
+                SetSpeed(speed);
                 return;
+            }
 
             int nextSlot = 1 - activeSlot;
             DestroySlot(nextSlot);
@@ -92,12 +101,23 @@ namespace Game.Core.Animation
 
             activeSlot = nextSlot;
             CurrentClip = clip;
+            CurrentSpeed = speed;
             fadeDuration = Mathf.Max(0f, fadeSeconds);
             fadeElapsed = 0f;
             fading = fadeDuration > 0f;
 
             if (!fading)
                 ApplyWeights(1f);
+        }
+
+        /// <summary>Changes the playback speed of whatever is currently playing.</summary>
+        public void SetSpeed(float speed)
+        {
+            if (!IsReady || !slotValid[activeSlot] || !slots[activeSlot].IsValid())
+                return;
+
+            CurrentSpeed = speed;
+            slots[activeSlot].SetSpeed(speed);
         }
 
         void Update()

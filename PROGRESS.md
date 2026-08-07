@@ -4,7 +4,7 @@
 
 ## Current status
 - **Active milestone:** M8 built and verified (character animating) — awaiting human playtest before M9
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and check the character. Idle/run loop, the combo plays Punch1 → Punch2 → Kick, and the dash is carried by afterimages rather than a clip. Watch for: clip lengths versus frame data (Kick is a 2.00 s clip against 0.62 s of frame data, so it will look cut off — clips want trimming, or the frame data wants revisiting), and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and check the character. Idle/run loop, the combo plays Punch1 → Punch2 → Kick with **each clip auto-sped to finish exactly as its attack does** (2.55× / 3.50× / 3.23×), and the dash is carried by afterimages rather than a clip. Watch for: whether the sped-up swings read as snappy or frantic — `maxAttackSpeed` on the animation set is the dial — and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
 - **Blocked on:** human feel-check of the character and animation timing
 
 ## Milestones
@@ -30,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Clips auto-fitted to frame data (Mixamo clips run slow)
+- Human: "usually on mixamo the animations are slow", judgment call left to me. Chose **auto-fitting playback speed over hand-trimming seven clips** — trimming is manual work that has to be redone whenever frame data is re-tuned, whereas fitting stays correct by construction. Gameplay frame data remains the authority; the animation bends to it, never the reverse.
+- `AnimationSet.SpeedToFit` computes clip length ÷ attack length, clamped by `maxAttackSpeed` (3.5) so a wildly long clip cannot become an unreadable twitch. Results: **Punch1 2.55× → 0.34 s, Punch2 3.50× → 0.36 s, Kick 3.23× → 0.62 s**, each matching its attack.
+- Run cycle now scales with actual movement speed (`RunPlaybackSpeed` 1.35 at full speed, so 0.68× at half) so the legs slow with the player instead of sprinting on the spot. Hit reaction and death get a flat 1.4× since they are authored slow too. Idle stays 1×.
+- `ClipPlayer.Play` used to early-return when the requested clip was already playing, which would have discarded every per-frame run-speed change. It now updates the speed in place instead of restarting, so the walk cycle is not reset every frame.
+- Added `ClipPlayer.CurrentSpeed`, exposed for verification and the debug overlay.
+- **Verification note for future sessions**: synthetic `Update` pumping through reflection does *not* advance a `PlayableGraph` — it runs on the real clock (`DirectorUpdateMode.GameTime`). An attempt to measure clip progress by sampling bone poses gave a meaningless result for exactly that reason. The same trap already cost time with dash-ghost lifetimes. Verify Playables by reading state, not by simulating time.
+- Still open: enemies remain capsules. Every clip is Humanoid with a copied avatar, so retargeting onto them is now cheap.
 
 ### 2026-08-07 — Mixamo character wired up and tested (M8 complete)
 - Human supplied `character.fbx` + 7 clips and asked for a test. **Animancer stays unbought** — the Playables path is what ships.
@@ -209,7 +218,7 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
-- **Clip lengths do not match frame data.** Punch1 is a 0.87 s clip against 0.34 s of frame data; Kick is 2.00 s against 0.62 s. The animation is cut off when the attack ends, because gameplay timing wins. DESIGN.md says clips should be "trimmed to match frame data" — either trim them in the importer, or speed each clip to fit its attack automatically. The second is a small change to `PlayerAnimationDriver` and worth doing if hand-trimming seven clips is tedious.
+- (resolved) Clip lengths versus frame data — auto-fitted on 2026-08-07 rather than hand-trimmed. Punch2 hits the 3.5× cap; if the swings read as frantic, lower `maxAttackSpeed` and accept some clip truncation, or lengthen that attack's frame data.
 - Enemies still use capsules; the Mixamo character is player-only so far. Retargeting the same humanoid clips onto them is now cheap, since every clip is Humanoid with a copied avatar.
 - **~45 % of swings whiff, confirmed across two separate sessions** (63/140 then 21/48). Cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Still not changed unilaterally — the human has twice said it feels nice, so this needs an explicit call.
 - **0 perfect dodges across 9 dash-cancels** in the M4 session. The window is dash i-frames (153 ms) strictly overlapping an enemy's 100 ms active frames — possibly too tight to ever hit by accident. Worth deciding whether i-frames should cover the whole dash, or whether the refund should trigger on overlapping the *wind-up* instead.

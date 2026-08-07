@@ -43,7 +43,8 @@ namespace Game.Combat
         {
             if (health != null && !health.IsAlive)
             {
-                player.Play(animations.Death, animations.ActionFadeSeconds, loop: false);
+                player.Play(animations.Death, animations.ActionFadeSeconds, loop: false,
+                    speed: animations.ReactionPlaybackSpeed);
                 return;
             }
 
@@ -54,8 +55,16 @@ namespace Game.Combat
                 AnimationClip clip = ResolveAttackClip();
                 if (clip != null)
                 {
+                    // Compress the clip into the attack's own length, so the swing lands with
+                    // the active frames instead of being cut off part-way through.
+                    IAttackDefinition definition = attacks.Attacks.Current;
+                    float attackSeconds = definition == null
+                        ? 0f
+                        : definition.WindupSeconds + definition.ActiveSeconds + definition.RecoverySeconds;
+
                     bool isNewSwing = clip != lastAttackClip || player.CurrentClip != clip;
-                    player.Play(clip, animations.ActionFadeSeconds, loop: false, restart: isNewSwing);
+                    player.Play(clip, animations.ActionFadeSeconds, loop: false, restart: isNewSwing,
+                        speed: animations.SpeedToFit(clip, attackSeconds));
                     lastAttackClip = clip;
                     return;
                 }
@@ -77,8 +86,17 @@ namespace Game.Combat
                 return;
             }
 
-            bool moving = motor.Locomotion != null && motor.Locomotion.NormalizedSpeed > runThreshold;
-            player.Play(moving ? animations.Run : animations.Idle, animations.LocomotionFadeSeconds);
+            float speed01 = motor.Locomotion != null ? motor.Locomotion.NormalizedSpeed : 0f;
+            bool moving = speed01 > runThreshold;
+
+            // Scale the run cycle with actual speed so the legs slow down when the player does,
+            // instead of sprinting on the spot.
+            float playbackSpeed = moving
+                ? animations.RunPlaybackSpeed * Mathf.Max(0.35f, speed01)
+                : 1f;
+
+            player.Play(moving ? animations.Run : animations.Idle, animations.LocomotionFadeSeconds,
+                speed: playbackSpeed);
         }
 
         /// <summary>Maps the combo step to its clip, falling back to the first attack clip.</summary>
