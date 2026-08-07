@@ -3,9 +3,12 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M11 — fairness and feel pass, built and verified.** Five items from a playtest: punches ignoring the stick, untelegraphed trash attacks, unfair spawns, and an underwhelming perfect-dodge reward.
-- **Next action:** Human: play `Builds/Win64/RogueMonk.exe`. Four things to judge: (1) does a punch now go where the stick points, including straight after a dash; (2) is the grunt's ground telegraph enough to make its lunge dodgeable *by position* rather than by timing; (3) do spawns still feel unfair; (4) **is the perfect-dodge reward now worth it** — focus slow-mo plus a ×2.5 empowered next hit. The focus window (0.6 s at 0.35×) and the empower window (2.5 s) are the two numbers most likely to need tuning.
-- **Blocked on:** human feel-check of the perfect-dodge reward and the grunt telegraph
+- **Active milestone:** **M11.1 — arc hitboxes and the Riposte, built and verified.**
+- **Next action for the human:**
+  1. Play `Builds/Win64/RogueMonk.exe`. Melee attacks are now **pizza-slice arcs** you can step out of sideways, and the decal draws the real wedge.
+  2. **Land a perfect dodge, then press Triangle (or Q).** The prompt appears bottom-centre. The counter does 50 damage in a 180° arc — a whole combo's worth in one press, and it hits everything in front.
+  3. **Optional, and the one thing that needs you:** grab a Mixamo clip for the Riposte. **"Standing Melee Attack 360 High"** or **"Spin Kick"** fit best, because the hitbox is a wide sweep and a spinning animation is honest to it. Drop it in and assign it to `MonkAnimations.asset` → *Riposte*. Until then it falls back to the Kick clip, so the move is never invisible.
+- **Blocked on:** human feel-check of the Riposte and the arc telegraphs
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -25,6 +28,7 @@
 | 10.1 | Boss difficulty: greed punish, floor hazards, leading projectiles, faster cadence | ✅ done (pending feel-check) |
 | 10.2 | Nova frequency, varied cadence, Sunder herding move | ✅ done (pending feel-check) |
 | 11 | Fairness pass: attack aiming, trash telegraphs, spawn grace, perfect-dodge reward | ✅ done (pending feel-check) |
+| 11.1 | Arc (pizza-slice) hitboxes + the Riposte counter-attack on its own button | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -35,6 +39,18 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M11.1: arc hitboxes, and the Riposte replaces the invisible buff
+- **`HitboxKind.Arc` — a pizza slice.** A sphere in front of an attacker punishes standing anywhere near it, which reads as "the attack just happens to you"; a wedge can be stepped out of sideways, so answering a telegraph becomes a decision about where to stand. Converted the grunt's lunge (110°), the boss's Cleave (120°), Cleave2 (140°) and both Sweep links (210° / 240°). Nova stays a full sphere — it genuinely *is* a circle.
+  - The shader clips the wedge in UV space (the quad is oriented so +v runs along facing), so **the decal draws the real hitbox** and the warning stays honest.
+  - The same overlap code existed in four places. Three copies was tolerable; adding a fourth shape kind to four copies is how they drift, so the broad and narrow phases moved into **`HitboxQuery`**. An arc cannot be a Unity collider, so the broad phase is its bounding sphere and `Contains` rejects the rest. 11 tests.
+- **The empowered strike was deleted.** It tested badly for a precise reason the human identified: *"I even put on the headset and never noticed it was different"*. There was no button, no distinct sound, and the same hit spark — the reward existed only in damage numbers nobody was looking at. **A buff the player cannot perceive is not a reward.** Keeping it *and* adding a counter would have muddled one reward into two.
+- **The Riposte** replaces it: a move that does not exist until earned, on its own button (**Triangle / Q**), spent on use. 180° arc, 3.2 m, **50 damage** — a whole 3-hit chain in one press — plus 60 poise damage, 9 knockback and 0.18 s hitstop. It goes through the same state machine, hitbox query and resolver as everything else; it is an ordinary attack spent from a different resource. It deliberately **does not touch the combo cursor**, so countering does not reset the chain the player was building.
+- **Everything about it is loud, because the last version's failure was that nothing was.** Its own synthesised sound — the only one in the set that *rises* rather than falls, so it cannot be confused with an impact — a 2.6× gold spark matching the perfect-dodge trail, full rumble, and a pulsing bottom-centre HUD prompt that names the button. The charge **never expires**: earning it is the hard part, and a timer would punish the player for taking a beat to read what they just unlocked.
+- A landed Riposte grants a little more focus, so the dodge and the counter read as one deliberate exchange rather than two unrelated events.
+- **Verified**: 385 EditMode tests (was 382). Live and end to end: with an enemy 2 m in front and another 2 m behind, the Riposte dealt **50 to the front one and 0 to the one behind** — the arc discriminating through the real query, not a synthetic one. HUD prompt appears on earning a charge and hides on spend.
+- Known issues / TODO next: **the Riposte has no dedicated animation yet** — it falls back to the Kick clip, so it reads but does not sell the sweep. Mixamo's "Standing Melee Attack 360 High" or "Spin Kick" suit the 180° arc; the `AnimationSet.Riposte` slot is waiting. `maxCharges` is 1 — worth revisiting only if banking counters turns out to be fun rather than hoard-y.
+- **Harness note**: a `CharacterController` **is** the collider. Disabling one to teleport an enemy also removes it from physics, so hitbox queries find nothing — an arc test read as "hits neither" until the controllers were re-enabled before the query.
 
 ### 2026-08-07 — M11: fairness and feel pass (five playtest findings)
 - **Punches ignored the stick.** `SteerAimDuringWindup` returned immediately when no auto-aim target had been acquired — and since attacks also switch off `AllowsTurning`, that left facing **frozen for the whole attack**. Dash past an enemy and every following punch flew into empty air while the stick was read for movement and ignored for aim. Two-part fix: **the attack now launches in the stick's direction** (steering across a 100 ms wind-up only buys 54° at 540°/s, nowhere near a reversal — the dash already sets facing instantly from the stick for the same reason), and the stick keeps steering through the wind-up. **The stick outranks auto-aim**: auto-aim is an assist that snaps onto a target the player has not bothered to point at, and must never override one they have.

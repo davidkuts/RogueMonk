@@ -13,6 +13,9 @@ namespace Game.Core.Audio
         EnemyDeath = 5,
         PlayerHurt = 6,
         RoomClear = 7,
+
+        /// <summary>The counter-attack a perfect dodge unlocks. Deliberately the loudest thing the player can make happen.</summary>
+        Riposte = 8,
     }
 
     /// <summary>

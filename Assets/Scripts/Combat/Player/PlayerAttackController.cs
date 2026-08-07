@@ -95,6 +95,44 @@ namespace Game.Combat
         /// <summary>Fires when an attack's active window closed without touching anything.</summary>
         public event Action<IAttackDefinition> Whiffed;
 
+        /// <summary>Fires when a one-off attack outside the combo chain is thrown.</summary>
+        public event Action<IAttackDefinition> SpecialStarted;
+
+        /// <summary>
+        /// Throws a one-off attack that is not part of the combo chain — the riposte.
+        ///
+        /// It goes through the same state machine, hitbox query and resolver as everything else, so
+        /// it is an ordinary attack that happens to be spent from a different resource. It also
+        /// leaves the combo cursor alone: landing a counter should not silently reset the chain the
+        /// player was building.
+        /// </summary>
+        public bool TryStartSpecial(IAttackDefinition definition)
+        {
+            if (definition == null || attacks.IsCommitted)
+                return false;
+
+            if (motor != null && motor.Dash != null && motor.Dash.IsDashing)
+                return false;
+
+            if (TryGetStickDirection(out Vector3 aimHint))
+                motor.Locomotion.SetFacing(aimHint);
+
+            if (!attacks.TryStart(definition))
+                return false;
+
+            attackBuffer.Clear();
+            activeStepIndex = -1;
+            alreadyHit.Clear();
+            aimTarget = AcquireAimTarget(definition);
+
+            GameLog.Info(LogCategory.Combat,
+                $"SPECIAL       {definition.Id}  frames {definition.WindupSeconds:F3}/" +
+                $"{definition.ActiveSeconds:F3}/{definition.RecoverySeconds:F3}  damage {definition.Damage:0.#}");
+
+            SpecialStarted?.Invoke(definition);
+            return true;
+        }
+
         // --- IPlayerActionState ---
 
         public float MoveSpeedMultiplier =>
@@ -339,23 +377,15 @@ namespace Game.Combat
             Vector3 origin = transform.position + Vector3.up * hitboxHeightOffset;
             Vector3 center = shape.WorldCenter(origin, facing);
 
-            int count;
-            if (shape.Kind == HitboxKind.Box)
-            {
-                Quaternion rotation = Quaternion.LookRotation(facing, Vector3.up);
-                count = Physics.OverlapBoxNonAlloc(
-                    center, shape.Size * 0.5f, overlapResults, rotation, hittableLayers, QueryTriggerInteraction.Collide);
-            }
-            else
-            {
-                count = Physics.OverlapSphereNonAlloc(
-                    center, Mathf.Max(0f, shape.Radius), overlapResults, hittableLayers, QueryTriggerInteraction.Collide);
-            }
+            int count = HitboxQuery.Overlap(shape, origin, facing, hittableLayers, overlapResults);
 
             for (int i = 0; i < count; i++)
             {
                 Collider collider = overlapResults[i];
                 if (collider == null || collider.transform.IsChildOf(transform))
+                    continue;
+
+                if (!HitboxQuery.Contains(shape, origin, facing, collider.transform.position))
                     continue;
 
                 var target = collider.GetComponentInParent<IDamageable>();

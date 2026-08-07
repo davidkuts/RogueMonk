@@ -36,6 +36,7 @@ namespace Game.Enemies
         static readonly int FillId = Shader.PropertyToID("_Fill");
         static readonly int AlphaId = Shader.PropertyToID("_Alpha");
         static readonly int RectId = Shader.PropertyToID("_Rect");
+        static readonly int ArcId = Shader.PropertyToID("_ArcDegrees");
 
         void Awake()
         {
@@ -88,11 +89,16 @@ namespace Game.Enemies
             float width = box ? shape.Size.x : shape.Radius * 2f;
             float depth = box ? shape.Size.z : shape.Radius * 2f;
 
+            // An arc is clipped in the shader, so the quad must cover the whole circle the wedge is
+            // cut from. Padding it like a sphere would push the visible edge past the real reach.
+            bool arc = shape.Kind == HitboxKind.Arc;
+            float pad = arc ? 0f : padding;
+
             quadTransform.SetPositionAndRotation(
                 new Vector3(center.x, GroundHeight(center, groundY) + groundOffset, center.z),
                 Quaternion.LookRotation(Vector3.down, forward));
 
-            quadTransform.localScale = new Vector3(width + padding * 2f, depth + padding * 2f, 1f);
+            quadTransform.localScale = new Vector3(width + pad * 2f, depth + pad * 2f, 1f);
 
             quad.enabled = true;
             quad.GetPropertyBlock(block);
@@ -100,6 +106,7 @@ namespace Game.Enemies
             block.SetFloat(FillId, Mathf.Clamp01(progress));
             block.SetFloat(AlphaId, maxAlpha);
             block.SetFloat(RectId, box ? 1f : 0f);
+            block.SetFloat(ArcId, arc ? shape.EffectiveArcDegrees : 360f);
             quad.SetPropertyBlock(block);
         }
 

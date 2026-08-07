@@ -27,6 +27,9 @@ namespace Game.Combat
         [SerializeField, Range(0.01f, 0.5f), Tooltip("Speed fraction above which the run clip is used.")]
         float runThreshold = 0.1f;
 
+        [SerializeField, Tooltip("The riposte attack, so its own clip can be selected — it is outside the combo chain, so the combo cursor cannot identify it.")]
+        AttackDefinition riposte;
+
         AnimationClip lastAttackClip;
 
         void Awake()
@@ -104,6 +107,11 @@ namespace Game.Combat
         {
             if (animations.AttackCount == 0)
                 return null;
+
+            // The riposte is not part of the chain, so the combo cursor says nothing about it.
+            // Matched by identity against the attack actually running.
+            if (riposte != null && attacks.Attacks.Current != null && attacks.Attacks.Current.Id == riposte.Id)
+                return animations.Riposte;
 
             int step = 0;
             if (attacks.Combo != null)

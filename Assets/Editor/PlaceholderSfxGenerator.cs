@@ -35,6 +35,7 @@ namespace Game.EditorTools
             Write("enemy_death", Impact(90f, 0.35f, 0.7f, noise: 0.5f));
             Write("player_hurt", Impact(300f, 0.18f, 0.7f, noise: 0.35f));
             Write("room_clear", Fanfare());
+            Write("riposte", Riposte());
 
             AssetDatabase.Refresh();
             Debug.Log($"[Monk] Regenerated placeholder SFX in {OutputFolder}");
@@ -115,6 +116,42 @@ namespace Game.EditorTools
                 float b = Mathf.Sin(2f * Mathf.PI * 1320f * seconds) * 0.6f;
                 float envelope = Mathf.Exp(-5f * t);
                 data[i] = (a + b) * envelope * 0.35f;
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// The counter-attack. Deliberately the biggest sound in the set: a low body hit under a
+        /// bright rising ring, running twice as long as an ordinary impact.
+        ///
+        /// The first version of this reward was a silent damage buff, and the playtest verdict was
+        /// "I put on a headset and still never noticed it". A move that has to feel like the payoff
+        /// for a perfect dodge has to be audibly different from a punch, not a louder punch.
+        /// </summary>
+        static float[] Riposte()
+        {
+            int length = (int)(SampleRate * 0.55f);
+            var data = new float[length];
+            var rng = new System.Random(4242);
+
+            for (int i = 0; i < length; i++)
+            {
+                float t = i / (float)length;
+                float seconds = i / (float)SampleRate;
+
+                // Body: a heavy impact that drops in pitch, like the heavy hit but deeper.
+                float bodyHz = Mathf.Lerp(150f, 55f, t);
+                float body = Mathf.Sin(2f * Mathf.PI * bodyHz * seconds) * Mathf.Exp(-7f * t);
+
+                // Ring: rising rather than falling, which is what separates it from every impact
+                // in the game — those all fall.
+                float ringHz = Mathf.Lerp(660f, 1180f, t);
+                float ring = Mathf.Sin(2f * Mathf.PI * ringHz * seconds) * Mathf.Exp(-3.2f * t) * 0.55f;
+
+                float crackle = (float)(rng.NextDouble() * 2.0 - 1.0) * 0.3f * Mathf.Exp(-22f * t);
+
+                data[i] = Mathf.Clamp((body + ring + crackle) * 0.95f, -1f, 1f);
             }
 
             return data;

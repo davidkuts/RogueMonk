@@ -25,6 +25,11 @@ namespace Game.Combat
         [SerializeField] int sparkPoolSize = 12;
         [SerializeField] Color lightHitColor = new Color(1f, 0.85f, 0.45f, 0.9f);
         [SerializeField] Color heavyHitColor = new Color(1f, 0.55f, 0.25f, 1f);
+        [SerializeField, Tooltip("Gold, matching the perfect-dodge trail that earned the counter — the two halves of one exchange should look like each other.")]
+        Color riposteHitColor = new Color(1f, 0.9f, 0.4f, 1f);
+        [SerializeField, Tooltip("The riposte's spark is deliberately the biggest in the game.")]
+        float riposteSparkScale = 2.6f;
+        [SerializeField] AttackDefinition riposte;
 
         [Header("Rumble")]
         [SerializeField, Tooltip("Hitstop above this counts as a heavy hit for feedback purposes.")]
@@ -98,6 +103,18 @@ namespace Game.Combat
 
         void OnHit(HitContext context)
         {
+            // The counter gets its own everything. It is the payoff for the hardest thing the
+            // player can do, and the previous version failed precisely because it looked and
+            // sounded like an ordinary punch.
+            bool isRiposte = riposte != null && context.Attack != null && context.Attack.Id == riposte.Id;
+            if (isRiposte)
+            {
+                AudioDirector.PlaySound(GameSound.Riposte);
+                RumbleDirector.Rumble(1f, 1f);
+                SpawnSpark(context.Point, -context.Direction, riposteHitColor, riposteSparkScale);
+                return;
+            }
+
             bool heavy = context.HitstopSeconds >= heavyHitstopThreshold;
 
             AudioDirector.PlaySound(heavy ? GameSound.HitHeavy : GameSound.HitLight);

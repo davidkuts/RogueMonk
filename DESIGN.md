@@ -36,8 +36,14 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - **Perfect dodge:** if dash i-frames overlap an attack's active frames, the charge is refunded instantly (distinct SFX/flash). Strict overlap required.
 - **Perfect-dodge reward** (revised 2026-08-07, M11 — the refund alone tested as correct but unrewarding, because it pays out on the HUD, a second later, in a resource the player usually had anyway). It now also grants:
   1. **Focus** — a brief slow-motion window. The immediate sensory payoff, and also tactical: the slow is what gives room to walk into the punish just earned.
-  2. **Empowered strike** — the next hit inside a short window lands far harder. Implemented as an `IHitModifier` through the existing pipeline, not as a special case in attack code. Spent by the **first** hit and expires unused, so the reward is "dodge, then punish" rather than something to bank.
+  2. **The Riposte** — a counter-attack on its own button (Triangle / Q) that does not exist until earned, and is spent on use. A wide arc, worth roughly a whole combo in one press.
+- **Rejected 2026-08-07: a passive empowered next hit.** It was invisible — no button, no distinct sound, the same spark — and playtested as unnoticeable even on headphones. **A reward the player cannot perceive is not a reward.** Whatever a perfect dodge grants must be something they *do*, announced on screen, with its own sound.
 - Dash charges are a shared offense/defense resource (see cancel rule)
+
+### Hitbox shapes (locked 2026-08-07, M11.1)
+- Melee attacks use **arcs — pizza slices centred on facing**, not spheres. A sphere in front of an attacker punishes standing anywhere near it, which reads as the attack simply happening to you; a wedge can be stepped out of sideways, so a telegraph is answered by *where you stand*.
+- Full circles are reserved for attacks that genuinely are circles (the boss's Nova), so a ring telegraph always means "there is no side to step to".
+- The telegraph decal renders the **actual hitbox**, arc included. A warning that could differ from the volume it describes would be worse than none.
 
 ### Attacks & combo
 - Combo: punch → punch → kick, aimed by facing + Hades-style soft auto-aim (nearest enemy in ~45° cone within range; facing rotates toward target over the windup, no instant snap; cone/snap speed per-attack data)

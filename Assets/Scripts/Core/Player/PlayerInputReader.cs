@@ -15,6 +15,7 @@ namespace Game.Core.Player
         const string MoveActionName = "Move";
         const string DashActionName = "Dash";
         const string AttackActionName = "Attack";
+        const string RiposteActionName = "Riposte";
 
         [SerializeField] InputActionAsset actions;
 
@@ -22,6 +23,7 @@ namespace Game.Core.Player
         InputAction moveAction;
         InputAction dashAction;
         InputAction attackAction;
+        InputAction riposteAction;
 
         /// <summary>Raw (unconditioned) move vector. Deadzone/curve are applied in the simulation.</summary>
         public Vector2 MoveAxis => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
@@ -31,6 +33,9 @@ namespace Game.Core.Player
 
         /// <summary>True on the frame the attack button went down.</summary>
         public bool AttackPressedThisFrame => attackAction != null && attackAction.WasPressedThisFrame();
+
+        /// <summary>True on the frame the riposte button went down. Only does anything while armed.</summary>
+        public bool RipostePressedThisFrame => riposteAction != null && riposteAction.WasPressedThisFrame();
 
         void Awake()
         {
@@ -45,6 +50,7 @@ namespace Game.Core.Player
             moveAction = playerMap.FindAction(MoveActionName, throwIfNotFound: true);
             dashAction = playerMap.FindAction(DashActionName, throwIfNotFound: true);
             attackAction = playerMap.FindAction(AttackActionName, throwIfNotFound: true);
+            riposteAction = playerMap.FindAction(RiposteActionName, throwIfNotFound: true);
         }
 
         void OnEnable() => playerMap?.Enable();

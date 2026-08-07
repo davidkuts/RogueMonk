@@ -53,3 +53,8 @@ MonoBehaviour:
     Volume: 0.55
     PitchVariance: 0
     MinIntervalSeconds: 0.5
+  - Sound: 8
+    Clip: {fileID: 8300000, guid: 4855881a231cc6c409d08f3d7eca5d62, type: 3}
+    Volume: 1
+    PitchVariance: 0.02
+    MinIntervalSeconds: 0

@@ -23,6 +23,8 @@ namespace Game.Core.Animation
         AnimationClip[] attacks = new AnimationClip[0];
         [SerializeField] AnimationClip hitReaction;
         [SerializeField] AnimationClip death;
+        [SerializeField, Tooltip("The perfect-dodge counter. A spinning or sweeping attack reads best, because the hitbox is a wide arc — Mixamo's \"Standing Melee Attack 360 High\" or \"Spin Kick\" both fit. Optional: the riposte falls back to the last combo clip if empty.")]
+        AnimationClip riposte;
 
         [Header("Blending")]
         [SerializeField, Tooltip("Cross-fade used between locomotion states.")]
@@ -45,6 +47,12 @@ namespace Game.Core.Animation
         public AnimationClip Dash => dash;
         public AnimationClip HitReaction => hitReaction;
         public AnimationClip Death => death;
+
+        /// <summary>
+        /// The counter-attack clip. Falls back to the heaviest combo step so the move is never
+        /// invisible while the dedicated clip is still being sourced.
+        /// </summary>
+        public AnimationClip Riposte => riposte != null ? riposte : GetAttack(AttackCount - 1);
 
         public float LocomotionFadeSeconds => locomotionFadeSeconds;
         public float ActionFadeSeconds => actionFadeSeconds;

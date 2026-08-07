@@ -13,6 +13,7 @@ Shader "Monk/Telegraph"
         _Alpha("Master Alpha", Range(0, 1)) = 1
         _EdgeWidth("Outline Width", Range(0.01, 0.4)) = 0.09
         _Rect("Rectangular", Range(0, 1)) = 0
+        _ArcDegrees("Arc Width (deg, 360 = full)", Range(10, 360)) = 360
     }
 
     SubShader
@@ -45,6 +46,7 @@ Shader "Monk/Telegraph"
                 half _Alpha;
                 half _EdgeWidth;
                 half _Rect;
+                half _ArcDegrees;
             CBUFFER_END
 
             struct Attributes
@@ -79,6 +81,21 @@ Shader "Monk/Telegraph"
 
                 if (d > 1.0)
                     discard;
+
+                // Wedge clip. The quad is oriented so +v runs along the attacker's facing, so the
+                // bearing of a fragment from the centre is measured against that axis. This is what
+                // lets a swing read as a slice you can step out of instead of a bubble around the
+                // attacker — and it matches the hitbox exactly, so the warning stays honest.
+                if (_ArcDegrees < 359.0)
+                {
+                    float bearing = degrees(atan2(centred.x, centred.y));   // 0 = straight ahead
+                    if (abs(bearing) > _ArcDegrees * 0.5)
+                        discard;
+
+                    // Soften the two straight edges so the slice does not alias into a hard fan.
+                    float edgeFade = saturate((_ArcDegrees * 0.5 - abs(bearing)) / 4.0);
+                    d = max(d, 1.0 - edgeFade * (1.0 - d));
+                }
 
                 // The outline is present for the whole wind-up: it is the promise of where the hit
                 // will be, and it must be readable from the first frame.

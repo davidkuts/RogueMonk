@@ -18,10 +18,11 @@ MonoBehaviour:
   cancellableOnRecovery: 0
   comboWindowSeconds: 0
   hitbox:
-    Kind: 1
-    LocalOffset: {x: 0, y: 0, z: 1.3}
-    Radius: 1
+    Kind: 2
+    LocalOffset: {x: 0, y: 0, z: 0}
+    Radius: 3.8
     Size: {x: 4.2, y: 2, z: 2.4}
+    ArcDegrees: 240
   damage: 15
   damageType: 0
   poiseDamage: 0

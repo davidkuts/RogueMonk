@@ -567,16 +567,15 @@ namespace Game.Enemies
             Vector3 origin = transform.position + Vector3.up * hitboxHeightOffset;
             Vector3 center = shape.WorldCenter(origin, transform.forward);
 
-            int count = shape.Kind == HitboxKind.Box
-                ? Physics.OverlapBoxNonAlloc(center, shape.Size * 0.5f, overlapResults,
-                    Quaternion.LookRotation(transform.forward, Vector3.up), hittableLayers, QueryTriggerInteraction.Collide)
-                : Physics.OverlapSphereNonAlloc(center, Mathf.Max(0f, shape.Radius), overlapResults,
-                    hittableLayers, QueryTriggerInteraction.Collide);
+            int count = HitboxQuery.Overlap(shape, origin, transform.forward, hittableLayers, overlapResults);
 
             for (int i = 0; i < count; i++)
             {
                 Collider collider = overlapResults[i];
                 if (collider == null || collider.transform.IsChildOf(transform))
+                    continue;
+
+                if (!HitboxQuery.Contains(shape, origin, transform.forward, collider.transform.position))
                     continue;
 
                 var damageable = collider.GetComponentInParent<IDamageable>();
