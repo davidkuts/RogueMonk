@@ -31,11 +31,16 @@ namespace Game.Enemies
         readonly IEnemyDefinition definition;
 
         float cooldownRemaining;
+        float graceRemaining;
 
         public MeleeEnemyBrain(IEnemyDefinition definition)
         {
             this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+            graceRemaining = Mathf.Max(0f, definition.SpawnGraceSeconds);
         }
+
+        /// <summary>Time left before this enemy may attack for the first time.</summary>
+        public float SpawnGraceRemaining => graceRemaining;
 
         public EnemyState State { get; private set; } = EnemyState.Idle;
 
@@ -57,6 +62,9 @@ namespace Game.Enemies
             if (deltaTime > 0f && cooldownRemaining > 0f && !isAttacking)
                 cooldownRemaining = Mathf.Max(0f, cooldownRemaining - deltaTime);
 
+            if (deltaTime > 0f && graceRemaining > 0f)
+                graceRemaining = Mathf.Max(0f, graceRemaining - deltaTime);
+
             EnemyState next;
             float moveFraction = 0f;
 
@@ -77,9 +85,10 @@ namespace Game.Enemies
                 next = EnemyState.Chase;
                 moveFraction = 1f;
             }
-            else if (cooldownRemaining > 0f)
+            else if (cooldownRemaining > 0f || graceRemaining > 0f)
             {
-                // In range but still on cooldown: hold position rather than jitter in and out.
+                // In range but not allowed to swing yet — either recovering from the last attack,
+                // or freshly spawned. Hold position rather than jitter in and out.
                 next = EnemyState.Cooldown;
             }
             else

@@ -37,6 +37,10 @@ namespace Game.Enemies.Tests
         public float AggroRange { get; set; } = 12f;
         public float AttackRange { get; set; } = 2.4f;
         public float AttackCooldownSeconds { get; set; } = 1.1f;
+
+        // 0 by default so existing brain tests, which are about chase/attack decisions rather than
+        // spawning, are not silently gated behind a grace window they never asked for.
+        public float SpawnGraceSeconds { get; set; }
         public float LungeDistance { get; set; } = 2.2f;
         public IAttackDefinition Attack { get; set; } = new FakeEnemyAttack();
 

@@ -29,6 +29,10 @@ namespace Game.Enemies
         [SerializeField] float gravity = -25f;
         [SerializeField] float groundedStickSpeed = 2f;
 
+        [Header("Telegraph")]
+        [SerializeField, Tooltip("Ground footprint drawn during wind-up. Without it a 450 ms tell can only be answered by frame-perfect timing; with it the attack is answered by standing somewhere else.")]
+        TelegraphDecal decal;
+
         readonly AttackStateMachine attacks = new AttackStateMachine();
         readonly HitResolver resolver = new HitResolver();
         readonly HashSet<IDamageable> alreadyHit = new HashSet<IDamageable>();
@@ -209,7 +213,30 @@ namespace Game.Enemies
                 ? attackAsset.TelegraphColor
                 : (Color?)null;
             actor.TelegraphProgress = telegraphing ? attacks.WindupProgress : 0f;
+
+            if (decal == null)
+                return;
+
+            // Drawn from the attack's real hitbox, so the warning cannot lie about its reach. The
+            // grunt's is a sphere offset forward — a circle in front of it rather than around it,
+            // which is what makes stepping around the side an answer.
+            if (telegraphing && attackAsset != null)
+            {
+                decal.Show(
+                    attackAsset.Hitbox,
+                    transform.position + Vector3.up * hitboxHeightOffset,
+                    transform.forward,
+                    attackAsset.TelegraphColor,
+                    attacks.WindupProgress,
+                    FeetY);
+            }
+            else
+            {
+                decal.Hide();
+            }
         }
+
+        float FeetY => transform.position.y - (controller != null ? controller.height * 0.5f : 0.9f);
 
         void QueryHitbox()
         {

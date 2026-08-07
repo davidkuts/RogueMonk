@@ -36,6 +36,8 @@ namespace Game.Enemies
         float attackRange = 2.4f;
         [SerializeField, Tooltip("Enforced gap after an attack, so the player always gets a punish window.")]
         float attackCooldownSeconds = 1.1f;
+        [SerializeField, Tooltip("Quiet time after spawning before it may attack. It still chases — this only stops an enemy that appeared on top of the player from swinging instantly.")]
+        float spawnGraceSeconds = 1.2f;
         [SerializeField, Tooltip("How far the lunge carries the enemy across its active frames.")]
         float lungeDistance = 2.2f;
 
@@ -66,6 +68,7 @@ namespace Game.Enemies
         public float AggroRange => aggroRange;
         public float AttackRange => attackRange;
         public float AttackCooldownSeconds => attackCooldownSeconds;
+        public float SpawnGraceSeconds => spawnGraceSeconds;
         public float LungeDistance => lungeDistance;
         public IAttackDefinition Attack => attack;
         public RangedProfile Ranged => ranged;

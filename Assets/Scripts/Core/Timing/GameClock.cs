@@ -23,9 +23,13 @@ namespace Game.Core.Timing
         public static GameClock Instance { get; private set; }
 
         readonly HitstopController freeze = new HitstopController();
+        readonly SlowMotionController slowMotion = new SlowMotionController();
 
         /// <summary>The freeze timer, exposed for the debug overlay.</summary>
         public HitstopController Freeze => freeze;
+
+        /// <summary>The slow-motion timer. Outranked by both pause and freeze.</summary>
+        public SlowMotionController SlowMotion => slowMotion;
 
         public bool IsPaused { get; private set; }
 
@@ -73,16 +77,28 @@ namespace Game.Core.Timing
         /// <summary>Requests a brief freeze — hitstop on a connecting hit.</summary>
         public void RequestFreeze(float seconds) => freeze.Request(seconds);
 
+        /// <summary>Requests a stretch of slow motion — the perfect-dodge focus window.</summary>
+        public void RequestSlowMotion(float seconds, float scale) => slowMotion.Request(seconds, scale);
+
         void Update()
         {
             // Frozen while paused: a hitstop that was running when the player opened the menu
-            // resumes on unpause rather than silently expiring behind it.
+            // resumes on unpause rather than silently expiring behind it. Slow motion is held for
+            // the same reason — a focus window should not drain away behind a menu.
             if (!IsPaused)
+            {
                 freeze.Tick(Time.unscaledDeltaTime);
+                slowMotion.Tick(Time.unscaledDeltaTime);
+            }
 
             Apply();
         }
 
-        void Apply() => Time.timeScale = IsStopped ? 0f : 1f;
+        /// <summary>
+        /// One owner, one write, in a fixed priority: pause beats hitstop beats slow motion. A
+        /// hitstop landing during a focus window still stops the frame dead, which is what a hit
+        /// is supposed to feel like.
+        /// </summary>
+        void Apply() => Time.timeScale = IsStopped ? 0f : slowMotion.Scale;
     }
 }

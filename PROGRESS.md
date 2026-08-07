@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M10.2 — Nova frequency + move variety, built and verified.** Human: "more challenging but it uses circle around the boss attack way too much... do not make it predictable... make some moves that force the player into positions".
-- **Next action:** Human: fight the Stone Warden again in `Builds/Win64/RogueMonk.exe`. Nova now sits at **~15% of moves / 4 per minute** (measured, see below) instead of firing on nearly every cycle. New **Sunder** in the final phase drops a hazard ring whose only gap faces the boss — walk into the safe spot and it swings at you there. Watch for: is Sunder's gap *readable* as the safe path, or does it just feel like being cornered; is ~4 Novas/minute still too many; does the melee rotation feel varied now.
-- **Blocked on:** human feel-check of the Nova frequency and the Sunder herding
+- **Active milestone:** **M11 — fairness and feel pass, built and verified.** Five items from a playtest: punches ignoring the stick, untelegraphed trash attacks, unfair spawns, and an underwhelming perfect-dodge reward.
+- **Next action:** Human: play `Builds/Win64/RogueMonk.exe`. Four things to judge: (1) does a punch now go where the stick points, including straight after a dash; (2) is the grunt's ground telegraph enough to make its lunge dodgeable *by position* rather than by timing; (3) do spawns still feel unfair; (4) **is the perfect-dodge reward now worth it** — focus slow-mo plus a ×2.5 empowered next hit. The focus window (0.6 s at 0.35×) and the empower window (2.5 s) are the two numbers most likely to need tuning.
+- **Blocked on:** human feel-check of the perfect-dodge reward and the grunt telegraph
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -24,6 +24,7 @@
 | 10 | Real boss fight: moveset, health phases, Immune tier, boss bar, ground telegraphs | ✅ done (pending feel-check) |
 | 10.1 | Boss difficulty: greed punish, floor hazards, leading projectiles, faster cadence | ✅ done (pending feel-check) |
 | 10.2 | Nova frequency, varied cadence, Sunder herding move | ✅ done (pending feel-check) |
+| 11 | Fairness pass: attack aiming, trash telegraphs, spawn grace, perfect-dodge reward | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -34,6 +35,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M11: fairness and feel pass (five playtest findings)
+- **Punches ignored the stick.** `SteerAimDuringWindup` returned immediately when no auto-aim target had been acquired — and since attacks also switch off `AllowsTurning`, that left facing **frozen for the whole attack**. Dash past an enemy and every following punch flew into empty air while the stick was read for movement and ignored for aim. Two-part fix: **the attack now launches in the stick's direction** (steering across a 100 ms wind-up only buys 54° at 540°/s, nowhere near a reversal — the dash already sets facing instantly from the stick for the same reason), and the stick keeps steering through the wind-up. **The stick outranks auto-aim**: auto-aim is an assist that snaps onto a target the player has not bothered to point at, and must never override one they have.
+  - The precedence rule was **extracted into `AimAssist.TryResolveAimDirection`** so it is engine-free and testable — injected input needs editor focus, so a MonoBehaviour-only fix would have been unverifiable. 7 tests.
+- **Trash attacks now draw the boss's ground telegraph.** A 450 ms flash could only be answered by frame-perfect timing; the decal makes the lunge answerable **by position**. It draws the attack's *real* hitbox, so it cannot lie about reach — the grunt's is a sphere offset 1.1 m forward, i.e. a circle **in front of** it rather than around it, which is what makes stepping to the side work. Ranged deliberately skipped: a travelling projectile has no ground footprint, and its telegraph is the muzzle flash plus the bolt itself.
+- **Spawn fairness, two mechanisms.** `SpawnGraceSeconds` (1.2 s) on `IEnemyDefinition`: a freshly spawned enemy may chase but **may not commit to an attack**, so it is not a free window — it only stops something that materialised on top of the player from swinging before they could read it. Plus `RoomRunner` **relocates a spawn point closer than 5 m to the player** to the furthest free point in the room. The plan still decides *what* and *how many*, so a seed reproduces the same fight; only a spawn that would have appeared inside its own striking distance moves.
+- **Perfect dodge was correct but unrewarding.** A refunded dash charge pays out on the HUD, a second later, in a resource the player usually had anyway. Now it grants **focus** (0.6 s at 0.35× time) *and* an **empowered next hit** (×2.5 damage, ×2 knockback, +0.09 s hitstop, 2.5 s window). The slow is the immediate payoff and is also tactical — it is what gives room to walk into the punish just earned. The charge is spent by the **first** hit and expires unused, so the reward is "dodge, then punish" rather than "dodge, then bank it".
+  - **This is the first real user of the `HitResolver` modifier pipeline**, architected and tested but empty since M3, and deliberately shaped the way an elemental boon will be. It runs at `Order = 100` so it multiplies whatever earlier stages settled on — a boon that halves damage should halve the empowered number too, not the reverse.
+  - `SlowMotionController` joins `HitstopController` under `GameClock`, which stays the single owner of `Time.timeScale`. Priority is **pause > hitstop > slow motion**, so a hit landing during focus still stops the frame dead. Overlapping requests take the *stronger* slow and the *longer* time rather than compounding — two dodges in quick succession should read as one clean moment, not a crawl.
+- **Verified**: 382 EditMode tests (was 358; +24). Live: focus engaged at 0.35× and expired cleanly; the empowered strike measured through the real pipeline at **10 → 25 → 10 damage**, charge spent after one hit; grunt decal enabled during wind-up at y=0.03, 1.1 m forward, 2.3 m across — exactly its hitbox; spawn grace resolved to 1.2 s on every enemy definition from the field initializer.
+- Known issues / TODO next: the empowered hit has **no distinct visual** yet — it is louder and heavier but the spark looks the same, which is the obvious next polish step if the reward lands. No HUD indicator that a charge is armed (`PerfectDodgeReward.IsEmpowered`/`EmpowerFraction` are exposed ready for one).
 
 ### 2026-08-07 — M10.2: Nova frequency, variety, and a herding move
 - **The Nova spam had one cause**: `SelectRetaliation` ignored cooldowns *entirely*. Bypassing the **global** cooldown is the point of a counter; bypassing the move's **own** cooldown was a mistake, and with Nova authored at 0 it fired on every third hit forever. It now respects its own recharge (9 s), so the counter is a threat rather than the rhythm.

@@ -14,11 +14,16 @@ namespace Game.Enemies
         readonly IEnemyDefinition definition;
 
         float cooldownRemaining;
+        float graceRemaining;
 
         public RangedEnemyBrain(IEnemyDefinition definition)
         {
             this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+            graceRemaining = Mathf.Max(0f, definition.SpawnGraceSeconds);
         }
+
+        /// <summary>Time left before this enemy may attack for the first time.</summary>
+        public float SpawnGraceRemaining => graceRemaining;
 
         public EnemyState State { get; private set; } = EnemyState.Idle;
 
@@ -37,6 +42,9 @@ namespace Game.Enemies
 
             if (deltaTime > 0f && cooldownRemaining > 0f && !isAttacking)
                 cooldownRemaining = Mathf.Max(0f, cooldownRemaining - deltaTime);
+
+            if (deltaTime > 0f && graceRemaining > 0f)
+                graceRemaining = Mathf.Max(0f, graceRemaining - deltaTime);
 
             RangedProfile profile = definition.Ranged;
             EnemyState next;
@@ -68,8 +76,9 @@ namespace Game.Enemies
                 next = EnemyState.Chase;
                 moveFraction = -Mathf.Max(0f, profile.KiteSpeedFraction);
             }
-            else if (cooldownRemaining > 0f)
+            else if (cooldownRemaining > 0f || graceRemaining > 0f)
             {
+                // Recovering, or freshly spawned and not yet allowed to shoot.
                 next = EnemyState.Cooldown;
             }
             else

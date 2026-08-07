@@ -34,6 +34,9 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Dash: ~4 m over ~0.18 s; i-frames cover first ~85% of the dash; never crosses room boundaries
 - **2 dash charges**, **sequential recharge — only one charge refills at a time**, ~1.5 s each (revised 2026-08-06 after playtest; was "2.5 s each, independent parallel timers", which made both charges return together and removed the cost of burning them back-to-back); two pips on HUD
 - **Perfect dodge:** if dash i-frames overlap an attack's active frames, the charge is refunded instantly (distinct SFX/flash). Strict overlap required.
+- **Perfect-dodge reward** (revised 2026-08-07, M11 — the refund alone tested as correct but unrewarding, because it pays out on the HUD, a second later, in a resource the player usually had anyway). It now also grants:
+  1. **Focus** — a brief slow-motion window. The immediate sensory payoff, and also tactical: the slow is what gives room to walk into the punish just earned.
+  2. **Empowered strike** — the next hit inside a short window lands far harder. Implemented as an `IHitModifier` through the existing pipeline, not as a special case in attack code. Spent by the **first** hit and expires unused, so the reward is "dodge, then punish" rather than something to bank.
 - Dash charges are a shared offense/defense resource (see cancel rule)
 
 ### Attacks & combo
@@ -55,8 +58,16 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Consistent visual language: same color = same threat type; every attack has an audio cue
 - Gameplay-reserved hues: saturated colors used ONLY for telegraphs, projectiles, dash trail, elemental FX — never in the environment
 - **Hue assignments** (locked 2026-08-07): **red** = melee arc or burst · **amber** = incoming projectile · **violet** = gap-closer, "it is coming to you" · **lime-yellow** = ground hazard, "this floor is about to hurt". Violet arrived with the boss's Slam and lime with its Eruption, each so a new threat class could never be confused with one already learned. A centred burst (the boss's Nova) deliberately stays red — it is still a melee threat, and the ground decal already distinguishes a disc around the attacker from an arc in front of it.
-- **Ground decal** (added 2026-08-07, M10): attacks with a static footprint also paint the real hitbox on the floor during windup, filling from the centre outward so the fill reaches the outline exactly as the attack goes active. Colour says *what*; the decal says *where* and *when*. Required because a rigless enemy with several moves cannot be read from colour alone.
+- **Ground decal** (added 2026-08-07, M10; extended to trash enemies in M11): attacks with a static footprint also paint the real hitbox on the floor during windup, filling from the centre outward so the fill reaches the outline exactly as the attack goes active. Colour says *what*; the decal says *where* and *when*. **It draws the actual hitbox, so it can never lie about reach** — that is the property that makes it trustworthy. Every telegraphed melee attack in the game uses it, so a wind-up is answered by **position** rather than by frame-perfect timing.
 - Because telegraphs own the saturated end of the palette, **room tints must stay desaturated** — the boss room was retinted from red to cold slate for exactly this reason.
+
+### Aiming (locked 2026-08-07, M11)
+- **The stick outranks auto-aim, always.** Auto-aim is an assist: it snaps onto a target the player has not bothered to point at, and never overrides one they have.
+- An attack **launches** in the stick's direction and keeps steering across its wind-up. Turning is not cancelling, so this leaves the never-cancel-a-wind-up rule intact — the attack still lands on its own frame data, only its direction is negotiable.
+
+### Spawn fairness (locked 2026-08-07, M11)
+- Every enemy has a **spawn grace** before it may attack. It still chases, so this is not a free window; it only prevents a hit the player had no opportunity to read.
+- A spawn point too close to the player is **relocated at runtime**. The generated plan remains the authority on what spawns and how many, so a seed still reproduces the same fight.
 
 ### Player health
 - HP number, **no healing at all** during the run

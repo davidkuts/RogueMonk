@@ -87,6 +87,14 @@ namespace Game.Enemies
         /// <summary>Enforced gap between attacks, measured from the end of the previous one.</summary>
         float AttackCooldownSeconds { get; }
 
+        /// <summary>
+        /// Quiet time after spawning before this enemy may commit to an attack. It still chases, so
+        /// this is not a free window — it only stops an enemy that materialised on top of the player
+        /// (or was already standing there when the room opened) from swinging before the player has
+        /// had any chance to read it.
+        /// </summary>
+        float SpawnGraceSeconds { get; }
+
         /// <summary>How far the lunge carries the enemy across its active frames.</summary>
         float LungeDistance { get; }
 

@@ -29,6 +29,8 @@ namespace Game.Combat
         LayerMask hittableLayers = ~0;
         [SerializeField, Tooltip("Origin height offset for hitbox queries, so ground-level boxes still overlap capsules.")]
         float hitboxHeightOffset = 0.9f;
+        [SerializeField, Tooltip("How far the stick must be pushed to take aim away from auto-aim during a wind-up. Low, because a deliberate push should always win.")]
+        float aimSteerDeadzone = 0.25f;
 
         [Header("Feedback")]
         [SerializeField, Tooltip("Optional. Fires a Cinemachine impulse on every connecting hit.")]
@@ -208,6 +210,16 @@ namespace Game.Combat
             if (!attacks.TryStart(next))
                 return;
 
+            // Point the punch where the player is pointing, before anything else looks at facing.
+            //
+            // Steering across the wind-up alone is not enough to fix this: Punch1 winds up in 100 ms,
+            // which at 540 deg/s buys 54 degrees of correction — nowhere near a reversal. Someone
+            // who dashed past an enemy and is now holding the stick back toward it has already said
+            // where they want to hit, so the attack should simply start there. The dash sets facing
+            // instantly from the stick for exactly the same reason.
+            if (TryGetStickDirection(out Vector3 aimHint))
+                motor.Locomotion.SetFacing(aimHint);
+
             // Starting the first step of a fresh chain wipes the previous chain's outcome.
             if (stepIndex == 0)
                 ClearStepStates();
@@ -225,6 +237,18 @@ namespace Game.Combat
                 $"attack start  {next.Id}  step {stepIndex + 1}/{stepStates.Length}  " +
                 $"frames {next.WindupSeconds:F3}/{next.ActiveSeconds:F3}/{next.RecoverySeconds:F3}");
         }
+
+        /// <summary>
+        /// The direction the player is actively pointing, or false when the stick is near neutral.
+        /// Screen axes are world axes on a fixed top-down camera, so no conversion is needed.
+        /// </summary>
+        bool TryGetStickDirection(out Vector3 direction) =>
+            AimAssist.TryResolveAimDirection(
+                input != null ? input.MoveAxis : Vector2.zero,
+                aimSteerDeadzone,
+                Vector3.zero,
+                hasTarget: false,
+                out direction);
 
         /// <summary>Locks a target at attack start; facing then rotates onto it across the wind-up.</summary>
         Transform AcquireAimTarget(IAttackDefinition definition)
@@ -270,14 +294,36 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Aims the attack across its wind-up.
+        ///
+        /// The stick outranks auto-aim. Auto-aim is an <em>assist</em>: it should snap onto a target
+        /// the player has not bothered to point at, never override one they have. Previously this
+        /// returned immediately when no target was acquired at attack start — and because attacks
+        /// also switch off <c>AllowsTurning</c>, that left facing frozen for the whole attack. Dash
+        /// past an enemy and every following punch went into empty air with no way to correct it,
+        /// while the stick was read for movement and ignored for aim.
+        ///
+        /// Turning is not cancelling, so the wind-up stays as committed as CLAUDE.md rule 6 requires:
+        /// the attack still lands, on its own frame data. Only its direction is negotiable.
+        /// </summary>
         void SteerAimDuringWindup(float deltaTime)
         {
-            if (aimTarget == null || attacks.Phase != AttackPhase.Windup || attacks.Current == null)
+            if (attacks.Phase != AttackPhase.Windup || attacks.Current == null)
                 return;
 
-            Vector3 toTarget = aimTarget.position - transform.position;
+            Vector3 toTarget = aimTarget != null ? aimTarget.position - transform.position : Vector3.zero;
+
+            if (!AimAssist.TryResolveAimDirection(
+                    input != null ? input.MoveAxis : Vector2.zero,
+                    aimSteerDeadzone,
+                    toTarget,
+                    aimTarget != null,
+                    out Vector3 desired))
+                return;
+
             Vector3 steered = AimAssist.RotateFacing(
-                motor.Locomotion.Facing, toTarget, attacks.Current.AimSnapSpeedDegPerSec, deltaTime);
+                motor.Locomotion.Facing, desired, attacks.Current.AimSnapSpeedDegPerSec, deltaTime);
 
             motor.Locomotion.SetFacing(steered);
         }

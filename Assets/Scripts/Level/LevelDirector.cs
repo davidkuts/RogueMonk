@@ -237,7 +237,10 @@ namespace Game.Level
             MovePlayerTo(currentRoom.EntryPoint);
             ApplyCameraBounds(currentRoom);
 
-            currentRunner = new RoomRunner(currentRoom, roomPlan, settings, enemyParent, Run);
+            // The player is passed in so the runner can refuse to drop an enemy in their lap;
+            // MovePlayerTo above has already put them at the entry point, so it reads a settled
+            // position rather than wherever they were in the previous room.
+            currentRunner = new RoomRunner(currentRoom, roomPlan, settings, enemyParent, Run, player);
             currentRunner.Cleared += OnRoomCleared;
             currentRunner.EnemyKilled += OnEnemyKilled;
             currentRunner.BossSpawned += OnBossSpawned;

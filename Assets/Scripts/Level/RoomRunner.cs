@@ -19,24 +19,34 @@ namespace Game.Level
         readonly LevelGenerationSettings settings;
         readonly Transform enemyParent;
         readonly RunContext run;
+        readonly Transform playerTransform;
 
         readonly List<EnemyActor> alive = new List<EnemyActor>();
 
         int waveIndex = -1;
         bool aborted;
 
+        /// <summary>
+        /// How close a planned spawn point may be to the player before it is considered unfair.
+        /// Roughly the grunt's attack reach plus a dodge, so an enemy never appears already inside
+        /// its own striking distance.
+        /// </summary>
+        const float minSpawnDistanceFromPlayer = 5f;
+
         public RoomRunner(
             RoomInstance room,
             RoomPlan plan,
             LevelGenerationSettings settings,
             Transform enemyParent,
-            RunContext run = null)
+            RunContext run = null,
+            Transform playerTransform = null)
         {
             this.room = room;
             this.plan = plan;
             this.settings = settings;
             this.enemyParent = enemyParent;
             this.run = run;
+            this.playerTransform = playerTransform;
         }
 
         public bool IsCleared { get; private set; }
@@ -92,7 +102,7 @@ namespace Game.Level
                 $"wave {waveIndex + 1}/{plan.Waves.Count} in room {plan.Index + 1}: {wave.Count} enemies");
 
             for (int i = 0; i < wave.Spawns.Count; i++)
-                Spawn(wave.Spawns[i]);
+                Spawn(ReplaceUnfairSpawnPoint(wave.Spawns[i], wave));
 
             // A wave whose spawns all failed would otherwise hang the room forever.
             if (alive.Count == 0)
@@ -104,6 +114,75 @@ namespace Game.Level
             {
                 WaveStarted?.Invoke(waveIndex + 1);
             }
+        }
+
+        /// <summary>
+        /// Moves a spawn that would drop an enemy in the player's lap to the furthest free point in
+        /// the room. Anything at a fair distance is left exactly where the plan put it.
+        ///
+        /// The generated plan stays the authority on <em>what</em> spawns and <em>how many</em>, so
+        /// a seed still reproduces the same fight. Only the position of a spawn that would have
+        /// materialised on top of the player moves, and only because it had to — that is the one
+        /// case where honouring the plan costs the player a hit they could never have read.
+        /// </summary>
+        SpawnAssignment ReplaceUnfairSpawnPoint(SpawnAssignment assignment, WavePlan wave)
+        {
+            Transform player = playerTransform;
+            if (player == null || room == null)
+                return assignment;
+
+            Transform planned = room.GetSpawnPoint(assignment.SpawnPointIndex);
+            if (planned == null || PlanarDistance(planned.position, player.position) >= minSpawnDistanceFromPlayer)
+                return assignment;
+
+            int bestIndex = -1;
+            float bestDistance = -1f;
+
+            for (int i = 0; i < room.SpawnPointCount; i++)
+            {
+                if (IsPointTakenByWave(i, wave, assignment))
+                    continue;
+
+                Transform candidate = room.GetSpawnPoint(i);
+                if (candidate == null)
+                    continue;
+
+                float distance = PlanarDistance(candidate.position, player.position);
+                if (distance > bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+
+            if (bestIndex < 0 || bestIndex == assignment.SpawnPointIndex)
+                return assignment;
+
+            GameLog.Info(LogCategory.Level,
+                $"spawn point {assignment.SpawnPointIndex} was {PlanarDistance(planned.position, player.position):0.0}m " +
+                $"from the player - moved '{assignment.ArchetypeId}' to point {bestIndex} ({bestDistance:0.0}m)");
+
+            return new SpawnAssignment(assignment.ArchetypeId, bestIndex);
+        }
+
+        /// <summary>True when another spawn in this wave already claims the point.</summary>
+        bool IsPointTakenByWave(int pointIndex, WavePlan wave, SpawnAssignment self)
+        {
+            for (int i = 0; i < wave.Spawns.Count; i++)
+            {
+                SpawnAssignment other = wave.Spawns[i];
+                if (other.SpawnPointIndex == pointIndex && other.SpawnPointIndex != self.SpawnPointIndex)
+                    return true;
+            }
+
+            return false;
+        }
+
+        static float PlanarDistance(Vector3 a, Vector3 b)
+        {
+            a.y = 0f;
+            b.y = 0f;
+            return Vector3.Distance(a, b);
         }
 
         void Spawn(SpawnAssignment assignment)
