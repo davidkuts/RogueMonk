@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cac5af3fe5fe014398f702cb9cd3426, type: 3}
   m_Name: MonkAnimations
   m_EditorClassIdentifier: Game.Core::Game.Core.Animation.AnimationSet
-  idle: {fileID: 0}
-  run: {fileID: 0}
+  idle: {fileID: -203655887218126122, guid: 0609a989eed28bd4abd48e6082929a46, type: 3}
+  run: {fileID: -203655887218126122, guid: 21a30c1b835647048ad466ed91011e56, type: 3}
   dash: {fileID: 0}
   attacks:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  hitReaction: {fileID: 0}
-  death: {fileID: 0}
+  - {fileID: -203655887218126122, guid: e692c4cc976992843885f561577ef456, type: 3}
+  - {fileID: -203655887218126122, guid: 028533c773c2ebf438f89ddd55d184d3, type: 3}
+  - {fileID: -203655887218126122, guid: a4817956b5c55564889d96ff8febb88d, type: 3}
+  hitReaction: {fileID: -203655887218126122, guid: 94381d4988bdf2f4f92b24c399880677, type: 3}
+  death: {fileID: -203655887218126122, guid: df1c08ab24cbd0d40b301fc44a17ae53, type: 3}
   locomotionFadeSeconds: 0.12
   actionFadeSeconds: 0.04

@@ -3,11 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M8 partly done — **toon shader + palette + animation playback layer are in; character models need the human**
-- **Next action:** Human, two things only you can do:
-  1. **Download Mixamo clips** (needs an Adobe account). Get one Humanoid character plus: idle, run, 2 punches, 1 kick, hit reaction, death. **No dash clip is needed** — the dash is VFX-driven (see the afterimage entry below). Export FBX "with skin" for the model and "without skin" for the clips, 30 fps, **no in-place root motion**. Drop them in `Assets/Art/Characters/`, set the rig to **Humanoid**, then assign the clips into `Assets/Settings/Data/Animation/MonkAnimations.asset`. The playback layer picks them up automatically — nothing else to wire.
-  2. **Decide on Animancer** (~$70 Asset Store). I built the free Playables path DESIGN.md allows; Animancer only becomes worth it if clip-level control gets fiddly. CLAUDE.md says no packages without asking, so I have not bought or added anything.
-- **Blocked on:** Mixamo assets + the Animancer decision
+- **Active milestone:** M8 built and verified (character animating) — awaiting human playtest before M9
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and check the character. Idle/run loop, the combo plays Punch1 → Punch2 → Kick, and the dash is carried by afterimages rather than a clip. Watch for: clip lengths versus frame data (Kick is a 2.00 s clip against 0.62 s of frame data, so it will look cut off — clips want trimming, or the frame data wants revisiting), and whether the character reads at this camera distance. **Animancer stays unbought; the Playables path is what ships.**
+- **Blocked on:** human feel-check of the character and animation timing
 
 ## Milestones
 | # | Milestone | Status |
@@ -20,7 +18,7 @@
 | 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ **done** (human-signed-off 2026-08-07) |
 | 7 | Pause menu, restart, HUD, death screen + stats | ✅ done (pending feel-check) |
-| 8 | Mixamo models + Animancer playback + toon shader pass | 🔨 toon pass + playback layer done; **models blocked on the human** |
+| 8 | Mixamo models + Animancer playback + toon shader pass | ✅ done (pending feel-check) — Playables instead of Animancer, by decision |
 | 9 | SFX, VFX, rumble, polish | ⬜ |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -32,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Mixamo character wired up and tested (M8 complete)
+- Human supplied `character.fbx` + 7 clips and asked for a test. **Animancer stays unbought** — the Playables path is what ships.
+- **Three import problems found before running anything.** The character was correctly Humanoid, but **all 7 animation FBXs imported as `Generic` with no avatar** (Mixamo's default), which means they cannot retarget onto the rig at all. Every clip was also named `mixamo.com`, and Idle/Run had **Loop Time off**, so they would have played once and frozen. Fixed via `ModelImporter`: `animationType = Human`, `avatarSetup = CopyFromOther` pointing at the character's avatar, clips renamed to their file names, Idle/Run set to loop, and root transform locked/baked into pose so a clip cannot slide the character away from its own transform (root motion stays off, CLAUDE.md rule 3).
+- Character now replaces the capsule on the player: model as `CharacterModel`, `Animator` with the humanoid avatar, **no runtime controller** (Playables drives it), toon material applied to the skinned mesh, and `DashAfterimage` re-pointed at the `SkinnedMeshRenderer` so ghosts bake from the posed mesh.
+- `PlayerAnimationDriver` fixed: with no dash clip it used to `return` and freeze the body mid-dash. It now falls through to locomotion, so the run/idle keeps playing while the afterimages do the work.
+- **Verified live**: driver enabled, clip player ready, avatar humanoid, 99 bones, no controller. Idle plays and the rig actually moves (sampled a hand bone changing between frames). The full chain runs **Punch1 → Punch2 → Kick** with each clip matching its attack and the combo cursor wrapping to 0. Feet sit at y=0.020 against a capsule base of y=0.020 — the character is not floating or sunk (the skinned-mesh bounds suggesting otherwise were just Unity's padded skinning bounds).
+- Two false alarms worth recording so they are not re-investigated: a `Death` clip appearing during an attack test was correct — enemies had killed the idle player between calls; and a combo that refused to advance was `Time.deltaTime == 0`, because the death screen had paused the clock and resetting health does not unpause it.
+- FBX assets confirmed to be Git LFS tracked before committing.
 
 ### 2026-08-07 — Dash afterimages (the dash needs no clip)
 - Human could not find a dash animation on Mixamo. **There isn't one, and that is the convention rather than a gap**: at 0.18 s the dash is about five frames at 30 fps, so a bespoke clip would be invisible. The genre sells a dash with VFX while the body keeps its current pose. Recorded in DESIGN.md; `AnimationSet.Dash` is now explicitly optional.
@@ -202,6 +209,8 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
 ## Open questions for the human
+- **Clip lengths do not match frame data.** Punch1 is a 0.87 s clip against 0.34 s of frame data; Kick is 2.00 s against 0.62 s. The animation is cut off when the attack ends, because gameplay timing wins. DESIGN.md says clips should be "trimmed to match frame data" — either trim them in the importer, or speed each clip to fit its attack automatically. The second is a small change to `PlayerAnimationDriver` and worth doing if hand-trimming seven clips is tedious.
+- Enemies still use capsules; the Mixamo character is player-only so far. Retargeting the same humanoid clips onto them is now cheap, since every clip is Humanoid with a copied avatar.
 - **~45 % of swings whiff, confirmed across two separate sessions** (63/140 then 21/48). Cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Still not changed unilaterally — the human has twice said it feels nice, so this needs an explicit call.
 - **0 perfect dodges across 9 dash-cancels** in the M4 session. The window is dash i-frames (153 ms) strictly overlapping an enemy's 100 ms active frames — possibly too tight to ever hit by accident. Worth deciding whether i-frames should cover the whole dash, or whether the refund should trigger on overlapping the *wind-up* instead.
 - Enemy numbers are first drafts: 60 HP (so punch/punch/kick ≈ 42 damage, i.e. two combos to kill), 30 poise (the kick alone breaks it), 1.2 s stagger, 1.1 s attack cooldown, 450 ms telegraph. All want a feel pass.

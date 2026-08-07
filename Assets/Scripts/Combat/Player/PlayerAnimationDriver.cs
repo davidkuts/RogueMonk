@@ -68,7 +68,10 @@ namespace Game.Combat
             if (motor == null)
                 return;
 
-            if (motor.Dash != null && motor.Dash.IsDashing)
+            // The dash normally has no clip — it is sold with afterimages instead (DESIGN.md).
+            // Only take over the body if one was actually assigned; otherwise fall through so
+            // locomotion keeps playing rather than freezing on whatever frame was up.
+            if (motor.Dash != null && motor.Dash.IsDashing && animations.Dash != null)
             {
                 player.Play(animations.Dash, animations.ActionFadeSeconds, loop: false);
                 return;
