@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M6 signed off by the human 2026-08-07.** M7 (pause menu, restart, HUD, death screen + stats) is next and has not been started.
-- **Next action:** Human: confirm dash-through-enemies feels right, then give the go-ahead for M7. Much of M7's plumbing already exists: run stats are being recorded, restart works (R/Start, T for same seed), and the death/victory banner is a placeholder to be replaced by the real screen.
-- **Blocked on:** M7 go-ahead
+- **Active milestone:** M7 built and verified — awaiting human playtest before M8
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. **Esc / Start** opens the pause menu (Resume / Restart level / Quit, up-down + Enter or Cross). HP bar sits above the dash pips with a red chip bar showing what the last hit cost. Dying or winning brings up a proper stats screen — **hold** Enter/Cross to run again, or tap **R** to replay the same seed. Then M8: Mixamo models, Animancer playback, toon shader.
+- **Blocked on:** human feel-check of the UI
 
 ## Milestones
 | # | Milestone | Status |
@@ -17,7 +17,7 @@
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ✅ done (pending feel-check) |
 | 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
 | 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ **done** (human-signed-off 2026-08-07) |
-| 7 | Pause menu, restart, HUD, death screen + stats | ⬜ |
+| 7 | Pause menu, restart, HUD, death screen + stats | ✅ done (pending feel-check) |
 | 8 | Mixamo models + Animancer playback + toon shader pass | ⬜ |
 | 9 | SFX, VFX, rumble, polish | ⬜ |
 
@@ -30,6 +30,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M7: pause menu, HUD, death screen
+- **`GameClock` now solely owns `Time.timeScale`** (Game.Core.Timing). This was the TODO carried since M3. Combat's hitstop used to set the time scale directly; adding a pause menu would have given the value two independent owners, and whichever wrote last would win — unpausing mid-hitstop, or a hitstop ending while paused, would have resumed the game underneath the menu. Pause now outranks freeze, and **a freeze does not tick down while paused**, so a hitstop still owing when the player pauses plays out on resume rather than being eaten. Verified: request a 0.40 s freeze → pause → the remaining time is held exactly → resume leaves `timeScale` at 0 until the owed freeze finishes.
+- `HitstopController` moved Game.Combat → Game.Core.Timing (it is a plain timer that the clock owns; combat is just one caller). Its tests moved to Game.Core.Tests; the status-effect tests stayed in Game.Combat.Tests as `StatusEffectContainerTests`.
+- **HUD**: HP bar above the dash pips, with a slower red "chip" bar trailing the real value so a hit reads as *an amount lost* rather than just a shorter bar. With no healing in a run, the size of each loss is the information that matters. Colour shifts green → amber → red.
+- **Pause menu** (Esc / Start): Resume, Restart level, Quit. Navigation is hand-rolled (`MenuSelection`) rather than using an EventSystem — menus run at `timeScale` 0 with the gameplay map still enabled, so the standard UI input module would either need its own action map or would let menu presses leak into the game.
+- **Death / victory screen** replaces the IMGUI placeholder: real uGUI with `LegacyRuntime.ttf`, full-screen scrim over an opaque box (the first attempt had no scrim and competed with the scene behind it), and the full run stats. **Hold** to retry — deliberately not a tap, because a run ends exactly when the player is mashing attack and dash, and a single press would fire on the input that killed them. There is also a 0.6 s lockout before any input is accepted, so the stats can be read. **R** replays the same seed (DESIGN.md's debug aid).
+- Verified: 286/286 tests; pause and death screens screenshotted rendering correctly; retry confirmed to reset HP to 100/100, clear the pause state, restore `timeScale` to 1, return to room 1 and roll a new seed.
+- Known issues / TODO next: the pause menu's Restart does not reset player HP (the death screen's retry does) — decide whether restarting a level mid-run should heal. No confirmation on Quit. Menus are keyboard/gamepad only, no mouse.
 
 ### 2026-08-07 — Fix: stuck in a cleared room
 - Human: got stuck in room 1 after clearing it; the debug clear-room button appeared to do nothing; a later attempt advanced "after a long time".

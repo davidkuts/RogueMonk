@@ -68,13 +68,14 @@ namespace Game.Level
         /// the debug aid DESIGN.md asks for; otherwise a new seed is derived from this run's
         /// own stream so consecutive restarts do not repeat.
         /// </summary>
-        public void Restart(bool sameSeed)
+        public void RestartRun(bool sameSeed)
         {
             uint seed = Run == null ? fixedSeed : (sameSeed ? Run.Seed : Run.NextRunSeed());
 
             if (currentRunner != null)
             {
                 currentRunner.Cleared -= OnRoomCleared;
+                currentRunner.EnemyKilled -= OnEnemyKilled;
                 currentRunner.Abort();
                 currentRunner = null;
             }

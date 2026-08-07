@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Game.Core.Diagnostics;
 using Game.Core.Input;
 using Game.Core.Player;
+using Game.Core.Timing;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -37,7 +38,6 @@ namespace Game.Combat
 
         readonly AttackStateMachine attacks = new AttackStateMachine();
         readonly HitResolver resolver = new HitResolver();
-        readonly HitstopController hitstop = new HitstopController();
         readonly InputBuffer attackBuffer = new InputBuffer();
         readonly HashSet<IDamageable> alreadyHit = new HashSet<IDamageable>();
         readonly List<Vector3> candidatePositions = new List<Vector3>();
@@ -48,8 +48,6 @@ namespace Game.Combat
 
         ComboTracker comboTracker;
         Transform aimTarget;
-        bool timeScaleHeld;
-        float cachedTimeScale = 1f;
 
         /// <summary>How a single step of the current chain turned out — what the combo meter draws.</summary>
         public enum ComboStepState
@@ -72,7 +70,11 @@ namespace Game.Combat
 
         public AttackStateMachine Attacks => attacks;
 
-        public HitstopController Hitstop => hitstop;
+        /// <summary>
+        /// The shared freeze timer. Owned by <see cref="GameClock"/>, not by combat — the
+        /// pause menu has to be able to outrank it.
+        /// </summary>
+        public HitstopController Hitstop => GameClock.Instance != null ? GameClock.Instance.Freeze : null;
 
         public ComboTracker Combo => comboTracker;
 
@@ -145,7 +147,6 @@ namespace Game.Combat
             resolver.HitApplied -= OnHitApplied;
             if (comboTracker != null)
                 comboTracker.ChainDropped -= OnChainDropped;
-            ReleaseTimeScale();
         }
 
         int ConnectedStepCount()
@@ -176,10 +177,6 @@ namespace Game.Combat
 
         void Update()
         {
-            // Hitstop runs on the unscaled clock — it is the thing holding the scaled one at zero.
-            hitstop.Tick(Time.unscaledDeltaTime);
-            ApplyTimeScale();
-
             float deltaTime = Time.deltaTime;
 
             if (input != null && input.AttackPressedThisFrame)
@@ -343,7 +340,8 @@ namespace Game.Combat
 
         void OnHitApplied(HitContext context)
         {
-            hitstop.Request(context.HitstopSeconds);
+            if (GameClock.Instance != null)
+                GameClock.Instance.RequestFreeze(context.HitstopSeconds);
 
             if (impulseSource != null && context.HitstopSeconds > 0f)
                 impulseSource.GenerateImpulse(context.Direction * (context.HitstopSeconds * impulseScale));
@@ -373,29 +371,6 @@ namespace Game.Combat
                     $"COMBO LANDED  {connected}/{stepStates.Length} steps connected");
                 ComboLanded?.Invoke(connected);
             }
-        }
-
-        void ApplyTimeScale()
-        {
-            if (hitstop.IsActive && !timeScaleHeld)
-            {
-                cachedTimeScale = Time.timeScale;
-                Time.timeScale = 0f;
-                timeScaleHeld = true;
-            }
-            else if (!hitstop.IsActive && timeScaleHeld)
-            {
-                ReleaseTimeScale();
-            }
-        }
-
-        void ReleaseTimeScale()
-        {
-            if (!timeScaleHeld)
-                return;
-
-            Time.timeScale = cachedTimeScale;
-            timeScaleHeld = false;
         }
 
 #if UNITY_EDITOR
