@@ -119,6 +119,26 @@ namespace Game.Level
                 }
             }
 
+            // Ordered last on purpose. Several existing tests hand-build a boss room out of
+            // ordinary spawns to exercise the per-wave rules above and assert on the reason they
+            // produce; a boss check that fired first would fail all of them for the wrong reason.
+            if (settings != null && !string.IsNullOrEmpty(settings.BossArchetypeId))
+            {
+                WavePlan bossWave = plan.FinalRoom.Waves[0];
+                int bossSpawns = 0;
+                for (int s = 0; s < bossWave.Spawns.Count; s++)
+                {
+                    if (bossWave.Spawns[s].ArchetypeId == settings.BossArchetypeId)
+                        bossSpawns++;
+                }
+
+                if (bossSpawns != 1)
+                {
+                    reason = $"the boss room's first wave holds {bossSpawns} of '{settings.BossArchetypeId}', expected exactly 1";
+                    return false;
+                }
+            }
+
             reason = null;
             return true;
         }

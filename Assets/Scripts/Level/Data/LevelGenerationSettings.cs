@@ -15,9 +15,11 @@ namespace Game.Level
         [SerializeField] int maxWavesPerRoom = 3;
 
         [Header("Boss room")]
-        [SerializeField, Tooltip("Waves in the boss room. One placeholder wave until real boss mechanics exist.")]
+        [SerializeField, Tooltip("The archetype that IS the boss fight. Set it and the boss room holds exactly this one enemy; the two settings below are then ignored. An object reference rather than a typed id, so renaming the asset cannot silently break the level.")]
+        EnemyArchetypeDefinition bossArchetype;
+        [SerializeField, Tooltip("Waves in the boss room. IGNORED once a boss archetype is set.")]
         int bossRoomWaves = 1;
-        [SerializeField, Tooltip("Extra budget the boss room gets, so the placeholder fight is denser than an ordinary room.")]
+        [SerializeField, Tooltip("Extra budget the boss room gets. IGNORED once a boss archetype is set.")]
         float bossBudgetBonus = 3f;
 
         [Header("Difficulty")]
@@ -44,6 +46,7 @@ namespace Game.Level
         public int MinRooms => minStandardRooms + 1;
         public int MaxRooms => maxStandardRooms + 1;
 
+        public string BossArchetypeId => bossArchetype != null ? bossArchetype.Id : null;
         public int BossRoomWaves => bossRoomWaves;
         public float BossBudgetBonus => bossBudgetBonus;
         public int MinWavesPerRoom => minWavesPerRoom;

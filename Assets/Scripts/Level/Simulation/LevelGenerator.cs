@@ -14,6 +14,13 @@ namespace Game.Level
     /// </summary>
     public sealed class LevelGenerator
     {
+        /// <summary>
+        /// Where the boss stands. Fixed rather than drawn: a boss rolled into a corner would open
+        /// the fight already halfway across the arena. Boss-capable templates author point 0 at
+        /// the far centre of the room for exactly this.
+        /// </summary>
+        public const int BossSpawnPointIndex = 0;
+
         readonly ILevelGenerationSettings settings;
 
         readonly List<float> weightScratch = new List<float>();
@@ -87,6 +94,28 @@ namespace Game.Level
                 return false;
             }
 
+            // A boss id that names nothing would generate a boss room whose only spawn silently
+            // fails, leaving a room that can never be cleared.
+            string bossId = settings.BossArchetypeId;
+            if (!string.IsNullOrEmpty(bossId))
+            {
+                bool bossPresent = false;
+                for (int i = 0; i < settings.Archetypes.Count; i++)
+                {
+                    if (settings.Archetypes[i] != null && settings.Archetypes[i].Id == bossId)
+                    {
+                        bossPresent = true;
+                        break;
+                    }
+                }
+
+                if (!bossPresent)
+                {
+                    reason = $"boss archetype '{bossId}' is not in the archetype list";
+                    return false;
+                }
+            }
+
             reason = null;
             return true;
         }
@@ -155,12 +184,26 @@ namespace Game.Level
         }
 
         /// <summary>
-        /// The boss room's fight. Deliberately a single wave: until a real boss exists this is
-        /// a placeholder encounter, and one dense wave reads as "the fight" far better than a
-        /// trickle of ordinary waves would.
+        /// The boss room's fight: one wave holding the boss and nothing else.
+        ///
+        /// No escorts, deliberately. The boss <em>is</em> the fight — three grunts swinging
+        /// alongside it would destroy the readability of a 700 ms telegraph, and a lone boss is
+        /// what lets its health bar mean "how far through this am I".
+        ///
+        /// With no boss archetype configured the old placeholder path still runs, so a content set
+        /// without a boss still produces a playable level.
         /// </summary>
         List<WavePlan> BuildBossWaves(IRandomSource random, IRoomTemplate template, int roomIndex)
         {
+            string bossId = settings.BossArchetypeId;
+            if (!string.IsNullOrEmpty(bossId))
+            {
+                return new List<WavePlan>(1)
+                {
+                    new WavePlan(new List<SpawnAssignment> { new SpawnAssignment(bossId, BossSpawnPointIndex) }),
+                };
+            }
+
             int waveCount = Mathf.Max(1, settings.BossRoomWaves);
             float budget = settings.BaseWaveBudget
                            + settings.BudgetGrowthPerRoom * roomIndex

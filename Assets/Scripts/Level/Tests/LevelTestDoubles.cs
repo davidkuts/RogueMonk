@@ -23,6 +23,7 @@ namespace Game.Level.Tests
         public int MaxStandardRooms { get; set; } = 5;
         public int MinRooms => MinStandardRooms + 1;
         public int MaxRooms => MaxStandardRooms + 1;
+        public string BossArchetypeId { get; set; } = "warden";
         public int BossRoomWaves { get; set; } = 1;
         public float BossBudgetBonus { get; set; } = 3f;
         public int MinWavesPerRoom { get; set; } = 1;
@@ -44,6 +45,10 @@ namespace Game.Level.Tests
         {
             new FakeArchetype { Id = "melee", Cost = 1f, SelectionWeight = 3f },
             new FakeArchetype { Id = "ranged", Cost = 2f, SelectionWeight = 1f },
+
+            // Weight 0: PickWeighted skips non-positive weights, so the boss can only ever appear
+            // where the generator places it by name — never rolled into an ordinary room.
+            new FakeArchetype { Id = "warden", Cost = 0f, SelectionWeight = 0f },
         };
     }
 }

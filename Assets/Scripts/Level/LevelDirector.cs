@@ -54,6 +54,15 @@ namespace Game.Level
         /// <summary>Raised as each room is built, so UI can announce it.</summary>
         public event Action<RoomPlan> RoomEntered;
 
+        /// <summary>
+        /// Raised when a boss enters play. Re-raised from the room runner so views can bind to the
+        /// director, which outlives every room, instead of to a runner that is torn down each time.
+        /// </summary>
+        public event Action<IBossEncounter> BossEncounterStarted;
+
+        /// <summary>Raised when the boss goes down.</summary>
+        public event Action BossEncounterEnded;
+
         /// <summary>True once the player is standing in the boss room.</summary>
         public bool InBossRoom => Plan != null && roomIndex >= 0 && roomIndex < Plan.RoomCount && Plan.Rooms[roomIndex].IsBossRoom;
 
@@ -74,8 +83,7 @@ namespace Game.Level
 
             if (currentRunner != null)
             {
-                currentRunner.Cleared -= OnRoomCleared;
-                currentRunner.EnemyKilled -= OnEnemyKilled;
+                DetachRunner(currentRunner);
                 currentRunner.Abort();
                 currentRunner = null;
             }
@@ -190,8 +198,7 @@ namespace Game.Level
         {
             if (currentRunner != null)
             {
-                currentRunner.Cleared -= OnRoomCleared;
-                currentRunner.EnemyKilled -= OnEnemyKilled;
+                DetachRunner(currentRunner);
                 currentRunner.Abort();
             }
 
@@ -230,11 +237,25 @@ namespace Game.Level
             MovePlayerTo(currentRoom.EntryPoint);
             ApplyCameraBounds(currentRoom);
 
-            currentRunner = new RoomRunner(currentRoom, roomPlan, settings, enemyParent);
+            currentRunner = new RoomRunner(currentRoom, roomPlan, settings, enemyParent, Run);
             currentRunner.Cleared += OnRoomCleared;
             currentRunner.EnemyKilled += OnEnemyKilled;
+            currentRunner.BossSpawned += OnBossSpawned;
+            currentRunner.BossDefeated += OnBossDefeated;
             currentRunner.Begin();
         }
+
+        void DetachRunner(RoomRunner runner)
+        {
+            runner.Cleared -= OnRoomCleared;
+            runner.EnemyKilled -= OnEnemyKilled;
+            runner.BossSpawned -= OnBossSpawned;
+            runner.BossDefeated -= OnBossDefeated;
+        }
+
+        void OnBossSpawned(IBossEncounter encounter) => BossEncounterStarted?.Invoke(encounter);
+
+        void OnBossDefeated() => BossEncounterEnded?.Invoke();
 
         void OnRoomCleared()
         {

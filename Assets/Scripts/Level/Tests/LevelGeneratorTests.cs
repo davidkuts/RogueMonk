@@ -129,28 +129,50 @@ namespace Game.Level.Tests
         }
 
         [Test]
-        public void TheBossRoomFightIsDenserThanAnOrdinaryOne()
+        public void TheBossRoomHoldsExactlyTheBossAndNothingElse()
         {
-            var settings = new FakeGenerationSettings { BossBudgetBonus = 6f, BossRoomWaves = 1 };
-            float ordinaryPerWave = 0f, bossPerWave = 0f;
+            // Escorts would wreck the readability of a 700 ms telegraph, and a lone boss is what
+            // lets its health bar mean "how far through this fight am I".
+            var settings = new FakeGenerationSettings();
 
             for (uint seed = 1; seed <= 200; seed++)
             {
-                LevelPlan plan = Generate(seed, settings);
-                RoomPlan first = plan.Rooms[0];
-                RoomPlan boss = plan.FinalRoom;
+                RoomPlan boss = Generate(seed, settings).FinalRoom;
 
-                ordinaryPerWave += first.TotalEnemies / (float)first.Waves.Count;
-                bossPerWave += boss.TotalEnemies / (float)boss.Waves.Count;
+                Assert.That(boss.TotalEnemies, Is.EqualTo(1), $"seed {seed}");
+                Assert.That(boss.Waves[0].Spawns[0].ArchetypeId, Is.EqualTo(settings.BossArchetypeId), $"seed {seed}");
             }
-
-            Assert.That(bossPerWave, Is.GreaterThan(ordinaryPerWave));
         }
 
         [Test]
-        public void TheBossRoomUsesItsOwnWaveCount()
+        public void TheBossNeverAppearsInAnOrdinaryRoom()
         {
-            var settings = new FakeGenerationSettings { BossRoomWaves = 1, MinWavesPerRoom = 3, MaxWavesPerRoom = 3 };
+            // It carries zero selection weight, so it can only ever land where the generator puts
+            // it by name. A boss rolled into room 2 would end the run there.
+            var settings = new FakeGenerationSettings();
+
+            for (uint seed = 1; seed <= 500; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+
+                for (int r = 0; r < plan.Rooms.Count - 1; r++)
+                {
+                    foreach (WavePlan wave in plan.Rooms[r].Waves)
+                    {
+                        foreach (SpawnAssignment spawn in wave.Spawns)
+                        {
+                            Assert.That(spawn.ArchetypeId, Is.Not.EqualTo(settings.BossArchetypeId),
+                                $"seed {seed}, room {r}");
+                        }
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void TheBossRoomIsAlwaysExactlyOneWave()
+        {
+            var settings = new FakeGenerationSettings { MinWavesPerRoom = 3, MaxWavesPerRoom = 3 };
 
             for (uint seed = 1; seed <= 100; seed++)
             {
@@ -158,6 +180,47 @@ namespace Game.Level.Tests
                 Assert.That(plan.FinalRoom.Waves.Count, Is.EqualTo(1), $"seed {seed}");
                 Assert.That(plan.Rooms[0].Waves.Count, Is.EqualTo(3), $"seed {seed}");
             }
+        }
+
+        [Test]
+        public void TheBossAlwaysStandsOnTheTemplatesDesignatedSpawnPoint()
+        {
+            // Drawn at random, the boss could open the fight in a corner already halfway across
+            // the arena. Boss-capable templates author point 0 at the far centre for this.
+            var settings = new FakeGenerationSettings();
+
+            for (uint seed = 1; seed <= 100; seed++)
+            {
+                RoomPlan boss = Generate(seed, settings).FinalRoom;
+                Assert.That(boss.Waves[0].Spawns[0].SpawnPointIndex,
+                    Is.EqualTo(LevelGenerator.BossSpawnPointIndex), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void WithNoBossArchetypeConfiguredTheLevelIsStillSolvable()
+        {
+            // The fallback is what keeps a content set that has no boss yet playable.
+            var settings = new FakeGenerationSettings { BossArchetypeId = null };
+
+            for (uint seed = 1; seed <= 200; seed++)
+            {
+                LevelPlan plan = Generate(seed, settings);
+                Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.True,
+                    $"seed {seed}: {reason}");
+                Assert.That(plan.FinalRoom.TotalEnemies, Is.GreaterThan(0), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void CanGenerateRejectsABossArchetypeThatIsNotInTheList()
+        {
+            // Otherwise the boss room's only spawn fails silently and the room can never clear.
+            var settings = new FakeGenerationSettings { BossArchetypeId = "ghost" };
+            var generator = new LevelGenerator(settings);
+
+            Assert.That(generator.CanGenerate(out string reason), Is.False);
+            Assert.That(reason, Does.Contain("ghost"));
         }
 
         [Test]
@@ -403,6 +466,11 @@ namespace Game.Level.Tests
                 Archetypes = new List<IEnemyArchetype>
                 {
                     new FakeArchetype { Id = "expensive", Cost = 99f },
+
+                    // The boss must be present even here: the validator will not accept a boss
+                    // room without it, and a one-spawn-point template is exactly the tight case
+                    // where placing it could go wrong.
+                    new FakeArchetype { Id = "warden", Cost = 0f, SelectionWeight = 0f },
                 },
             };
             var generator = new LevelGenerator(settings);
@@ -487,6 +555,56 @@ namespace Game.Level.Tests
 
             Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);
             Assert.That(reason, Does.Contain("does not have"));
+        }
+
+        [Test]
+        public void RejectsABossRoomWithNoBossInIt()
+        {
+            var settings = new FakeGenerationSettings { MinStandardRooms = 0, MaxStandardRooms = 0 };
+            var spawns = new List<SpawnAssignment> { new SpawnAssignment("melee", 0) };
+            var plan = new LevelPlan(1u, new List<RoomPlan>
+            {
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
+            });
+
+            Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);
+            Assert.That(reason, Does.Contain("warden"));
+        }
+
+        [Test]
+        public void RejectsABossRoomWithTwoBossesInIt()
+        {
+            var settings = new FakeGenerationSettings { MinStandardRooms = 0, MaxStandardRooms = 0 };
+            var spawns = new List<SpawnAssignment>
+            {
+                new SpawnAssignment("warden", 0),
+                new SpawnAssignment("warden", 1),
+            };
+            var plan = new LevelPlan(1u, new List<RoomPlan>
+            {
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
+            });
+
+            Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);
+            Assert.That(reason, Does.Contain("expected exactly 1"));
+        }
+
+        [Test]
+        public void TheBossRuleRunsAfterEveryPerWaveRule()
+        {
+            // Several tests above build a boss room out of ordinary spawns purely to exercise the
+            // per-wave rules. If the boss check fired first they would all fail for the wrong
+            // reason, so its ordering is a contract worth pinning rather than a coincidence.
+            var settings = new FakeGenerationSettings { MinStandardRooms = 0, MaxStandardRooms = 0 };
+            var spawns = new List<SpawnAssignment> { new SpawnAssignment("dragon", 0) };
+            var plan = new LevelPlan(1u, new List<RoomPlan>
+            {
+                new RoomPlan("vault", 0, new List<WavePlan> { new WavePlan(spawns) }, RoomRole.Boss),
+            });
+
+            Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.False);
+            Assert.That(reason, Does.Contain("dragon"), "the unknown-archetype rule must win");
+            Assert.That(reason, Does.Not.Contain("warden"));
         }
 
         [Test]

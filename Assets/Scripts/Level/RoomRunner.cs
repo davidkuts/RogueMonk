@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Core.Diagnostics;
+using Game.Core.Rng;
 using Game.Enemies;
 using UnityEngine;
 
@@ -17,17 +18,25 @@ namespace Game.Level
         readonly RoomPlan plan;
         readonly LevelGenerationSettings settings;
         readonly Transform enemyParent;
+        readonly RunContext run;
 
         readonly List<EnemyActor> alive = new List<EnemyActor>();
 
         int waveIndex = -1;
+        bool aborted;
 
-        public RoomRunner(RoomInstance room, RoomPlan plan, LevelGenerationSettings settings, Transform enemyParent)
+        public RoomRunner(
+            RoomInstance room,
+            RoomPlan plan,
+            LevelGenerationSettings settings,
+            Transform enemyParent,
+            RunContext run = null)
         {
             this.room = room;
             this.plan = plan;
             this.settings = settings;
             this.enemyParent = enemyParent;
+            this.run = run;
         }
 
         public bool IsCleared { get; private set; }
@@ -46,6 +55,12 @@ namespace Game.Level
 
         /// <summary>Raised for each enemy death, so the run can keep a kill tally.</summary>
         public event Action EnemyKilled;
+
+        /// <summary>Raised when a boss enters play, so the HUD can put its bar up.</summary>
+        public event Action<IBossEncounter> BossSpawned;
+
+        /// <summary>Raised when the boss goes down, so the HUD can take the bar away.</summary>
+        public event Action BossDefeated;
 
         public void Begin()
         {
@@ -113,10 +128,44 @@ namespace Game.Level
 
             alive.Add(actor);
             actor.Died += () => OnEnemyDied(actor);
+
+            BindIfBoss(instance, actor);
+        }
+
+        /// <summary>
+        /// Hands a boss its randomness and announces the encounter.
+        ///
+        /// The stream is derived, not the run's own: how many times a boss draws depends on how
+        /// many moves it lands, which depends on the player — consuming from the run stream here
+        /// would make the seed stop reproducing the run.
+        /// </summary>
+        void BindIfBoss(GameObject instance, EnemyActor actor)
+        {
+            var boss = instance.GetComponent<BossController>();
+            if (boss == null)
+                return;
+
+            if (run == null)
+            {
+                GameLog.Error(LogCategory.Level,
+                    $"boss '{actor.name}' spawned without a RunContext - it cannot be seeded and will never act");
+                return;
+            }
+
+            boss.Bind(run.DeriveStream());
+
+            var encounter = new BossEncounter(actor, boss);
+            actor.DeathSequenceStarted += () => BossDefeated?.Invoke();
+            BossSpawned?.Invoke(encounter);
         }
 
         void OnEnemyDied(EnemyActor actor)
         {
+            // A body destroyed by Abort still resolves its death a frame later. Without this the
+            // teardown would report a phantom kill and advance a room the run has already left.
+            if (aborted)
+                return;
+
             alive.Remove(actor);
             EnemyKilled?.Invoke();
             PruneAndCheckCleared();
@@ -129,9 +178,15 @@ namespace Game.Level
         /// </summary>
         public void PruneAndCheckCleared()
         {
+            if (aborted)
+                return;
+
             for (int i = alive.Count - 1; i >= 0; i--)
             {
-                if (alive[i] == null || !alive[i].IsAlive)
+                // IsAlive goes false on the killing blow, but a body playing a death beat is still
+                // standing there. Dropping it here would open the door over a corpse and tear the
+                // runner down before the beat finished.
+                if (alive[i] == null || (!alive[i].IsAlive && !alive[i].IsDying))
                     alive.RemoveAt(i);
             }
 
@@ -166,6 +221,8 @@ namespace Game.Level
         /// <summary>Drops any survivors, for aborting a run.</summary>
         public void Abort()
         {
+            aborted = true;
+
             for (int i = alive.Count - 1; i >= 0; i--)
             {
                 if (alive[i] != null)

@@ -202,4 +202,79 @@ namespace Game.Core.Tests
             Assert.That(random.PickWeighted(null), Is.EqualTo(-1));
         }
     }
+
+    /// <summary>
+    /// Covers the derived-stream contract. A subsystem whose draw count depends on how the run
+    /// is played (boss move selection) must not consume from the run stream directly, or the
+    /// seed stops reproducing the run.
+    /// </summary>
+    public class RunContextStreamTests
+    {
+        [Test]
+        public void DerivedStreamsAreDeterministicForASeedAndCallOrder()
+        {
+            var a = new RunContext(8080u);
+            var b = new RunContext(8080u);
+
+            for (int i = 0; i < 5; i++)
+            {
+                IRandomSource left = a.DeriveStream();
+                IRandomSource right = b.DeriveStream();
+
+                Assert.That(right.Seed, Is.EqualTo(left.Seed), $"derivation {i}");
+                for (int draw = 0; draw < 50; draw++)
+                    Assert.That(right.NextFloat(), Is.EqualTo(left.NextFloat()), $"derivation {i}, draw {draw}");
+            }
+        }
+
+        [Test]
+        public void SuccessiveDerivedStreamsDiffer()
+        {
+            var run = new RunContext(1234u);
+
+            IRandomSource first = run.DeriveStream();
+            IRandomSource second = run.DeriveStream();
+
+            Assert.That(second.Seed, Is.Not.EqualTo(first.Seed));
+
+            int identical = 0;
+            for (int i = 0; i < 200; i++)
+            {
+                if (first.NextFloat() == second.NextFloat())
+                    identical++;
+            }
+
+            Assert.That(identical, Is.LessThan(5));
+        }
+
+        [Test]
+        public void DrawsOnADerivedStreamDoNotAdvanceTheRunStream()
+        {
+            // The whole point of deriving: however hard the subsystem hammers its own stream,
+            // the run stream must land on exactly the values it would have anyway.
+            var withTraffic = new RunContext(555u);
+            var quiet = new RunContext(555u);
+
+            IRandomSource derived = withTraffic.DeriveStream();
+            for (int i = 0; i < 1000; i++)
+                derived.NextFloat();
+
+            quiet.DeriveStream(); // same one derivation, then nothing
+
+            for (int i = 0; i < 100; i++)
+                Assert.That(withTraffic.Random.NextFloat(), Is.EqualTo(quiet.Random.NextFloat()), $"draw {i}");
+        }
+
+        [Test]
+        public void DerivingCostsExactlyOneDrawFromTheRunStream()
+        {
+            var derived = new RunContext(77u);
+            var manual = new RunContext(77u);
+
+            derived.DeriveStream();
+            manual.Random.NextFloat(); // one draw, by any route
+
+            Assert.That(derived.Random.NextFloat(), Is.EqualTo(manual.Random.NextFloat()));
+        }
+    }
 }

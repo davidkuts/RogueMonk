@@ -40,10 +40,21 @@ namespace Game.Level
         int MinRooms { get; }
         int MaxRooms { get; }
 
-        /// <summary>Waves in the boss room. One placeholder wave until boss mechanics exist.</summary>
+        /// <summary>
+        /// The archetype that <em>is</em> the boss fight. When set, the boss room holds exactly one
+        /// wave containing exactly this one enemy, and <see cref="BossRoomWaves"/> and
+        /// <see cref="BossBudgetBonus"/> are ignored. Left empty, the boss room falls back to an
+        /// ordinary dense wave — which is what keeps a content set with no boss still playable.
+        /// </summary>
+        string BossArchetypeId { get; }
+
+        /// <summary>Waves in the boss room. Ignored once <see cref="BossArchetypeId"/> is set.</summary>
         int BossRoomWaves { get; }
 
-        /// <summary>Extra budget the boss room gets on top of normal escalation.</summary>
+        /// <summary>
+        /// Extra budget the boss room gets on top of normal escalation. Ignored once
+        /// <see cref="BossArchetypeId"/> is set.
+        /// </summary>
         float BossBudgetBonus { get; }
 
         int MinWavesPerRoom { get; }

@@ -54,6 +54,9 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Melee windups 400–500 ms; ranged 600–800 ms (human reaction ~250 ms + read margin)
 - Consistent visual language: same color = same threat type; every attack has an audio cue
 - Gameplay-reserved hues: saturated colors used ONLY for telegraphs, projectiles, dash trail, elemental FX — never in the environment
+- **Hue assignments** (locked 2026-08-07): **red** = melee arc · **amber** = incoming projectile · **violet** = gap-closer, "it is coming to you". Violet was introduced with the boss's Slam so it could never be confused with a threat the player had already learned.
+- **Ground decal** (added 2026-08-07, M10): attacks with a static footprint also paint the real hitbox on the floor during windup, filling from the centre outward so the fill reaches the outline exactly as the attack goes active. Colour says *what*; the decal says *where* and *when*. Required because a rigless enemy with several moves cannot be read from colour alone.
+- Because telegraphs own the saturated end of the palette, **room tints must stay desaturated** — the boss room was retinted from red to cold slate for exactly this reason.
 
 ### Player health
 - HP number, **no healing at all** during the run
@@ -62,7 +65,8 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 ### Level structure
 - **6–7 rooms per level**, hand-authored room prefabs (8–12 templates) with tagged spawn points; randomize room selection, order, spawn population. NO fully-procedural geometry.
 - **Rooms are discrete, Hades-style** (decided 2026-08-07): one room exists at a time and the exit door swaps it for the next — the player does not walk through connected geometry. This is what makes per-room camera confinement and per-room NavMesh baking work.
-- **The last room is a boss room** (decided 2026-08-07): 5 ordinary rooms, then the boss. It is appended rather than drawn, so it is always last. Boss mechanics are not in the MVP yet; the room is signalled by tint, banner and an advance warning.
+- **The last room is a boss room** (decided 2026-08-07): 5 ordinary rooms, then the boss. It is appended rather than drawn, so it is always last.
+- **The boss room holds the boss and nothing else** (decided 2026-08-07, M10): one wave, one enemy, no escorts. Adds would wreck the readability of a 700 ms telegraph, and a lone boss is what lets its health bar mean "how far through this fight am I". The boss archetype carries selection weight 0, so it can only ever appear where the generator names it explicitly.
 - **Wave spawns** within rooms
 - Doors gate until room cleared; level complete when final room cleared
 - NavMesh baked per room prefab offline
@@ -71,6 +75,13 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 ### Enemies (MVP: two types)
 - Melee humanoid: telegraphed lunge; Staggerable tier
 - Ranged: telegraphed projectile; pick tier during tuning (candidate for Armored)
+
+### Boss (added 2026-08-07, M10)
+- **Immune tier, so it is never interrupted.** Its poise and armour pools are therefore zero — a non-zero pool would be a number the inspector shows but nothing can ever move.
+- **A moveset, not an attack.** `BossDefinition` extends `EnemyDefinition` with moves (one or more chained attacks each), health-tied phases, and per-move range bands, cooldowns and weights. Ordinary archetypes are untouched by this.
+- **Selection = deterministic legality gate, then a seeded weighted draw.** Pure random throws melee at twelve metres and read-and-react dies; pure scoring is memorised in half a minute. Repeats are discouraged, never forbidden.
+- **Phases replace stagger.** Crossing a health threshold makes the boss finish its current swing, then stand inert and vulnerable — a punish window earned with damage rather than poise. This is what stops an un-interruptible enemy reading as unresponsive, and it does not violate the never-cancel-a-windup rule.
+- **Boss randomness uses a stream derived from the run**, never the run stream itself: the number of draws depends on how the player fights, which would otherwise desynchronise every later draw and break seed reproducibility.
 
 ### RNG & death flow
 - **Seeded runs from day one**: single RNG owned by RunContext; room order, spawns, (later) boon offers all draw from it; seed logged at run start
@@ -129,7 +140,7 @@ EnemyDefinition {
 5. Ranged enemy + projectile + telegraph
 6. Room manager: prefab templates, seeded selection, wave spawner, door gating, clear condition, confiner
 7. Pause menu, restart, HUD, death screen + stats
-8. Mixamo models + Animancer playback + toon shader pass
+8. Mixamo models + Animancer playback + toon shader pass (shipped on Playables — Animancer not bought)
 9. SFX (whiff/hit/dash/perfect-dodge/enemy death), VFX, rumble, polish
 
 ## Model routing (Claude Code)

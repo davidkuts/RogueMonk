@@ -730,7 +730,8 @@ MonoBehaviour:
   doorBlocker: {fileID: 1283402891197885870}
   exitTrigger: {fileID: 1830575962864150739}
   cameraBounds: {fileID: 1261147447136380070}
-  bossTint: {r: 0.42, g: 0.16, b: 0.22, a: 1}
+  bossTint: {r: 0.2, g: 0.21, b: 0.27, a: 1}
+  bossTintStrength: 0.55
   bossMarker: {fileID: 0}
 --- !u!1 &7927311972442666493
 GameObject:

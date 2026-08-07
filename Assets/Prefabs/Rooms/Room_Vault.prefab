@@ -176,7 +176,8 @@ MonoBehaviour:
   doorBlocker: {fileID: 956813695839301307}
   exitTrigger: {fileID: 8040759680610631061}
   cameraBounds: {fileID: 831501755970072139}
-  bossTint: {r: 0.42, g: 0.16, b: 0.22, a: 1}
+  bossTint: {r: 0.2, g: 0.21, b: 0.27, a: 1}
+  bossTintStrength: 0.55
   bossMarker: {fileID: 0}
 --- !u!1 &691341789383278286
 GameObject:
@@ -458,7 +459,7 @@ Transform:
   m_GameObject: {fileID: 1838635400102799619}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9, y: 0.9, z: 1.5}
+  m_LocalPosition: {x: 0, y: 0.9, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

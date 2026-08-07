@@ -9,7 +9,7 @@ namespace Game.Enemies
     /// Immune-tier enemies longer still (650–750 ms) to pay for never being interrupted.
     /// </summary>
     [CreateAssetMenu(menuName = "Monk/Enemy Definition", fileName = "EnemyDefinition")]
-    public sealed class EnemyDefinition : ScriptableObject, IEnemyDefinition
+    public class EnemyDefinition : ScriptableObject, IEnemyDefinition
     {
         [Header("Vitals")]
         [SerializeField] float maxHealth = 60f;

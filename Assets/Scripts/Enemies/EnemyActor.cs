@@ -1,6 +1,7 @@
 using System;
 using Game.Combat;
 using Game.Core.Diagnostics;
+using Game.Core.Timing;
 using UnityEngine;
 
 namespace Game.Enemies
@@ -29,12 +30,28 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How fast knockback bleeds off. Higher = stops sooner.")]
         float knockbackDamping = 8f;
 
+        [Header("Death")]
+        [SerializeField, Tooltip("Seconds the body stays for a death beat before it is removed. 0 removes it immediately, which is what trash does.")]
+        float deathSequenceSeconds;
+        [SerializeField, Tooltip("Freeze on the killing blow. 0 for trash; a boss earns a longer one than any ordinary hit.")]
+        float deathHitstopSeconds;
+        [SerializeField, Tooltip("How far the body sinks into the floor across its death beat.")]
+        float deathSinkDistance = 1.1f;
+        [SerializeField, Tooltip("Scale the body collapses to across its death beat.")]
+        float deathEndScale = 0.75f;
+
         Renderer[] renderers;
         MaterialPropertyBlock propertyBlock;
         Color[] baseColors;
         CharacterController controller;
         Vector3 knockbackVelocity;
         float flashRemaining;
+
+        float deathRemaining;
+        float deathTotal;
+        Vector3 deathStartScale;
+        Vector3 deathStartPosition;
+        bool deathResolved;
 
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -51,9 +68,20 @@ namespace Game.Enemies
         /// <summary>True while poise is broken — the enemy cannot act and takes the punish.</summary>
         public bool IsStaggered => Poise != null && Poise.IsStaggered;
 
+        /// <summary>
+        /// True between the killing blow and the body actually being removed. Anything tracking
+        /// live enemies must treat a dying body as still present: <c>IsAlive</c> goes false the
+        /// instant health hits zero, so without this a room would clear over a standing corpse.
+        /// </summary>
+        public bool IsDying { get; private set; }
+
         /// <summary>Raised when poise breaks, so the controller can interrupt whatever it was doing.</summary>
         public event Action Staggered;
 
+        /// <summary>Raised the moment health reaches zero, before the death beat plays out.</summary>
+        public event Action DeathSequenceStarted;
+
+        /// <summary>Raised once the body is actually gone. Always fires exactly once.</summary>
         public event Action Died;
 
         /// <summary>Overridden colour while a telegraph is running. Null when not telegraphing.</summary>
@@ -141,8 +169,53 @@ namespace Game.Enemies
         {
             Poise.ClearStagger();
             GameLog.Info(LogCategory.Enemy, $"DEATH {definition.Id}");
+
+            IsDying = true;
+            DeathSequenceStarted?.Invoke();
+
+            if (deathHitstopSeconds > 0f && GameClock.Instance != null)
+                GameClock.Instance.RequestFreeze(deathHitstopSeconds);
+
+            if (deathSequenceSeconds <= 0f)
+            {
+                // Trash: gone on the frame it dies, exactly as before this beat existed.
+                FinishDeath();
+                return;
+            }
+
+            deathTotal = deathSequenceSeconds;
+            deathRemaining = deathSequenceSeconds;
+            deathStartScale = transform.localScale;
+            deathStartPosition = transform.position;
+
+            // The body is no longer a participant; let it sink through its own capsule.
+            if (controller != null)
+                controller.enabled = false;
+        }
+
+        /// <summary>
+        /// Ends the beat and hands the body back. Guarded so <see cref="Died"/> fires exactly once
+        /// however the body leaves — anything that swallowed it would lock the room shut.
+        /// </summary>
+        void FinishDeath()
+        {
+            if (deathResolved)
+                return;
+
+            deathResolved = true;
+            IsDying = false;
             Died?.Invoke();
-            gameObject.SetActive(false);
+
+            if (gameObject.activeSelf)
+                gameObject.SetActive(false);
+        }
+
+        void OnDisable()
+        {
+            // Safety hatch. Being disabled or destroyed part-way through the beat must still
+            // resolve the death, or the runner waits forever for an enemy that is already gone.
+            if (IsDying)
+                FinishDeath();
         }
 
         void Update()
@@ -150,6 +223,12 @@ namespace Game.Enemies
             float deltaTime = Time.deltaTime;
             if (deltaTime <= 0f)
                 return;
+
+            if (IsDying)
+            {
+                TickDeath(deltaTime);
+                return;
+            }
 
             Poise.Tick(deltaTime);
             Statuses.Tick(deltaTime);
@@ -159,6 +238,29 @@ namespace Game.Enemies
 
             ApplyKnockback(deltaTime);
             ApplyColor();
+        }
+
+        /// <summary>
+        /// The death beat: sink and collapse rather than blink out. Runs on the scaled clock on
+        /// purpose — the killing blow's hitstop should hold the first frame of it, and GameClock
+        /// already zeroes the scale while paused so a paused beat does not drain away.
+        /// </summary>
+        void TickDeath(float deltaTime)
+        {
+            deathRemaining -= deltaTime;
+
+            float t = deathTotal > 0f ? 1f - Mathf.Clamp01(deathRemaining / deathTotal) : 1f;
+
+            transform.localScale = deathStartScale * Mathf.Lerp(1f, Mathf.Max(0.01f, deathEndScale), t);
+            transform.position = deathStartPosition + Vector3.down * (deathSinkDistance * t);
+
+            if (flashRemaining > 0f)
+                flashRemaining -= deltaTime;
+
+            ApplyColor();
+
+            if (deathRemaining <= 0f)
+                FinishDeath();
         }
 
         void ApplyKnockback(float deltaTime)

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d361a0db8a4f7e94f9a66db167da2127, type: 3}
+  m_Name: BossSweepB
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.AttackDefinition
+  windupSeconds: 0.65
+  activeSeconds: 0.12
+  recoverySeconds: 0.55
+  cancellableOnRecovery: 0
+  comboWindowSeconds: 0
+  hitbox:
+    Kind: 1
+    LocalOffset: {x: 0, y: 0, z: 1.3}
+    Radius: 1
+    Size: {x: 4.2, y: 2, z: 2.4}
+  damage: 12
+  damageType: 0
+  poiseDamage: 0
+  knockback: 3
+  hitstopSeconds: 0.07
+  autoAimConeDegrees: 0
+  autoAimRangeMeters: 0
+  aimSnapSpeedDegPerSec: 0
+  moveSpeedMultiplier: 0
+  telegraphColor: {r: 1, g: 0.24, b: 0.18, a: 1}

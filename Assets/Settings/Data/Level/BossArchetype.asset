@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 493c06e33157d3040b5740812a81be75, type: 3}
+  m_Name: BossArchetype
+  m_EditorClassIdentifier: Game.Level::Game.Level.EnemyArchetypeDefinition
+  prefab: {fileID: 7412009853317744621, guid: 6b1f34a72d0e59c48af7213e9c05d84b, type: 3}
+  selectionWeight: 0
+  cost: 0

@@ -5,8 +5,8 @@ namespace Game.UI
 {
     /// <summary>
     /// Announces each room as the player arrives, and warns when the next door leads to the
-    /// boss. Until boss mechanics exist this warning plus the room's tint are the entire
-    /// signal, so it is deliberately loud and unmissable rather than a subtle badge.
+    /// boss. Deliberately loud rather than a subtle badge — the boss room is the one room the
+    /// player should walk into already braced.
     ///
     /// IMGUI placeholder, same as the other pre-M7 UI.
     /// </summary>
@@ -40,6 +40,7 @@ namespace Game.UI
             {
                 director.RoomEntered += OnRoomEntered;
                 director.LevelCompleted += OnLevelCompleted;
+                director.BossEncounterStarted += OnBossEncounterStarted;
             }
         }
 
@@ -50,6 +51,18 @@ namespace Game.UI
 
             director.RoomEntered -= OnRoomEntered;
             director.LevelCompleted -= OnLevelCompleted;
+            director.BossEncounterStarted -= OnBossEncounterStarted;
+        }
+
+        /// <summary>
+        /// The boss's name only exists once it has actually spawned, which happens just after the
+        /// room is announced. Filling it in here rather than guessing at room-entry time means a
+        /// content set with no boss simply shows no name instead of a claim that is not true.
+        /// </summary>
+        void OnBossEncounterStarted(IBossEncounter encounter)
+        {
+            subText = encounter.DisplayName.ToUpperInvariant();
+            remaining = bannerSeconds;
         }
 
         void OnRoomEntered(RoomPlan room)
@@ -59,7 +72,7 @@ namespace Game.UI
             if (room.IsBossRoom)
             {
                 bannerText = "BOSS ROOM";
-                subText = "placeholder encounter - no boss mechanics yet";
+                subText = string.Empty;
             }
             else
             {

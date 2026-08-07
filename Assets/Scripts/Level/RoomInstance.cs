@@ -51,8 +51,10 @@ namespace Game.Level
         public event Action ExitReached;
 
         [Header("Boss signalling")]
-        [SerializeField, Tooltip("Tint applied to the room's geometry when it hosts the boss, so the space itself reads as different before anything attacks.")]
-        Color bossTint = new Color(0.42f, 0.16f, 0.22f);
+        [SerializeField, Tooltip("Tint applied to the room's geometry when it hosts the boss, so the space itself reads as different before anything attacks. Deliberately a cold desaturated slate: the boss's melee telegraph is red, and a red room would swallow it (CLAUDE.md rule 7 reserves saturated hues for gameplay information).")]
+        Color bossTint = new Color(0.20f, 0.21f, 0.27f);
+        [SerializeField, Range(0f, 1f), Tooltip("How far the room's own colours are pulled toward the tint. High enough to read as a different space, low enough to leave the palette legible.")]
+        float bossTintStrength = 0.55f;
         [SerializeField, Tooltip("Optional object enabled only in the boss room.")]
         GameObject bossMarker;
 
@@ -90,7 +92,7 @@ namespace Game.Level
                     ? material.GetColor(BaseColorId)
                     : Color.white;
 
-                block.SetColor(BaseColorId, Color.Lerp(baseColor, bossTint, 0.75f));
+                block.SetColor(BaseColorId, Color.Lerp(baseColor, bossTint, Mathf.Clamp01(bossTintStrength)));
                 renderer.SetPropertyBlock(block);
             }
         }

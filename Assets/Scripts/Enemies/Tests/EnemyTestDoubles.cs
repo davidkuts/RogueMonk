@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Combat;
 
 namespace Game.Enemies.Tests
@@ -22,7 +23,7 @@ namespace Game.Enemies.Tests
         public float MoveSpeedMultiplier { get; set; }
     }
 
-    internal sealed class FakeEnemyDefinition : IEnemyDefinition
+    internal class FakeEnemyDefinition : IEnemyDefinition
     {
         public string Id { get; set; } = "melee";
         public float MaxHealth { get; set; } = 60f;
@@ -48,5 +49,57 @@ namespace Game.Enemies.Tests
             ProjectileRadius = 0.35f,
             KiteSpeedFraction = 0.7f,
         };
+    }
+
+    internal sealed class FakeBossMove : IBossMove
+    {
+        public string Id { get; set; } = "move";
+        public IReadOnlyList<IAttackDefinition> Links { get; set; } = new IAttackDefinition[] { new FakeEnemyAttack() };
+        public float LinkDelaySeconds { get; set; } = 0.3f;
+        public float MinRange { get; set; }
+        public float MaxRange { get; set; } = 3.2f;
+        public float SelectionWeight { get; set; } = 1f;
+        public int UnlockedAtPhase { get; set; }
+        public float MoveCooldownSeconds { get; set; } = 2f;
+        public float LungeDistance { get; set; }
+        public int ProjectileCount { get; set; }
+        public float ProjectileSpreadDegrees { get; set; } = 24f;
+
+        /// <summary>Builds a chain of n distinct links, so tests can tell them apart by identity.</summary>
+        public static IAttackDefinition[] Chain(int count)
+        {
+            var links = new IAttackDefinition[count];
+            for (int i = 0; i < count; i++)
+                links[i] = new FakeEnemyAttack { Id = $"link{i}" };
+            return links;
+        }
+    }
+
+    internal sealed class FakeBossPhase : IBossPhase
+    {
+        public float HealthFractionThreshold { get; set; } = 0.55f;
+        public float CooldownMultiplier { get; set; } = 0.7f;
+    }
+
+    internal sealed class FakeBossDefinition : FakeEnemyDefinition, IBossDefinition
+    {
+        public FakeBossDefinition()
+        {
+            Id = "boss";
+            Tier = StaggerTier.Immune;
+            MaxHealth = 600f;
+            MoveSpeed = 2.6f;
+            AggroRange = 30f;
+            AttackCooldownSeconds = 0.9f;
+            PoiseMax = 0f;
+            ArmorMax = 0f;
+            StaggerDurationSeconds = 0f;
+        }
+
+        public string DisplayName { get; set; } = "The Warden";
+        public IReadOnlyList<IBossMove> Moves { get; set; } = new IBossMove[] { new FakeBossMove() };
+        public IReadOnlyList<IBossPhase> Phases { get; set; } = new IBossPhase[0];
+        public float PhaseTransitionSeconds { get; set; } = 1.4f;
+        public float RepeatWeightMultiplier { get; set; } = 0.35f;
     }
 }

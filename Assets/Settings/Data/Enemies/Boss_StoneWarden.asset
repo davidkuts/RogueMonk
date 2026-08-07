@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54445851b55d61342b982951072b4482, type: 3}
+  m_Name: Boss_StoneWarden
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BossDefinition
+  maxHealth: 600
+  tier: 2
+  poiseMax: 0
+  poiseRegenDelay: 0
+  poiseRegenRate: 0
+  armorMax: 0
+  staggerDurationSeconds: 0
+  moveSpeed: 2.6
+  aggroRange: 30
+  attackRange: 16
+  attackCooldownSeconds: 0.9
+  lungeDistance: 0
+  attack: {fileID: 11400000, guid: 3a1c7f04d9b24e8ab6c15d80f7e29104, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 16
+    ProjectileSpeed: 11.5
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.45
+    KiteSpeedFraction: 0.7
+  displayName: The Stone Warden
+  moves:
+  - id: Cleave
+    links:
+    - {fileID: 11400000, guid: 3a1c7f04d9b24e8ab6c15d80f7e29104, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 3.2
+    selectionWeight: 3
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 1.5
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+  - id: Slam
+    links:
+    - {fileID: 11400000, guid: 5b2d8e15ea734f9bc7d26e91a8f3a215, type: 2}
+    linkDelaySeconds: 0
+    minRange: 2.5
+    maxRange: 6
+    selectionWeight: 2
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 3.5
+    lungeDistance: 2.8
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+  - id: Sweep
+    links:
+    - {fileID: 11400000, guid: 7c3e9f26fb845a0cd8e37fa2b904b326, type: 2}
+    - {fileID: 11400000, guid: 9d4fa0370c956b1de9f480b3ca15c437, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 0
+    maxRange: 3.6
+    selectionWeight: 2
+    unlockedAtPhase: 1
+    moveCooldownSeconds: 4
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+  - id: Volley
+    links:
+    - {fileID: 11400000, guid: 2e5b1c48ad367c2efa591d4bd26d5481, type: 2}
+    linkDelaySeconds: 0
+    minRange: 5
+    maxRange: 16
+    selectionWeight: 3
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 2.5
+    lungeDistance: 0
+    projectileCount: 3
+    projectileSpreadDegrees: 24
+  phases:
+  - healthFractionThreshold: 0.55
+    cooldownMultiplier: 0.7
+  phaseTransitionSeconds: 1.4
+  repeatWeightMultiplier: 0.35

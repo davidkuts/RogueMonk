@@ -43,6 +43,19 @@ namespace Game.Core.Rng
         public void RecordKill() => EnemiesKilled++;
 
         /// <summary>Derives a fresh seed for the next run from this run's stream.</summary>
-        public uint NextRunSeed() => ((XorShiftRandom)Random).NextUInt();
+        public uint NextRunSeed() => NextDerivedSeed();
+
+        /// <summary>
+        /// A fresh seeded stream for a subsystem whose number of draws depends on how the run is
+        /// played — boss move selection, for instance, draws once per attack it manages to throw.
+        ///
+        /// Such a subsystem must never draw from <see cref="Random"/> directly: the draw count
+        /// would vary with player skill and frame timing, so everything that drew afterwards
+        /// would land on different values and the seed would stop reproducing the run. Deriving
+        /// costs exactly one draw at a deterministic point instead.
+        /// </summary>
+        public IRandomSource DeriveStream() => new XorShiftRandom(NextDerivedSeed());
+
+        uint NextDerivedSeed() => ((XorShiftRandom)Random).NextUInt();
     }
 }
