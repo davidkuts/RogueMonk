@@ -18,12 +18,18 @@ namespace Game.Core.Player
         [SerializeField] DashSettings dashSettings;
         [SerializeField] PlayerInputReader input;
 
+        [SerializeField, Tooltip("Layers the dash passes straight through — enemies. Walls are deliberately not included: a dash that phased through geometry would break room containment.")]
+        LayerMask dashPhasesThroughLayers;
+
         CharacterController controller;
         readonly InputBuffer dashBuffer = new InputBuffer();
         float verticalSpeed;
 
         /// <summary>Combat's veto on movement and dashing. Null when nothing restricts the player.</summary>
         IPlayerActionState actions;
+
+        /// <summary>Whatever the controller excluded before the dash started, so it can be restored exactly.</summary>
+        LayerMask baseExcludeLayers;
 
         /// <summary>The walking simulation — read by the camera rig and, later, combat.</summary>
         public PlayerLocomotion Locomotion { get; private set; }
@@ -37,6 +43,8 @@ namespace Game.Core.Player
         void Awake()
         {
             controller = GetComponent<CharacterController>();
+            baseExcludeLayers = controller.excludeLayers;
+
             if (input == null)
                 input = GetComponent<PlayerInputReader>();
 
@@ -94,6 +102,13 @@ namespace Game.Core.Player
                 Locomotion.Tick(moveAxis, deltaTime, speedMultiplier, allowTurning);
                 planarMotion = Locomotion.Velocity * deltaTime;
             }
+
+            // Recomputed every frame from the dash state rather than toggled on the start and
+            // end events: it is self-healing, so a cancelled or interrupted dash can never
+            // strand the player permanently phased through enemies.
+            controller.excludeLayers = Dash.IsDashing
+                ? baseExcludeLayers | dashPhasesThroughLayers
+                : baseExcludeLayers;
 
             verticalSpeed = controller.isGrounded
                 ? -settings.GroundedStickSpeed

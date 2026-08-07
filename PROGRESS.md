@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M6 complete + combat readability pass — awaiting human playtest before M7
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Melee grunts **no longer lunge**, so backing off during the 450 ms telegraph now works; the telegraph also pulses and brightens as it completes. ~15–18 enemies per level. **L2 (or K) clears the current room** for fast iteration. R/Start restarts, T replays the seed, F1 is the overlay. Then M7: pause menu, HUD, proper death screen.
-- **Blocked on:** human feel-check of melee readability and the shorter level
+- **Active milestone:** **M6 signed off by the human 2026-08-07.** M7 (pause menu, restart, HUD, death screen + stats) is next and has not been started.
+- **Next action:** Human: confirm dash-through-enemies feels right, then give the go-ahead for M7. Much of M7's plumbing already exists: run stats are being recorded, restart works (R/Start, T for same seed), and the death/victory banner is a placeholder to be replaced by the real screen.
+- **Blocked on:** M7 go-ahead
 
 ## Milestones
 | # | Milestone | Status |
@@ -16,7 +16,7 @@
 | 3 | Combat data system: AttackDefinition SOs, hit resolver + modifier pipeline, hitstop, screenshake, combo + cancel windows, input buffer, EditMode tests | ✅ done (pending feel-check) |
 | 4 | Enemy base, health/poise/stagger tiers, melee enemy w/ telegraphed lunge | ✅ done (pending feel-check) |
 | 5 | Ranged enemy + projectile + telegraph | ✅ done (pending feel-check) |
-| 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ done (pending feel-check) |
+| 6 | Room manager: templates, seeded selection, wave spawner, door gating, clear condition, confiner | ✅ **done** (human-signed-off 2026-08-07) |
 | 7 | Pause menu, restart, HUD, death screen + stats | ⬜ |
 | 8 | Mixamo models + Animancer playback + toon shader pass | ⬜ |
 | 9 | SFX, VFX, rumble, polish | ⬜ |
@@ -30,6 +30,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Dash phases through enemies (M6 closed)
+- Human: "it feels nice for the beginning few levels", one addition — the dash should pass through enemies. Done, and **M6 is signed off**.
+- Implemented with `CharacterController.excludeLayers` rather than `Physics.IgnoreLayerCollision` (global state that would leak across the whole project) or per-collider `IgnoreCollision` (needs bookkeeping for every enemy that spawns or dies mid-dash). The mask is **recomputed every frame from the dash state instead of toggled on start/end events**, so it is self-healing: a cancelled or interrupted dash can never strand the player permanently phased through enemies.
+- Only the `Hittable` layer is phased through. **Walls are deliberately excluded** — a dash that passed through geometry would break room containment and let the player leave the level.
+- Verified in Play Mode both ways: with an enemy parked at z=2, a dash from z=0 completed the full 4 m to z=4.00 (previously it would have stopped around z≈1.2); dashing at a wall from 2 m out stopped at x=6.33 against a half-width of 7.0, where phasing through would have reached 9.00. Exclude mask reads 0 again after the dash.
+- No unit test: this is physics-layer behaviour with no simulation change (`PlayerDash` is untouched), so Play Mode verification is the honest check. 286/286 existing tests still pass.
 
 ### 2026-08-07 — Melee readability: lunge removed, telegraph strengthened, debug room skip
 - Human: melee damage is hard to avoid with no attack animation; suggested a wind-up colour. **The wind-up tint already existed and was working** — verified frame by frame that the grunt ramps from rgb(0.67, 0.41, 0.39) at 0 % wind-up to rgb(0.88, 0.30, 0.25) at 99 %. So the tell was visible; the reason it could not be acted on was the **lunge**, which carried the grunt 2.2 m during its 0.1 s active window. Seeing the telegraph did not help because backing off could not outrun it.
