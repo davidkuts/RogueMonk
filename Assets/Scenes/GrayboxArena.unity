@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 209475366}
   - component: {fileID: 209475365}
   - component: {fileID: 209475364}
+  - component: {fileID: 209475367}
   m_Layer: 0
   m_Name: Diagnostics
   m_TagString: Untagged
@@ -185,6 +186,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &209475367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f97939f19416ae94b9d99ad6c9d48e33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.UI::Game.UI.RunOutcomeView
+  director: {fileID: 673184060}
+  health: {fileID: 1949805137}
+  restartKey: 32
+  restartSameSeedKey: 34
 --- !u!1 &261461479
 GameObject:
   m_ObjectHideFlags: 0
@@ -987,6 +1004,8 @@ MonoBehaviour:
   player: {fileID: 1949805134}
   gameplayCamera: {fileID: 1243274634}
   fixedSeed: 0
+  confinerMargin: {x: 2.5, y: 1}
+  confinerHeight: 30
 --- !u!4 &673184061
 Transform:
   m_ObjectHideFlags: 0

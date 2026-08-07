@@ -44,6 +44,9 @@ namespace Game.Level
         /// <summary>Raised whenever a new wave lands, with its 1-based number.</summary>
         public event Action<int> WaveStarted;
 
+        /// <summary>Raised for each enemy death, so the run can keep a kill tally.</summary>
+        public event Action EnemyKilled;
+
         public void Begin()
         {
             GameLog.Info(LogCategory.Level,
@@ -111,6 +114,8 @@ namespace Game.Level
         void OnEnemyDied(EnemyActor actor)
         {
             alive.Remove(actor);
+            EnemyKilled?.Invoke();
+
             if (alive.Count == 0 && !IsCleared)
                 AdvanceWave();
         }

@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M6 built and verified — awaiting human playtest before M7
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. It is now a **full seeded level**: 6–7 rooms, waves gated by doors, camera confined per room. Clear a room and the door opens; walk through it to advance. The seed is logged at run start (F1 overlay, or Player.log) — quote it back to me to reproduce any run exactly. Watch for: whether wave sizes escalate sensibly, whether the three room shapes read differently, and whether the door/transition is clear enough without any UI prompt.
-- **Blocked on:** human feel-check of the level flow
+- **Active milestone:** M6 fixed after playtest — **blocked on a design decision about the room concept** before M7
+- **Next action:** Human: (1) run `Builds/Win64/RogueMonk.exe` and confirm the camera follows properly again and that death/victory now read clearly (R or Start restarts, T replays the same seed). (2) Answer the room-concept question: discrete rooms swapped at a door (current, Hades-like) versus physically connected rooms you walk between.
+- **Blocked on:** room-concept decision + camera re-check
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M6 fixes: camera confiner bug, death/victory feedback
+- **Camera confiner was broken, and it was my bug.** I confined the camera to the *room's* volume. A top-down camera sits ~13 m above and 10 m behind the room, i.e. entirely outside that box, so Cinemachine clamped it to the nearest face every frame and it stopped following. The confiner volume is now derived: the room's play area pushed into camera space by the vcam's follow offset, and 30 m tall so the camera's height is comfortably inside. Verified: player at x=6.0 → camera at x=3.5, clamping only at the room edge as intended. `confinerMargin` on the LevelDirector is the follow-versus-see-past-the-walls knob (now 2.5/1.0; set 0 for the fully unconfined feel).
+- **Death and victory had no feedback at all** — `PlayerHealth` fired an event and logged, then nothing happened; you kept playing at 0 HP. Added `RunOutcomeView`: a centred banner for YOU DIED / LEVEL COMPLETE with the run stats, and restart on **R / Start** (or **T** to replay the same seed, DESIGN.md's debug aid). `LevelDirector.Restart` tears down the room, the runner and any stray projectiles before rebuilding.
+- **The run stats were all wired to nothing.** `RunContext` had recorder methods that no one called, so a death screen would have shown zeros. `LevelDirector` now subscribes to player hits, damage taken, perfect dodges and enemy deaths. This is exactly the plumbing M7's proper death screen needs, so M7 becomes a visual pass.
+- Verified: 281/281 tests; standalone build reaches `PLAYER DIED` with no exceptions.
+- Open with the human: the room *concept*. Rooms are currently discrete — one exists at a time, and the exit door swaps it for the next (Hades-like). The human expected to physically walk between connected rooms. Asked rather than rebuilt, since it changes level layout, camera confinement and the NavMesh strategy.
 
 ### 2026-08-06 — M6: seeded level generation, waves, door gating, confiner
 - Tuning from playtest: projectile speed **9 → 11.5 m/s** (human: 700 ms telegraph was enough, projectile slightly too slow). Travel time from 7 m drops 0.78 s → 0.61 s, still well clear of the ~250 ms reaction floor.

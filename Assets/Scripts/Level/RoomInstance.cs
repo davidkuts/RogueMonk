@@ -21,7 +21,7 @@ namespace Game.Level
         GameObject doorBlocker;
         [SerializeField, Tooltip("Trigger the player touches to advance. Enabled only once cleared.")]
         Collider exitTrigger;
-        [SerializeField, Tooltip("Bounds the camera may not leave while this room is active.")]
+        [SerializeField, Tooltip("The room's playable floor area. The camera confiner volume is derived from this, not used as it.")]
         Collider cameraBounds;
 
         public Transform EntryPoint => entryPoint != null ? entryPoint : transform;
@@ -29,6 +29,23 @@ namespace Game.Level
         public int SpawnPointCount => spawnPoints != null ? spawnPoints.Length : 0;
 
         public Collider CameraBounds => cameraBounds;
+
+        /// <summary>
+        /// World-space bounds of the playable area. The camera is confined to a volume derived
+        /// from this, offset into camera space — confining the camera to the room volume itself
+        /// is wrong, because a top-down camera sits above and behind the room, not inside it.
+        /// </summary>
+        public bool TryGetPlayArea(out Bounds area)
+        {
+            if (cameraBounds == null)
+            {
+                area = default;
+                return false;
+            }
+
+            area = cameraBounds.bounds;
+            return true;
+        }
 
         /// <summary>Raised when the player touches the exit trigger of a cleared room.</summary>
         public event Action ExitReached;

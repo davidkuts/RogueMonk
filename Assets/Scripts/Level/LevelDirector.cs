@@ -1,4 +1,5 @@
 using System;
+using Game.Combat;
 using Game.Core.Diagnostics;
 using Game.Core.Rng;
 using Unity.Cinemachine;
@@ -23,7 +24,17 @@ namespace Game.Level
         [SerializeField, Tooltip("Leave 0 to pick a seed from the system clock and log it.")]
         uint fixedSeed;
 
+        [Header("Camera confinement")]
+        [SerializeField, Tooltip("How far inside the room edges the camera stops. This is the follow-versus-see-past-the-walls knob: larger hides the void beyond the walls but makes the camera stop following sooner. Set to 0 for the unconfined feel.")]
+        Vector2 confinerMargin = new Vector2(2.5f, 1f);
+        [SerializeField, Tooltip("Vertical size of the confiner volume. Must comfortably contain the camera's height or it will be clamped and stop following.")]
+        float confinerHeight = 30f;
+
+        PlayerAttackController playerAttacks;
+        PlayerHealth playerHealth;
         CinemachineConfiner3D confiner;
+        CinemachineFollow follow;
+        BoxCollider confinerVolume;
         RoomInstance currentRoom;
         RoomRunner currentRunner;
         Transform enemyParent;
@@ -40,6 +51,42 @@ namespace Game.Level
         /// <summary>Raised when the final room is cleared.</summary>
         public event Action LevelCompleted;
 
+        /// <summary>True once the level is won. Stops the director doing anything further.</summary>
+        public bool IsComplete { get; private set; }
+
+        /// <summary>
+        /// Starts a fresh run. <paramref name="sameSeed"/> replays the current one exactly —
+        /// the debug aid DESIGN.md asks for; otherwise a new seed is derived from this run's
+        /// own stream so consecutive restarts do not repeat.
+        /// </summary>
+        public void Restart(bool sameSeed)
+        {
+            uint seed = Run == null ? fixedSeed : (sameSeed ? Run.Seed : Run.NextRunSeed());
+
+            if (currentRunner != null)
+            {
+                currentRunner.Cleared -= OnRoomCleared;
+                currentRunner.Abort();
+                currentRunner = null;
+            }
+
+            if (currentRoom != null)
+            {
+                currentRoom.ExitReached -= OnExitReached;
+                Destroy(currentRoom.gameObject);
+                currentRoom = null;
+            }
+
+            // Anything that outlived its room — a projectile in flight, for instance.
+            for (int i = enemyParent.childCount - 1; i >= 0; i--)
+                Destroy(enemyParent.GetChild(i).gameObject);
+
+            IsComplete = false;
+            enabled = true;
+            GameLog.Info(LogCategory.Level, $"RESTART  {(sameSeed ? "same" : "new")} seed");
+            BeginRun(seed);
+        }
+
         void Awake()
         {
             if (settings == null || player == null)
@@ -51,11 +98,35 @@ namespace Game.Level
 
             enemyParent = new GameObject("SpawnedEnemies").transform;
 
+            // Run stats are gathered here because this is the only object that outlives a room
+            // and knows the RunContext. Without this the death screen would show all zeros.
+            playerAttacks = player.GetComponent<PlayerAttackController>();
+            playerHealth = player.GetComponent<PlayerHealth>();
+
+            if (playerAttacks != null)
+                playerAttacks.Hit += OnPlayerDealtDamage;
+
+            if (playerHealth != null)
+            {
+                playerHealth.Damaged += OnPlayerTookDamage;
+                playerHealth.PerfectDodged += OnPerfectDodge;
+            }
+
             if (gameplayCamera != null)
             {
                 confiner = gameplayCamera.GetComponent<CinemachineConfiner3D>();
                 if (confiner == null)
                     confiner = gameplayCamera.gameObject.AddComponent<CinemachineConfiner3D>();
+
+                follow = gameplayCamera.GetComponent<CinemachineFollow>();
+
+                // One volume reused for every room. Its collider is a trigger on a disabled
+                // layer-free object: it exists purely as a shape for the confiner to read.
+                var volumeGo = new GameObject("CameraConfinerVolume");
+                volumeGo.transform.SetParent(transform, false);
+                confinerVolume = volumeGo.AddComponent<BoxCollider>();
+                confinerVolume.isTrigger = true;
+                confiner.BoundingVolume = confinerVolume;
             }
         }
 
@@ -105,6 +176,7 @@ namespace Game.Level
             if (currentRunner != null)
             {
                 currentRunner.Cleared -= OnRoomCleared;
+                currentRunner.EnemyKilled -= OnEnemyKilled;
                 currentRunner.Abort();
             }
 
@@ -117,6 +189,7 @@ namespace Game.Level
             roomIndex++;
             if (roomIndex >= Plan.RoomCount)
             {
+                IsComplete = true;
                 GameLog.Info(LogCategory.Level,
                     $"LEVEL COMPLETE  seed {Plan.Seed}  {Run.RoomsCleared} rooms in {Run.ElapsedSeconds:0.0}s");
                 LevelCompleted?.Invoke();
@@ -141,6 +214,7 @@ namespace Game.Level
 
             currentRunner = new RoomRunner(currentRoom, roomPlan, settings, enemyParent);
             currentRunner.Cleared += OnRoomCleared;
+            currentRunner.EnemyKilled += OnEnemyKilled;
             currentRunner.Begin();
         }
 
@@ -154,6 +228,42 @@ namespace Game.Level
         }
 
         void OnExitReached() => AdvanceRoom();
+
+        void OnEnemyKilled()
+        {
+            if (Run != null)
+                Run.RecordKill();
+        }
+
+        void OnPlayerDealtDamage(HitContext context)
+        {
+            if (Run != null)
+                Run.RecordDamageDealt(context.Damage);
+        }
+
+        void OnPlayerTookDamage(float amount)
+        {
+            if (Run != null)
+                Run.RecordDamageTaken(amount);
+        }
+
+        void OnPerfectDodge()
+        {
+            if (Run != null)
+                Run.RecordPerfectDodge();
+        }
+
+        void OnDestroy()
+        {
+            if (playerAttacks != null)
+                playerAttacks.Hit -= OnPlayerDealtDamage;
+
+            if (playerHealth != null)
+            {
+                playerHealth.Damaged -= OnPlayerTookDamage;
+                playerHealth.PerfectDodged -= OnPerfectDodge;
+            }
+        }
 
         void MovePlayerTo(Transform anchor)
         {
@@ -172,14 +282,42 @@ namespace Game.Level
             Physics.SyncTransforms();
         }
 
+        /// <summary>
+        /// Builds the volume the *camera* may occupy, which is the room's play area pushed into
+        /// camera space by the follow offset and made tall enough to contain the camera height.
+        ///
+        /// Confining the camera to the room volume itself — which is what this did originally —
+        /// puts the camera outside its own bounds (it sits ~13 m up and 10 m back), so the
+        /// confiner clamps it to the nearest face every frame and it stops following the player.
+        /// </summary>
         void ApplyCameraBounds(RoomInstance room)
         {
-            if (confiner == null || room.CameraBounds == null)
+            if (confiner == null || confinerVolume == null)
                 return;
 
-            // Confiner3D reads the collider directly each frame — unlike the 2D confiner there
-            // is no baked shape cache to invalidate, so reassigning is the whole job.
-            confiner.BoundingVolume = room.CameraBounds;
+            if (!room.TryGetPlayArea(out Bounds play))
+            {
+                confinerVolume.size = new Vector3(10000f, confinerHeight, 10000f);
+                return;
+            }
+
+            Vector3 offset = follow != null ? follow.FollowOffset : new Vector3(0f, 12f, -10f);
+
+            confinerVolume.transform.position = new Vector3(
+                play.center.x + offset.x,
+                play.center.y + offset.y,
+                play.center.z + offset.z);
+
+            // Shrinking by the margin is what stops the camera showing past the walls; it must
+            // never go negative or the confiner would pin the camera to a single point.
+            confinerVolume.center = Vector3.zero;
+            confinerVolume.size = new Vector3(
+                Mathf.Max(0.5f, play.size.x - confinerMargin.x * 2f),
+                Mathf.Max(1f, confinerHeight),
+                Mathf.Max(0.5f, play.size.z - confinerMargin.y * 2f));
+
+            GameLog.Debug(LogCategory.Camera,
+                $"confiner volume centre {confinerVolume.transform.position} size {confinerVolume.size}");
         }
     }
 }
