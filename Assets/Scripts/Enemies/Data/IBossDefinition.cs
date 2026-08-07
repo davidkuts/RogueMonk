@@ -46,6 +46,26 @@ namespace Game.Enemies
 
         /// <summary>Total spread of the projectile fan, centred on facing.</summary>
         float ProjectileSpreadDegrees { get; }
+
+        /// <summary>
+        /// How far to lead a moving target, as a fraction of a perfect intercept. 0 fires at where
+        /// the target stands, 1 at where it will be. Anything above 0 means strafing alone stops
+        /// being an answer — the player has to break direction or dash.
+        /// </summary>
+        float ProjectileLeadFraction { get; }
+
+        /// <summary>Telegraphed floor hazards dropped when the active window opens. 0 for none.</summary>
+        int HazardCount { get; }
+
+        /// <summary>Radius around the target the hazards scatter within.</summary>
+        float HazardScatterRadius { get; }
+
+        /// <summary>
+        /// Marks this move as the answer to being combo'd. A retaliation may be thrown the moment
+        /// the boss has been hit enough times, ignoring every cooldown — but it keeps its full
+        /// wind-up, because a telegraph-free punish would just be an unfair hit.
+        /// </summary>
+        bool IsRetaliation { get; }
     }
 
     /// <summary>
@@ -92,6 +112,19 @@ namespace Game.Enemies
         /// without ever being forbidden from it. 1 disables the effect.
         /// </summary>
         float RepeatWeightMultiplier { get; }
+
+        /// <summary>
+        /// Hits taken inside <see cref="RetaliationWindowSeconds"/> before the boss answers with a
+        /// retaliation move. 0 disables the whole mechanic.
+        ///
+        /// This exists because the punish window was otherwise unconditional: the player could
+        /// always land a full chain for free. Making the third hit provoke an answer turns "two
+        /// hits or three?" into a decision taken every single cycle.
+        /// </summary>
+        int RetaliationHitThreshold { get; }
+
+        /// <summary>How long the hit tally survives without being added to.</summary>
+        float RetaliationWindowSeconds { get; }
 
         // The death beat's length and hitstop live on EnemyActor beside the other reaction tuning
         // (hit flash, knockback damping) rather than here. Every enemy can have one; putting it on

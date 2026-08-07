@@ -22,7 +22,7 @@ MonoBehaviour:
     LocalOffset: {x: 0, y: 0, z: 1.3}
     Radius: 1
     Size: {x: 4.2, y: 2, z: 2.4}
-  damage: 12
+  damage: 15
   damageType: 0
   poiseDamage: 0
   knockback: 3

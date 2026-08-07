@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M10 (real boss fight) built and verified — the boss room is no longer a placeholder.**
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and fight the Stone Warden (room 6). Judge specifically: **are the four telegraphs distinguishable** on a capsule; is **750 ms enough to react to the Slam's gap-close**; does the **phase break at 55% read as a reward**; does the **death beat land**; is **600 HP a fight or a chore**. Every number below is a first draft.
-- **Blocked on:** human feel-check of M10
+- **Active milestone:** **M10.1 — boss difficulty pass, built and verified.** Human said M10 was "great, but not challenging enough".
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and fight the Stone Warden again. The fight is meaningfully harder in **four** ways, so if it now overshoots, say which of these felt unfair and it can be dialled back independently: (1) **Nova** punishes comboing into a telegraph, (2) hazards deny ground, (3) volleys **lead** you so strafing fails, (4) cadence is faster and varies. Watch for: is the Nova readable enough to be *fair*; are 4 hazards at once too busy; do led projectiles feel like tracking rather than aiming.
+- **Blocked on:** human feel-check of the difficulty pass
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -22,6 +22,7 @@
 | 8 | Mixamo models + Animancer playback + toon shader pass | ✅ done (pending feel-check) — Playables instead of Animancer, by decision |
 | 9 | SFX, VFX, rumble, polish | ✅ done (pending feel-check) — SFX are synthesised placeholders |
 | 10 | Real boss fight: moveset, health phases, Immune tier, boss bar, ground telegraphs | ✅ done (pending feel-check) |
+| 10.1 | Boss difficulty: greed punish, floor hazards, leading projectiles, faster cadence | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -32,6 +33,20 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M10.1: boss difficulty pass ("great, but not challenging enough")
+- **Diagnosis first, because the obvious lever was the wrong one.** The fight was easy for a specific reason: **the boss roots itself during its own 700 ms wind-up, so the telegraph *was* a free punish window.** The player could stand at 1.5 m, land two punches, and dash out with 200 ms to spare — on top of the 0.9 s cooldown after every move. Free attacking time was ~1.5 s per ~2.2 s cycle, almost exactly one full 42-damage chain, so the boss died in ~14 cycles / ~32 s while the player could misread **1 attack in 3** and still win. **Raising HP was explicitly rejected**: it makes the fight longer, not harder.
+- **Nova — the single highest-value addition.** A hitbox *centred on the boss* (radius 3.5 m), legal only within 2.5 m, thrown as a **retaliation**: three hits inside 2.5 s and the boss answers immediately, bypassing every cooldown. It keeps its full 700 ms wind-up — bypassing the telegraph would just be an unfair hit, and DESIGN forbids telegraph-free attacks. This converts "greed the wind-up" from a freebie into a decision taken every cycle.
+- **Retaliations are counter-only** — deliberately excluded from the ordinary rotation. The mechanic only teaches anything if seeing the move means *"I got greedy"* rather than *"it rolled a four"*. Also: an out-of-range retaliation stays **owed**, not forgiven — backing off delays the answer instead of cancelling it.
+- **Telegraphed floor hazards (DESIGN's one hazard slot, now spent).** Eruption scatters 4 zones around the player, ring-and-jittered rather than uniformly random because a uniform scatter clumps and leaves an obvious safe wedge. **`FloorHazard` runs on the shared `AttackStateMachine`** — a hazard *is* an attack: telegraph = wind-up, eruption = active, fade = recovery. That inherits the guarantee that a long frame can never swallow the damage window, and puts its timing/damage/colour in an ordinary `AttackDefinition` instead of a bespoke asset type.
+- **Leading projectiles.** Volley went 3 → 5 shots over 36°, and now aims at a fraction (0.6) of a true intercept. Firing at where the player *stands* meant holding a strafe was a complete answer. Kept as a fraction so it can be tuned toward "slightly ahead" rather than an unavoidable snipe.
+- **Cadence**: base cooldown 0.9 → 0.6, and per-move cooldowns spread wide (Cleave 0.9, Volley 1.8, Slam 2.5, Sweep/CleaveChain 3, Eruption 5) so the gap now *varies with what it chose* instead of being the same learnable beat every time. Move speed 2.6 → 3.4. **Third phase at 25%** (cooldown ×0.5). New **CleaveChain** (2 links, phase 2+) removes the guaranteed punish window after a first swing.
+- Damage: Cleave 18→22, Slam 22→28, Sweep 12→15, Volley 10→12, plus Nova 26 and Eruption 16. Mistake budget 5 → ~4 hits.
+- **Two real bugs, both found by playing rather than by tests.** (1) **Hazards spawned at y = 1.64, floating at chest height** — the ground raycast used an all-layers mask, started 3 m above the player, and landed on *the player's own capsule*. Both `BossController` and `TelegraphDecal` now cast against an environment-only mask; the same bug was latent in the boss's own decal. (2) Hazards could land past a wall, so fighting with your back to one wasted half the move — a spot with no floor under it is now skipped, and the log reports `placed/requested`.
+- **New telegraph hue: lime-yellow for ground hazards.** DESIGN's rule is "same colour = same threat type", and a delayed static area-denial zone is a genuinely different threat from a melee arc or a projectile — different answer, so different colour. Nova deliberately stays **red**: it is still a melee threat, and the ground decal already distinguishes a centred disc from a forward arc, which is exactly what that decal was built for.
+- **Verified**: 354 EditMode tests (was 345; +9 retaliation tests, including that a retaliation never interrupts an attack in progress, that the tally decays so chip damage over a long fight never provokes one, and that it stays owed when out of range). Live: retaliation armed after exactly 3 hits and Nova chosen on the very next non-attacking frame; 3 phases; hazards erupting at y=0.00 and registering hits; 5-projectile fan firing.
+- Known issues / TODO next: **Eruption and Volley only appear when the player creates distance**, because the boss closes to its shortest band and stays there — intended (it punishes kiting) but it means a purely aggressive player may never see them. In melee at phase 1 only Cleave is legal until CleaveChain unlocks. Boss is still a scaled capsule.
+- **Harness trap re-hit and worth remembering**: teleporting a `CharacterController` without calling `Physics.SyncTransforms()` leaves the physics engine believing it is elsewhere — the player accumulated gravity and fell to **y = −253**, which then showed up as projectiles spawning underground. Not a game bug; the test harness's. `Physics.autoSyncTransforms` being off is already recorded above, but this is a second way it bites.
 
 ### 2026-08-07 — M10: the boss room is a real fight
 - The boss room used to spawn **three ordinary grunts under a banner reading "placeholder encounter - no boss mechanics yet"**. It now holds one Immune-tier boss, the Stone Warden, with a four-move set and a health-tied phase break. Brief was **reuse hard, extend minimally**: every boss attack still runs on the shared `AttackStateMachine`, so boss frame data means exactly what player frame data means.

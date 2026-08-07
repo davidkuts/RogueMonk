@@ -27,7 +27,11 @@ namespace Game.Enemies
         LayerMask hittableLayers;
         [SerializeField, Tooltip("Layers that stop a projectile without being damaged (walls).")]
         LayerMask blockingLayers;
+        [SerializeField, Tooltip("Environment layers that count as floor when placing hazards. Must NOT include characters, or a hazard lands on the player's head instead of the ground.")]
+        LayerMask groundLayers = 1;
         [SerializeField] Projectile projectilePrefab;
+        [SerializeField, Tooltip("Telegraphed floor hazard dropped by hazard moves.")]
+        FloorHazard hazardPrefab;
 
         [SerializeField] float hitboxHeightOffset = 1.1f;
         [SerializeField, Tooltip("Turn rate while repositioning. Facing locks the moment a move commits.")]
@@ -49,8 +53,10 @@ namespace Game.Enemies
         readonly Collider[] overlapResults = new Collider[8];
 
         BossBrain brain;
+        IRandomSource random;
         IBossDefinition definition;
         CharacterController controller;
+        CharacterController targetController;
         Vector3 lungeVelocity;
         float verticalSpeed;
         bool firedThisLink;
@@ -85,6 +91,8 @@ namespace Game.Enemies
             attacks.ActiveEnded += OnActiveEnded;
             attacks.AttackEnded += OnAttackEnded;
             actor.DeathSequenceStarted += OnDeathStarted;
+            if (actor.Health != null)
+                actor.Health.Damaged += OnDamaged;
 
             if (target == null)
             {
@@ -106,10 +114,12 @@ namespace Game.Enemies
             if (definition == null)
                 return;
 
+            this.random = random;
             brain = new BossBrain(definition, random);
             brain.StateChanged += OnStateChanged;
             brain.PhaseChanged += OnPhaseChanged;
             brain.MoveChosen += OnMoveChosen;
+            brain.RetaliationArmedChanged += OnRetaliationArmed;
 
             GameLog.Info(LogCategory.Enemy,
                 $"BOSS {definition.DisplayName} bound  {definition.Moves.Count} move(s), " +
@@ -123,13 +133,21 @@ namespace Game.Enemies
                 brain.StateChanged -= OnStateChanged;
                 brain.PhaseChanged -= OnPhaseChanged;
                 brain.MoveChosen -= OnMoveChosen;
+                brain.RetaliationArmedChanged -= OnRetaliationArmed;
             }
 
             attacks.ActiveStarted -= OnActiveStarted;
             attacks.ActiveEnded -= OnActiveEnded;
             attacks.AttackEnded -= OnAttackEnded;
-            if (actor != null) actor.DeathSequenceStarted -= OnDeathStarted;
+            if (actor != null)
+            {
+                actor.DeathSequenceStarted -= OnDeathStarted;
+                if (actor.Health != null)
+                    actor.Health.Damaged -= OnDamaged;
+            }
         }
+
+        void OnDamaged(float amount) => brain?.NotifyDamaged();
 
         void Update()
         {
@@ -245,6 +263,73 @@ namespace Game.Enemies
 
             if (move.ProjectileCount > 0)
                 FireFan(attack, move);
+
+            if (move.HazardCount > 0)
+                DropHazards(attack, move);
+        }
+
+        /// <summary>
+        /// Scatters telegraphed floor hazards around the target, denying ground rather than
+        /// demanding a dodge. Positions come from the boss's seeded stream so a replayed run drops
+        /// them in the same places.
+        /// </summary>
+        void DropHazards(IAttackDefinition attack, IBossMove move)
+        {
+            if (hazardPrefab == null || target == null || random == null)
+                return;
+
+            var asset = attack as AttackDefinition;
+            if (asset == null)
+                return;
+
+            int count = Mathf.Max(1, move.HazardCount);
+            float scatter = Mathf.Max(0f, move.HazardScatterRadius);
+            int placed = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                // Ring-and-jitter rather than pure random: a uniform scatter clumps, which leaves
+                // an obvious safe wedge and makes the whole move free to walk out of.
+                float angle = (360f / count) * i + random.NextFloat(-25f, 25f);
+                float radius = random.NextFloat(scatter * 0.25f, scatter);
+
+                Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * radius;
+                Vector3 spot = new Vector3(target.position.x + offset.x, target.position.y, target.position.z + offset.z);
+
+                // No floor under it means the spot is past a wall — fighting with your back to one
+                // would otherwise waste half the move on zones you could never have stood in.
+                if (!TryGroundHeight(spot, out float groundY))
+                    continue;
+
+                FloorHazard hazard = Instantiate(
+                    hazardPrefab, new Vector3(spot.x, groundY, spot.z), Quaternion.identity);
+                hazard.Arm(asset, resolver, hittableLayers);
+                placed++;
+            }
+
+            GameLog.Info(LogCategory.Enemy,
+                $"BOSS hazards {move.Id}  {placed}/{count} zone(s) within {scatter:0.#}m  " +
+                $"telegraph {attack.WindupSeconds:0.00}s");
+        }
+
+        /// <summary>
+        /// Finds the floor under a point.
+        ///
+        /// The mask matters: cast against everything and the ray starts above the target's head and
+        /// lands on the target's own capsule, putting hazards at chest height instead of on the
+        /// ground. Only environment layers count as floor.
+        /// </summary>
+        bool TryGroundHeight(Vector3 position, out float groundY)
+        {
+            if (Physics.Raycast(position + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
+                    groundLayers, QueryTriggerInteraction.Ignore))
+            {
+                groundY = hit.point.y;
+                return true;
+            }
+
+            groundY = 0f;
+            return false;
         }
 
         /// <summary>
@@ -263,7 +348,9 @@ namespace Game.Enemies
             // sails over its head — the M5 bug, and it only shows up in a build.
             float launchHeight = target.position.y;
             Vector3 origin = new Vector3(transform.position.x, launchHeight, transform.position.z);
-            Vector3 toTarget = target.position - origin;
+            Vector3 aimPoint = target.position + LeadOffset(origin, move);
+
+            Vector3 toTarget = aimPoint - origin;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude <= 0.0001f)
                 toTarget = transform.forward;
@@ -286,6 +373,43 @@ namespace Game.Enemies
             GameLog.Info(LogCategory.Enemy,
                 $"BOSS fire {move.Id}  {count} projectile(s) over {spread:0.#}deg  " +
                 $"speed {definition.Ranged.ProjectileSpeed:0.##}m/s");
+        }
+
+        /// <summary>
+        /// How far ahead of a moving target to aim.
+        ///
+        /// Firing at where the player stands means holding a strafe is a complete answer — the shot
+        /// is behind you before it arrives. Leading forces a change of direction or a dash instead.
+        /// Kept as a fraction of a true intercept so it can be tuned down to "slightly ahead"
+        /// rather than being an unavoidable snipe.
+        /// </summary>
+        Vector3 LeadOffset(Vector3 origin, IBossMove move)
+        {
+            float lead = Mathf.Clamp01(move.ProjectileLeadFraction);
+            if (lead <= 0f)
+                return Vector3.zero;
+
+            Vector3 velocity = TargetVelocity();
+            if (velocity.sqrMagnitude <= 0.01f)
+                return Vector3.zero;
+
+            float speed = Mathf.Max(0.01f, definition.Ranged.ProjectileSpeed);
+            float flightTime = Vector3.Distance(origin, target.position) / speed;
+
+            return velocity * (flightTime * lead);
+        }
+
+        Vector3 TargetVelocity()
+        {
+            if (targetController == null)
+                targetController = target.GetComponentInParent<CharacterController>();
+
+            if (targetController == null)
+                return Vector3.zero;
+
+            Vector3 velocity = targetController.velocity;
+            velocity.y = 0f;
+            return velocity;
         }
 
         void OnActiveEnded(IAttackDefinition attack) => alreadyHit.Clear();
@@ -318,7 +442,14 @@ namespace Game.Enemies
                 $"vulnerable for {definition.PhaseTransitionSeconds:0.00}s");
 
         void OnMoveChosen(IBossMove move) =>
-            GameLog.Debug(LogCategory.Enemy, $"BOSS chose {move.Id} at phase {brain.PhaseIndex}");
+            GameLog.Debug(LogCategory.Enemy,
+                $"BOSS chose {move.Id} at phase {brain.PhaseIndex}{(move.IsRetaliation ? "  (RETALIATION)" : string.Empty)}");
+
+        void OnRetaliationArmed()
+        {
+            if (brain.RetaliationArmed)
+                GameLog.Info(LogCategory.Enemy, $"BOSS RETALIATION armed after {definition.RetaliationHitThreshold} hits");
+        }
 
         /// <summary>
         /// Reads the telegraph colour live off the attack currently running, rather than caching
@@ -348,10 +479,12 @@ namespace Game.Enemies
             if (decal == null)
                 return;
 
-            // Projectile moves have no ground footprint to draw — their hitbox travels.
+            // Projectiles have no ground footprint (their hitbox travels), and hazard moves draw
+            // their own decals where they land rather than one under the boss.
             bool hasFootprint = telegraphing
                 && current != null
-                && (brain.CurrentMove == null || brain.CurrentMove.ProjectileCount <= 0);
+                && (brain.CurrentMove == null
+                    || (brain.CurrentMove.ProjectileCount <= 0 && brain.CurrentMove.HazardCount <= 0));
 
             if (hasFootprint)
             {
@@ -371,7 +504,13 @@ namespace Game.Enemies
         void QueryHitbox()
         {
             IAttackDefinition attack = attacks.Current;
-            if (attack == null || (brain.CurrentMove != null && brain.CurrentMove.ProjectileCount > 0))
+            if (attack == null)
+                return;
+
+            // Projectile and hazard moves deliver their damage elsewhere; running the melee query
+            // too would let them hit twice from one wind-up.
+            IBossMove move = brain.CurrentMove;
+            if (move != null && (move.ProjectileCount > 0 || move.HazardCount > 0))
                 return;
 
             HitboxShape shape = attack.Hitbox;

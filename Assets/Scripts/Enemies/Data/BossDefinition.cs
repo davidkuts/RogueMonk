@@ -39,6 +39,16 @@ namespace Game.Enemies
         int projectileCount;
         [SerializeField, Tooltip("Total fan width, centred on facing.")]
         float projectileSpreadDegrees = 24f;
+        [SerializeField, Range(0f, 1f), Tooltip("How far to lead a moving target. 0 fires at where it stands, 1 at a perfect intercept. Above 0, strafing alone stops being an answer.")]
+        float projectileLeadFraction;
+        [SerializeField, Tooltip("Telegraphed floor hazards dropped when this move goes active. 0 for none.")]
+        int hazardCount;
+        [SerializeField, Tooltip("Radius around the target that hazards scatter within.")]
+        float hazardScatterRadius = 3.5f;
+
+        [Header("Role")]
+        [SerializeField, Tooltip("This move is the answer to being combo'd: throwable the instant the boss has taken enough hits, ignoring cooldowns. It keeps its full wind-up.")]
+        bool isRetaliation;
 
         IReadOnlyList<IAttackDefinition> cachedLinks;
 
@@ -52,6 +62,10 @@ namespace Game.Enemies
         public float LungeDistance => lungeDistance;
         public int ProjectileCount => projectileCount;
         public float ProjectileSpreadDegrees => projectileSpreadDegrees;
+        public float ProjectileLeadFraction => projectileLeadFraction;
+        public int HazardCount => hazardCount;
+        public float HazardScatterRadius => hazardScatterRadius;
+        public bool IsRetaliation => isRetaliation;
 
         public IReadOnlyList<IAttackDefinition> Links
         {
@@ -120,12 +134,20 @@ namespace Game.Enemies
         [SerializeField, Range(0f, 1f), Tooltip("Weight applied to the move just used. Discourages repeats without ever forbidding them. 1 disables the effect.")]
         float repeatWeightMultiplier = 0.35f;
 
+        [Header("Greed punish")]
+        [SerializeField, Tooltip("Hits taken inside the window below before the boss answers with a retaliation move. 0 disables it.")]
+        int retaliationHitThreshold = 3;
+        [SerializeField, Tooltip("How long the hit tally survives without being added to.")]
+        float retaliationWindowSeconds = 2.5f;
+
         IReadOnlyList<IBossMove> cachedMoves;
         IReadOnlyList<IBossPhase> cachedPhases;
 
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
         public float PhaseTransitionSeconds => phaseTransitionSeconds;
         public float RepeatWeightMultiplier => repeatWeightMultiplier;
+        public int RetaliationHitThreshold => retaliationHitThreshold;
+        public float RetaliationWindowSeconds => retaliationWindowSeconds;
 
         public IReadOnlyList<IBossMove> Moves
         {

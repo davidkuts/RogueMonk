@@ -742,6 +742,177 @@ namespace Game.Enemies.Tests
             Assert.That(brain.MoveSpeedFraction, Is.EqualTo(0f));
         }
 
+        // --- Greed punish ------------------------------------------------------------------
+
+        static FakeBossDefinition WithRetaliation(int threshold = 3, float window = 2.5f)
+        {
+            return new FakeBossDefinition
+            {
+                AttackCooldownSeconds = 5f,     // long, so only a retaliation can bypass it
+                RetaliationHitThreshold = threshold,
+                RetaliationWindowSeconds = window,
+                Moves = new IBossMove[]
+                {
+                    new FakeBossMove { Id = "normal", MaxRange = 5f, MoveCooldownSeconds = 0f },
+                    new FakeBossMove { Id = "nova", MaxRange = 5f, MoveCooldownSeconds = 30f, IsRetaliation = true },
+                },
+            };
+        }
+
+        [Test]
+        public void EnoughHitsArmARetaliation()
+        {
+            var brain = new BossBrain(WithRetaliation(threshold: 3), new XorShiftRandom(211u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            Assert.That(brain.RetaliationArmed, Is.False, "two hits is still a safe combo");
+
+            brain.NotifyDamaged();
+            Assert.That(brain.RetaliationArmed, Is.True, "the third hit is greed");
+        }
+
+        [Test]
+        public void ARetaliationBypassesEveryCooldown()
+        {
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(223u));
+
+            brain.Tick(0.05f, 2f, true, false, 1f);   // opens with something
+            brain.NotifyLinkFinished();               // 5 s cooldown now running
+            Assert.That(brain.CooldownRemaining, Is.GreaterThan(4f));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+
+            brain.Tick(0.05f, 2f, true, false, 1f);
+
+            Assert.That(brain.WantsToAttack, Is.True, "the answer must not wait out the cooldown");
+            Assert.That(brain.CurrentMove.Id, Is.EqualTo("nova"));
+            Assert.That(brain.RetaliationArmed, Is.False, "and it is spent once thrown");
+        }
+
+        [Test]
+        public void ARetaliationStillKeepsItsFullWindup()
+        {
+            // Bypassing the cooldown is fair; bypassing the telegraph would just be an unfair hit,
+            // and DESIGN.md forbids telegraph-free attacks outright.
+            var definition = WithRetaliation();
+            var brain = new BossBrain(definition, new XorShiftRandom(227u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.Tick(0.05f, 2f, true, false, 1f);
+
+            Assert.That(brain.PendingAttack.WindupSeconds, Is.GreaterThan(0.4f));
+        }
+
+        [Test]
+        public void ARetaliationNeverInterruptsAnAttackInProgress()
+        {
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(229u));
+
+            brain.Tick(0.05f, 2f, true, false, 1f);
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+
+            for (int i = 0; i < 20; i++)
+            {
+                brain.Tick(0.05f, 2f, true, true, 1f);   // mid-attack the whole time
+                Assert.That(brain.WantsToAttack, Is.False, $"tick {i}");
+                Assert.That(brain.State, Is.EqualTo(BossState.Attacking));
+            }
+
+            Assert.That(brain.RetaliationArmed, Is.True, "the debt is still owed, just not yet paid");
+        }
+
+        [Test]
+        public void TheHitTallyDecaysSoASlowFightNeverProvokesOne()
+        {
+            var brain = new BossBrain(WithRetaliation(threshold: 3, window: 1f), new XorShiftRandom(233u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+
+            for (int i = 0; i < 30; i++)
+                brain.Tick(0.05f, 2f, true, false, 1f);   // 1.5 s of nothing
+
+            brain.NotifyDamaged();
+
+            Assert.That(brain.RetaliationArmed, Is.False, "chip damage spread out is not greed");
+            Assert.That(brain.RecentHits, Is.EqualTo(1), "the tally restarted");
+        }
+
+        [Test]
+        public void ARetaliationOutOfRangeStaysOwedRatherThanBeingForgiven()
+        {
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(239u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+
+            brain.Tick(0.05f, 40f, true, false, 1f);      // way outside the nova's band
+            Assert.That(brain.RetaliationArmed, Is.True, "running away must not cancel the debt");
+
+            brain.Tick(0.05f, 2f, true, false, 1f);
+            Assert.That(brain.CurrentMove.Id, Is.EqualTo("nova"), "it is collected on return");
+        }
+
+        [Test]
+        public void ARetaliationMoveNeverTurnsUpInTheOrdinaryRotation()
+        {
+            // The mechanic only teaches anything if seeing the move means "I got greedy".
+            var definition = new FakeBossDefinition
+            {
+                AttackCooldownSeconds = 0f,
+                RetaliationHitThreshold = 3,
+                Moves = new IBossMove[]
+                {
+                    new FakeBossMove { Id = "normal", MaxRange = 5f, MoveCooldownSeconds = 0f },
+                    new FakeBossMove { Id = "nova", MaxRange = 5f, MoveCooldownSeconds = 0f, IsRetaliation = true },
+                },
+            };
+
+            var harness = new BossHarness(definition, seed: 241u);
+            harness.Run(600);
+
+            Assert.That(harness.ThrownMoves, Is.Not.Empty);
+            CollectionAssert.DoesNotContain(harness.ThrownMoves, "nova");
+        }
+
+        [Test]
+        public void AThresholdOfZeroDisablesTheMechanic()
+        {
+            var definition = WithRetaliation();
+            definition.RetaliationHitThreshold = 0;
+            var brain = new BossBrain(definition, new XorShiftRandom(251u));
+
+            for (int i = 0; i < 20; i++)
+                brain.NotifyDamaged();
+
+            Assert.That(brain.RetaliationArmed, Is.False);
+        }
+
+        [Test]
+        public void DeathClearsAnOwedRetaliation()
+        {
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(257u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            Assert.That(brain.RetaliationArmed, Is.True);
+
+            brain.NotifyDied();
+
+            Assert.That(brain.RetaliationArmed, Is.False);
+            brain.Tick(0.05f, 2f, true, false, 0f);
+            Assert.That(brain.WantsToAttack, Is.False, "a corpse does not get the last word");
+        }
+
         // --- Events and death --------------------------------------------------------------
 
         [Test]

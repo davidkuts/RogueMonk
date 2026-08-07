@@ -26,6 +26,8 @@ namespace Game.Enemies
         float maxAlpha = 0.85f;
         [SerializeField, Tooltip("Extra metres added around the hitbox, so the decal is a fair warning rather than a hairline.")]
         float padding = 0.15f;
+        [SerializeField, Tooltip("Environment layers that count as floor. Must NOT include characters, or the decal rides up onto a capsule instead of lying on the ground.")]
+        LayerMask groundLayers = 1;
 
         MaterialPropertyBlock block;
         Transform quadTransform;
@@ -106,11 +108,14 @@ namespace Game.Enemies
         /// <summary>
         /// Finds the floor under the decal so it lies on the ground rather than at the attacker's
         /// waist. Falls back to the room's y = 0 plane, which every authored room uses.
+        ///
+        /// The mask is load-bearing: casting against everything makes the ray land on whichever
+        /// capsule happens to be under the start point, which puts the decal in mid-air.
         /// </summary>
         float GroundHeight(Vector3 center)
         {
             return Physics.Raycast(center + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
-                       ~0, QueryTriggerInteraction.Ignore)
+                       groundLayers, QueryTriggerInteraction.Ignore)
                 ? hit.point.y
                 : 0f;
         }

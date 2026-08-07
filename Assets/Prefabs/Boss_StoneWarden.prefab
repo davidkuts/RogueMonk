@@ -252,7 +252,11 @@ MonoBehaviour:
   blockingLayers:
     serializedVersion: 2
     m_Bits: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1
   projectilePrefab: {fileID: 9152557275338150290, guid: d2c3faca7aa1d6e4b9f209750cc746e4, type: 3}
+  hazardPrefab: {fileID: 7103169795322314866, guid: 7556f87eaff336142b8fd59b1711e0e0, type: 3}
   hitboxHeightOffset: 1.1
   turnSpeedDegPerSec: 360
   gravity: -25
@@ -308,3 +312,6 @@ MonoBehaviour:
   groundOffset: 0.03
   maxAlpha: 0.85
   padding: 0.15
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1

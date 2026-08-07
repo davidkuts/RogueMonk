@@ -58,6 +58,10 @@ namespace Game.Enemies
         int linkIndex = -1;
         bool dead;
 
+        int recentHits;
+        float retaliationWindowRemaining;
+        bool retaliationArmed;
+
         public BossBrain(IBossDefinition definition, IRandomSource random)
         {
             this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
@@ -94,12 +98,21 @@ namespace Game.Enemies
 
         public float PhaseTransitionRemaining => phaseTransitionRemaining;
 
+        /// <summary>True once the boss has been hit enough to owe the player an answer.</summary>
+        public bool RetaliationArmed => retaliationArmed;
+
+        /// <summary>Hits counted so far toward the retaliation threshold.</summary>
+        public int RecentHits => recentHits;
+
         public event Action<BossState, BossState> StateChanged;
 
         /// <summary>Raised with the new phase index the frame a transition begins.</summary>
         public event Action<int> PhaseChanged;
 
         public event Action<IBossMove> MoveChosen;
+
+        /// <summary>Raised when the hit tally arms a retaliation, for feedback and logging.</summary>
+        public event Action RetaliationArmedChanged;
 
         public void Tick(float deltaTime, float distanceToTarget, bool hasTarget, bool isAttacking, float healthFraction)
         {
@@ -123,6 +136,15 @@ namespace Game.Enemies
 
                 for (int i = 0; i < moveCooldowns.Length; i++)
                     moveCooldowns[i] = Mathf.Max(0f, moveCooldowns[i] - deltaTime);
+
+                // The tally is a burst counter, not a running total: hits spread out over a long
+                // fight should never accumulate into a retaliation the player did not provoke.
+                if (retaliationWindowRemaining > 0f)
+                {
+                    retaliationWindowRemaining = Mathf.Max(0f, retaliationWindowRemaining - deltaTime);
+                    if (retaliationWindowRemaining <= 0f)
+                        recentHits = 0;
+                }
             }
 
             // Latch the threshold, but do not act on it yet. Acting mid-attack would erase a swing
@@ -178,6 +200,24 @@ namespace Game.Enemies
                 return;
             }
 
+            // The answer to being combo'd, checked before the cooldown gate so it can arrive the
+            // instant the previous attack ends. It is never checked before the isAttacking guard
+            // above, so it still cannot cut a wind-up short (CLAUDE.md rule 6).
+            if (retaliationArmed)
+            {
+                int counter = SelectRetaliation(distanceToTarget);
+                if (counter >= 0)
+                {
+                    Commit(counter);
+                    retaliationArmed = false;
+                    RetaliationArmedChanged?.Invoke();
+                    return;
+                }
+
+                // Nothing legal from this distance. Stay armed rather than forgiving the debt —
+                // backing off should delay the answer, not cancel it.
+            }
+
             if (globalCooldownRemaining > 0f)
             {
                 MoveSpeedFraction = RepositionFraction(distanceToTarget);
@@ -197,6 +237,11 @@ namespace Game.Enemies
                 return;
             }
 
+            Commit(index);
+        }
+
+        void Commit(int index)
+        {
             CurrentMove = moves[index];
             lastMoveIndex = index;
             linkIndex = 0;
@@ -207,6 +252,27 @@ namespace Game.Enemies
 
             SetState(BossState.Attacking);
             MoveChosen?.Invoke(CurrentMove);
+        }
+
+        /// <summary>
+        /// Counts a hit toward the retaliation threshold. Called by the adapter whenever the boss
+        /// takes damage.
+        /// </summary>
+        public void NotifyDamaged()
+        {
+            if (dead || definition.RetaliationHitThreshold <= 0 || retaliationArmed)
+                return;
+
+            recentHits++;
+            retaliationWindowRemaining = Mathf.Max(0f, definition.RetaliationWindowSeconds);
+
+            if (recentHits < definition.RetaliationHitThreshold)
+                return;
+
+            recentHits = 0;
+            retaliationWindowRemaining = 0f;
+            retaliationArmed = true;
+            RetaliationArmedChanged?.Invoke();
         }
 
         /// <summary>Called by the controller when one link's attack finishes, recovery included.</summary>
@@ -232,6 +298,8 @@ namespace Game.Enemies
             WantsToAttack = false;
             PendingAttack = null;
             MoveSpeedFraction = 0f;
+            retaliationArmed = false;
+            recentHits = 0;
             SetState(BossState.Dead);
         }
 
@@ -297,13 +365,42 @@ namespace Game.Enemies
             return random.PickWeighted(weights);
         }
 
+        /// <summary>
+        /// Picks a retaliation move, ignoring every cooldown — that immediacy is the whole point —
+        /// but still respecting range and phase. Returns -1 when none is legal from here.
+        /// </summary>
+        int SelectRetaliation(float distance)
+        {
+            if (moves.Count == 0)
+                return -1;
+
+            for (int i = 0; i < moves.Count; i++)
+            {
+                IBossMove move = moves[i];
+
+                weights[i] = move.IsRetaliation
+                    && move.SelectionWeight > 0f
+                    && move.UnlockedAtPhase <= PhaseIndex
+                    && distance >= move.MinRange
+                    && distance <= move.MaxRange
+                    ? move.SelectionWeight
+                    : 0f;
+            }
+
+            return random.PickWeighted(weights);
+        }
+
         void BuildWeights(float distance, bool applyRepeatPenalty)
         {
             for (int i = 0; i < moves.Count; i++)
             {
                 IBossMove move = moves[i];
 
-                bool legal = move.SelectionWeight > 0f
+                // Retaliations are counter-only. Letting one turn up in the ordinary rotation would
+                // destroy the signal: the player should be able to learn that seeing it means
+                // "I got greedy", not "it rolled a four".
+                bool legal = !move.IsRetaliation
+                    && move.SelectionWeight > 0f
                     && move.UnlockedAtPhase <= PhaseIndex
                     && moveCooldowns[i] <= 0f
                     && distance >= move.MinRange

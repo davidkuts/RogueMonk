@@ -64,6 +64,10 @@ namespace Game.Enemies.Tests
         public float LungeDistance { get; set; }
         public int ProjectileCount { get; set; }
         public float ProjectileSpreadDegrees { get; set; } = 24f;
+        public float ProjectileLeadFraction { get; set; }
+        public int HazardCount { get; set; }
+        public float HazardScatterRadius { get; set; } = 3.5f;
+        public bool IsRetaliation { get; set; }
 
         /// <summary>Builds a chain of n distinct links, so tests can tell them apart by identity.</summary>
         public static IAttackDefinition[] Chain(int count)
@@ -101,5 +105,10 @@ namespace Game.Enemies.Tests
         public IReadOnlyList<IBossPhase> Phases { get; set; } = new IBossPhase[0];
         public float PhaseTransitionSeconds { get; set; } = 1.4f;
         public float RepeatWeightMultiplier { get; set; } = 0.35f;
+
+        // Off by default so the existing selection tests are not perturbed by a mechanic they
+        // are not about; the retaliation tests opt in.
+        public int RetaliationHitThreshold { get; set; }
+        public float RetaliationWindowSeconds { get; set; } = 2.5f;
     }
 }

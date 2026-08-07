@@ -54,7 +54,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Melee windups 400–500 ms; ranged 600–800 ms (human reaction ~250 ms + read margin)
 - Consistent visual language: same color = same threat type; every attack has an audio cue
 - Gameplay-reserved hues: saturated colors used ONLY for telegraphs, projectiles, dash trail, elemental FX — never in the environment
-- **Hue assignments** (locked 2026-08-07): **red** = melee arc · **amber** = incoming projectile · **violet** = gap-closer, "it is coming to you". Violet was introduced with the boss's Slam so it could never be confused with a threat the player had already learned.
+- **Hue assignments** (locked 2026-08-07): **red** = melee arc or burst · **amber** = incoming projectile · **violet** = gap-closer, "it is coming to you" · **lime-yellow** = ground hazard, "this floor is about to hurt". Violet arrived with the boss's Slam and lime with its Eruption, each so a new threat class could never be confused with one already learned. A centred burst (the boss's Nova) deliberately stays red — it is still a melee threat, and the ground decal already distinguishes a disc around the attacker from an arc in front of it.
 - **Ground decal** (added 2026-08-07, M10): attacks with a static footprint also paint the real hitbox on the floor during windup, filling from the centre outward so the fill reaches the outline exactly as the attack goes active. Colour says *what*; the decal says *where* and *when*. Required because a rigless enemy with several moves cannot be read from colour alone.
 - Because telegraphs own the saturated end of the palette, **room tints must stay desaturated** — the boss room was retinted from red to cold slate for exactly this reason.
 
@@ -70,7 +70,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - **Wave spawns** within rooms
 - Doors gate until room cleared; level complete when final room cleared
 - NavMesh baked per room prefab offline
-- MVP hazard budget: exactly ONE environmental hazard type (telegraphed floor hazard)
+- MVP hazard budget: exactly ONE environmental hazard type (telegraphed floor hazard) — **spent 2026-08-07** on the boss's Eruption. It runs on the shared `AttackStateMachine` (telegraph = wind-up, eruption = active), so its timing and damage are an ordinary `AttackDefinition` and it inherits the same guarantee that a long frame cannot swallow its damage window.
 
 ### Enemies (MVP: two types)
 - Melee humanoid: telegraphed lunge; Staggerable tier
@@ -82,6 +82,8 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - **Selection = deterministic legality gate, then a seeded weighted draw.** Pure random throws melee at twelve metres and read-and-react dies; pure scoring is memorised in half a minute. Repeats are discouraged, never forbidden.
 - **Phases replace stagger.** Crossing a health threshold makes the boss finish its current swing, then stand inert and vulnerable — a punish window earned with damage rather than poise. This is what stops an un-interruptible enemy reading as unresponsive, and it does not violate the never-cancel-a-windup rule.
 - **Boss randomness uses a stream derived from the run**, never the run stream itself: the number of draws depends on how the player fights, which would otherwise desynchronise every later draw and break seed reproducibility.
+- **Greed punish** (added 2026-08-07): a designated **retaliation** move answers N hits taken inside a window, bypassing every cooldown but never its own wind-up. This exists because an unconditional punish window meant a full combo was always free; making the third hit provoke an answer turns "two hits or three?" into a decision. Retaliations are **counter-only** — never in the ordinary rotation — or the move stops meaning "I got greedy". An out-of-range retaliation stays owed rather than being forgiven.
+- **Difficulty comes from decision pressure and spacing, never from shortening tells.** Wind-ups stay at 650–750 ms. The levers are: cooldown length and *variance*, moves that deny ground, moves that punish a specific position, and projectiles that lead — all of which remain fully readable.
 
 ### RNG & death flow
 - **Seeded runs from day one**: single RNG owned by RunContext; room order, spawns, (later) boon offers all draw from it; seed logged at run start

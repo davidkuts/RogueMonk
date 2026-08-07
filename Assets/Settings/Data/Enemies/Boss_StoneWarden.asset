@@ -19,10 +19,10 @@ MonoBehaviour:
   poiseRegenRate: 0
   armorMax: 0
   staggerDurationSeconds: 0
-  moveSpeed: 2.6
+  moveSpeed: 3.4
   aggroRange: 30
   attackRange: 16
-  attackCooldownSeconds: 0.9
+  attackCooldownSeconds: 0.6
   lungeDistance: 0
   attack: {fileID: 11400000, guid: 3a1c7f04d9b24e8ab6c15d80f7e29104, type: 2}
   ranged:
@@ -42,10 +42,31 @@ MonoBehaviour:
     maxRange: 3.2
     selectionWeight: 3
     unlockedAtPhase: 0
-    moveCooldownSeconds: 1.5
+    moveCooldownSeconds: 0.9
     lungeDistance: 0
     projectileCount: 0
     projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 0
+  - id: CleaveChain
+    links:
+    - {fileID: 11400000, guid: 3a1c7f04d9b24e8ab6c15d80f7e29104, type: 2}
+    - {fileID: 11400000, guid: c62f04a8b19d7e35a0f2c8d61b47e903, type: 2}
+    linkDelaySeconds: 0.28
+    minRange: 0
+    maxRange: 3.4
+    selectionWeight: 2
+    unlockedAtPhase: 1
+    moveCooldownSeconds: 3
+    lungeDistance: 0.6
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 0
   - id: Slam
     links:
     - {fileID: 11400000, guid: 5b2d8e15ea734f9bc7d26e91a8f3a215, type: 2}
@@ -54,10 +75,14 @@ MonoBehaviour:
     maxRange: 6
     selectionWeight: 2
     unlockedAtPhase: 0
-    moveCooldownSeconds: 3.5
+    moveCooldownSeconds: 2.5
     lungeDistance: 2.8
     projectileCount: 0
     projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 0
   - id: Sweep
     links:
     - {fileID: 11400000, guid: 7c3e9f26fb845a0cd8e37fa2b904b326, type: 2}
@@ -67,10 +92,14 @@ MonoBehaviour:
     maxRange: 3.6
     selectionWeight: 2
     unlockedAtPhase: 1
-    moveCooldownSeconds: 4
+    moveCooldownSeconds: 3
     lungeDistance: 0
     projectileCount: 0
     projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 0
   - id: Volley
     links:
     - {fileID: 11400000, guid: 2e5b1c48ad367c2efa591d4bd26d5481, type: 2}
@@ -79,12 +108,52 @@ MonoBehaviour:
     maxRange: 16
     selectionWeight: 3
     unlockedAtPhase: 0
-    moveCooldownSeconds: 2.5
+    moveCooldownSeconds: 1.8
     lungeDistance: 0
-    projectileCount: 3
-    projectileSpreadDegrees: 24
+    projectileCount: 5
+    projectileSpreadDegrees: 36
+    projectileLeadFraction: 0.6
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 0
+  - id: Eruption
+    links:
+    - {fileID: 11400000, guid: e07a35c94b81d6f2a3059be7c41d82f6, type: 2}
+    linkDelaySeconds: 0
+    minRange: 3
+    maxRange: 16
+    selectionWeight: 2
+    unlockedAtPhase: 1
+    moveCooldownSeconds: 5
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 4
+    hazardScatterRadius: 4.5
+    isRetaliation: 0
+  - id: Nova
+    links:
+    - {fileID: 11400000, guid: a4c81b60d735e29fb18d05473ce6f291, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 2.5
+    selectionWeight: 1
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 0
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    isRetaliation: 1
   phases:
   - healthFractionThreshold: 0.55
     cooldownMultiplier: 0.7
+  - healthFractionThreshold: 0.25
+    cooldownMultiplier: 0.5
   phaseTransitionSeconds: 1.4
   repeatWeightMultiplier: 0.35
+  retaliationHitThreshold: 3
+  retaliationWindowSeconds: 2.5
