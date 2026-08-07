@@ -61,6 +61,14 @@ namespace Game.Enemies
         float HazardScatterRadius { get; }
 
         /// <summary>
+        /// Arc the hazards cover, in degrees. 360 surrounds the target evenly. Anything less leaves
+        /// a deliberate gap, and the gap is aimed back at the boss — so the safe ground is the
+        /// ground next to the thing trying to kill you. That is what turns a hazard drop from an
+        /// obstacle into a setup for whatever the boss throws next.
+        /// </summary>
+        float HazardArcDegrees { get; }
+
+        /// <summary>
         /// Marks this move as the answer to being combo'd. A retaliation may be thrown the moment
         /// the boss has been hit enough times, ignoring every cooldown — but it keeps its full
         /// wind-up, because a telegraph-free punish would just be an unfair hit.
@@ -122,6 +130,13 @@ namespace Game.Enemies
         /// hits or three?" into a decision taken every single cycle.
         /// </summary>
         int RetaliationHitThreshold { get; }
+
+        /// <summary>
+        /// Upper end of the threshold. When above the minimum, the cost of the next counter is
+        /// drawn fresh each time — so the player has to read the boss rather than count to three
+        /// and stop. At or below the minimum the threshold is fixed.
+        /// </summary>
+        int RetaliationHitThresholdMax { get; }
 
         /// <summary>How long the hit tally survives without being added to.</summary>
         float RetaliationWindowSeconds { get; }

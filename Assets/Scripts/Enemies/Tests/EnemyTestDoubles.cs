@@ -67,6 +67,7 @@ namespace Game.Enemies.Tests
         public float ProjectileLeadFraction { get; set; }
         public int HazardCount { get; set; }
         public float HazardScatterRadius { get; set; } = 3.5f;
+        public float HazardArcDegrees { get; set; } = 360f;
         public bool IsRetaliation { get; set; }
 
         /// <summary>Builds a chain of n distinct links, so tests can tell them apart by identity.</summary>
@@ -109,6 +110,10 @@ namespace Game.Enemies.Tests
         // Off by default so the existing selection tests are not perturbed by a mechanic they
         // are not about; the retaliation tests opt in.
         public int RetaliationHitThreshold { get; set; }
+
+        // 0 keeps the threshold fixed at the minimum, so tests that do not care about the range
+        // are not perturbed by it — and no RNG draw is consumed, keeping their streams unchanged.
+        public int RetaliationHitThresholdMax { get; set; }
         public float RetaliationWindowSeconds { get; set; } = 2.5f;
     }
 }

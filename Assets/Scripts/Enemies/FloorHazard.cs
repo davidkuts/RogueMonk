@@ -83,11 +83,13 @@ namespace Game.Enemies
             {
                 // Fills from the centre outward, reaching the outline exactly as it erupts — the
                 // same grammar the boss's own telegraphs use, so it needs no separate teaching.
-                decal.Show(asset.Hitbox, transform.position, transform.forward, asset.TelegraphColor, attacks.WindupProgress);
+                decal.Show(asset.Hitbox, transform.position, transform.forward,
+                    asset.TelegraphColor, attacks.WindupProgress, transform.position.y);
             }
             else if (attacks.Phase == AttackPhase.Active)
             {
-                decal.Show(asset.Hitbox, transform.position, transform.forward, Color.white, 1f);
+                decal.Show(asset.Hitbox, transform.position, transform.forward,
+                    Color.white, 1f, transform.position.y);
             }
             else
             {

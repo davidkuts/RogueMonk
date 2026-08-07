@@ -42,7 +42,7 @@ MonoBehaviour:
     maxRange: 3.2
     selectionWeight: 3
     unlockedAtPhase: 0
-    moveCooldownSeconds: 0.9
+    moveCooldownSeconds: 1.6
     lungeDistance: 0
     projectileCount: 0
     projectileSpreadDegrees: 0
@@ -91,7 +91,7 @@ MonoBehaviour:
     minRange: 0
     maxRange: 3.6
     selectionWeight: 2
-    unlockedAtPhase: 1
+    unlockedAtPhase: 0
     moveCooldownSeconds: 3
     lungeDistance: 0
     projectileCount: 0
@@ -108,7 +108,7 @@ MonoBehaviour:
     maxRange: 16
     selectionWeight: 3
     unlockedAtPhase: 0
-    moveCooldownSeconds: 1.8
+    moveCooldownSeconds: 2.6
     lungeDistance: 0
     projectileCount: 5
     projectileSpreadDegrees: 36
@@ -140,14 +140,33 @@ MonoBehaviour:
     maxRange: 2.5
     selectionWeight: 1
     unlockedAtPhase: 0
-    moveCooldownSeconds: 0
+    moveCooldownSeconds: 9
     lungeDistance: 0
     projectileCount: 0
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
     hazardCount: 0
     hazardScatterRadius: 0
+    hazardArcDegrees: 360
     isRetaliation: 1
+  - id: Sunder
+    links:
+    - {fileID: 11400000, guid: e07a35c94b81d6f2a3059be7c41d82f6, type: 2}
+    - {fileID: 11400000, guid: c62f04a8b19d7e35a0f2c8d61b47e903, type: 2}
+    linkDelaySeconds: 0.6
+    minRange: 4
+    maxRange: 10
+    selectionWeight: 2
+    unlockedAtPhase: 2
+    moveCooldownSeconds: 11
+    lungeDistance: 1.2
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 5
+    hazardScatterRadius: 4.5
+    hazardArcDegrees: 250
+    isRetaliation: 0
   phases:
   - healthFractionThreshold: 0.55
     cooldownMultiplier: 0.7
@@ -156,4 +175,5 @@ MonoBehaviour:
   phaseTransitionSeconds: 1.4
   repeatWeightMultiplier: 0.35
   retaliationHitThreshold: 3
+  retaliationHitThresholdMax: 6
   retaliationWindowSeconds: 2.5

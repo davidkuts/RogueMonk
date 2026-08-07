@@ -45,6 +45,8 @@ namespace Game.Enemies
         int hazardCount;
         [SerializeField, Tooltip("Radius around the target that hazards scatter within.")]
         float hazardScatterRadius = 3.5f;
+        [SerializeField, Range(30f, 360f), Tooltip("Arc the hazards cover. 360 surrounds the target. Less leaves a gap, and the gap points back at the boss — so the safe ground is next to the boss, which sets up whatever it throws next.")]
+        float hazardArcDegrees = 360f;
 
         [Header("Role")]
         [SerializeField, Tooltip("This move is the answer to being combo'd: throwable the instant the boss has taken enough hits, ignoring cooldowns. It keeps its full wind-up.")]
@@ -65,6 +67,7 @@ namespace Game.Enemies
         public float ProjectileLeadFraction => projectileLeadFraction;
         public int HazardCount => hazardCount;
         public float HazardScatterRadius => hazardScatterRadius;
+        public float HazardArcDegrees => hazardArcDegrees;
         public bool IsRetaliation => isRetaliation;
 
         public IReadOnlyList<IAttackDefinition> Links
@@ -135,8 +138,10 @@ namespace Game.Enemies
         float repeatWeightMultiplier = 0.35f;
 
         [Header("Greed punish")]
-        [SerializeField, Tooltip("Hits taken inside the window below before the boss answers with a retaliation move. 0 disables it.")]
+        [SerializeField, Tooltip("Fewest hits that can provoke a retaliation. 0 disables the mechanic.")]
         int retaliationHitThreshold = 3;
+        [SerializeField, Tooltip("Most hits it can cost. Above the minimum, the cost is re-drawn each time so the player cannot just count. At or below it, the threshold is fixed.")]
+        int retaliationHitThresholdMax = 6;
         [SerializeField, Tooltip("How long the hit tally survives without being added to.")]
         float retaliationWindowSeconds = 2.5f;
 
@@ -147,6 +152,7 @@ namespace Game.Enemies
         public float PhaseTransitionSeconds => phaseTransitionSeconds;
         public float RepeatWeightMultiplier => repeatWeightMultiplier;
         public int RetaliationHitThreshold => retaliationHitThreshold;
+        public int RetaliationHitThresholdMax => retaliationHitThresholdMax;
         public float RetaliationWindowSeconds => retaliationWindowSeconds;
 
         public IReadOnlyList<IBossMove> Moves

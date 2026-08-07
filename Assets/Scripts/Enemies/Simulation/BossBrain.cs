@@ -70,6 +70,8 @@ namespace Game.Enemies
             moves = definition.Moves ?? Array.Empty<IBossMove>();
             moveCooldowns = new float[moves.Count];
             weights = new float[moves.Count];
+
+            RollNextThreshold();
         }
 
         public BossState State { get; private set; } = BossState.Idle;
@@ -103,6 +105,9 @@ namespace Game.Enemies
 
         /// <summary>Hits counted so far toward the retaliation threshold.</summary>
         public int RecentHits => recentHits;
+
+        /// <summary>How many hits the next counter costs. Re-drawn every time one is spent.</summary>
+        public int NextThreshold { get; private set; }
 
         public event Action<BossState, BossState> StateChanged;
 
@@ -209,13 +214,16 @@ namespace Game.Enemies
                 if (counter >= 0)
                 {
                     Commit(counter);
-                    retaliationArmed = false;
-                    RetaliationArmedChanged?.Invoke();
+                    ClearRetaliation();
                     return;
                 }
 
-                // Nothing legal from this distance. Stay armed rather than forgiving the debt —
-                // backing off should delay the answer, not cancel it.
+                // Out of range: stay armed, because backing off should delay the answer rather
+                // than cancel it. Still recharging: drop the debt and attack normally — the player
+                // got away with that one, and holding it would fire the counter long after the
+                // greed that earned it, which reads as arbitrary.
+                if (!AnyRetaliationCouldStillArrive(distanceToTarget))
+                    ClearRetaliation();
             }
 
             if (globalCooldownRemaining > 0f)
@@ -266,13 +274,33 @@ namespace Game.Enemies
             recentHits++;
             retaliationWindowRemaining = Mathf.Max(0f, definition.RetaliationWindowSeconds);
 
-            if (recentHits < definition.RetaliationHitThreshold)
+            if (recentHits < NextThreshold)
                 return;
 
             recentHits = 0;
             retaliationWindowRemaining = 0f;
             retaliationArmed = true;
+            RollNextThreshold();
             RetaliationArmedChanged?.Invoke();
+        }
+
+        void ClearRetaliation()
+        {
+            retaliationArmed = false;
+            RetaliationArmedChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// How many hits the next counter costs. Drawn fresh each time rather than fixed, so the
+        /// player cannot simply count to three and stop — they have to read the boss instead of
+        /// the arithmetic. Still bounded, so "lots of hits is dangerous" stays learnable.
+        /// </summary>
+        void RollNextThreshold()
+        {
+            int min = Mathf.Max(1, definition.RetaliationHitThreshold);
+            int max = Mathf.Max(min, definition.RetaliationHitThresholdMax);
+
+            NextThreshold = max > min ? random.NextInt(min, max + 1) : min;
         }
 
         /// <summary>Called by the controller when one link's attack finishes, recovery included.</summary>
@@ -366,8 +394,12 @@ namespace Game.Enemies
         }
 
         /// <summary>
-        /// Picks a retaliation move, ignoring every cooldown — that immediacy is the whole point —
-        /// but still respecting range and phase. Returns -1 when none is legal from here.
+        /// Picks a retaliation move. It bypasses the <em>global</em> cooldown — arriving straight
+        /// after the previous attack is the whole point — but honours its <em>own</em> cooldown.
+        ///
+        /// Ignoring that too was a mistake: with a zero cooldown the counter fired on every third
+        /// hit forever, so it stopped being a punish and became most of the fight. Its own recharge
+        /// is what keeps it a threat rather than a rhythm.
         /// </summary>
         int SelectRetaliation(float distance)
         {
@@ -381,6 +413,7 @@ namespace Game.Enemies
                 weights[i] = move.IsRetaliation
                     && move.SelectionWeight > 0f
                     && move.UnlockedAtPhase <= PhaseIndex
+                    && moveCooldowns[i] <= 0f
                     && distance >= move.MinRange
                     && distance <= move.MaxRange
                     ? move.SelectionWeight
@@ -388,6 +421,28 @@ namespace Game.Enemies
             }
 
             return random.PickWeighted(weights);
+        }
+
+        /// <summary>
+        /// True when some retaliation could still become available from here — i.e. the debt is
+        /// worth holding on to. False when every one of them is on cooldown, in which case the
+        /// player simply got away with it.
+        /// </summary>
+        bool AnyRetaliationCouldStillArrive(float distance)
+        {
+            for (int i = 0; i < moves.Count; i++)
+            {
+                IBossMove move = moves[i];
+                if (!move.IsRetaliation || move.SelectionWeight <= 0f || move.UnlockedAtPhase > PhaseIndex)
+                    continue;
+
+                // On cooldown is a hard no; merely out of range is worth waiting for, since the
+                // player will come back to keep attacking.
+                if (moveCooldowns[i] <= 0f)
+                    return true;
+            }
+
+            return false;
         }
 
         void BuildWeights(float distance, bool applyRepeatPenalty)

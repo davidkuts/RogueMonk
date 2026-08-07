@@ -68,7 +68,11 @@ namespace Game.Enemies
         /// Places and updates the decal for one wind-up.
         /// </summary>
         /// <param name="progress">0..1 through the wind-up. Drives the fill, so it reaches the outline on the strike.</param>
-        public void Show(in HitboxShape shape, Vector3 origin, Vector3 forward, Color color, float progress)
+        /// <param name="groundY">
+        /// The attacker's own floor level. Supplied by the caller rather than guessed, because the
+        /// only thing that knows where the attacker's feet are is the attacker.
+        /// </param>
+        public void Show(in HitboxShape shape, Vector3 origin, Vector3 forward, Color color, float progress, float groundY)
         {
             if (quad == null)
                 return;
@@ -85,7 +89,7 @@ namespace Game.Enemies
             float depth = box ? shape.Size.z : shape.Radius * 2f;
 
             quadTransform.SetPositionAndRotation(
-                new Vector3(center.x, GroundHeight(center) + groundOffset, center.z),
+                new Vector3(center.x, GroundHeight(center, groundY) + groundOffset, center.z),
                 Quaternion.LookRotation(Vector3.down, forward));
 
             quadTransform.localScale = new Vector3(width + padding * 2f, depth + padding * 2f, 1f);
@@ -110,14 +114,18 @@ namespace Game.Enemies
         /// waist. Falls back to the room's y = 0 plane, which every authored room uses.
         ///
         /// The mask is load-bearing: casting against everything makes the ray land on whichever
-        /// capsule happens to be under the start point, which puts the decal in mid-air.
+        /// capsule happens to be under the start point, which puts the decal in mid-air. So is the
+        /// height check — a decal projected past a wall would otherwise land on the wall's roof,
+        /// since the walls are solid boxes and a downward ray hits their top face happily.
         /// </summary>
-        float GroundHeight(Vector3 center)
+        float GroundHeight(Vector3 center, float referenceY)
         {
-            return Physics.Raycast(center + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
-                       groundLayers, QueryTriggerInteraction.Ignore)
-                ? hit.point.y
-                : 0f;
+            if (!Physics.Raycast(center + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
+                    groundLayers, QueryTriggerInteraction.Ignore))
+                return referenceY;
+
+            // More than a step away from the attacker's own level is a wall roof, not a floor.
+            return Mathf.Abs(hit.point.y - referenceY) > 1.5f ? referenceY : hit.point.y;
         }
     }
 }

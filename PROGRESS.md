@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M10.1 — boss difficulty pass, built and verified.** Human said M10 was "great, but not challenging enough".
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and fight the Stone Warden again. The fight is meaningfully harder in **four** ways, so if it now overshoots, say which of these felt unfair and it can be dialled back independently: (1) **Nova** punishes comboing into a telegraph, (2) hazards deny ground, (3) volleys **lead** you so strafing fails, (4) cadence is faster and varies. Watch for: is the Nova readable enough to be *fair*; are 4 hazards at once too busy; do led projectiles feel like tracking rather than aiming.
-- **Blocked on:** human feel-check of the difficulty pass
+- **Active milestone:** **M10.2 — Nova frequency + move variety, built and verified.** Human: "more challenging but it uses circle around the boss attack way too much... do not make it predictable... make some moves that force the player into positions".
+- **Next action:** Human: fight the Stone Warden again in `Builds/Win64/RogueMonk.exe`. Nova now sits at **~15% of moves / 4 per minute** (measured, see below) instead of firing on nearly every cycle. New **Sunder** in the final phase drops a hazard ring whose only gap faces the boss — walk into the safe spot and it swings at you there. Watch for: is Sunder's gap *readable* as the safe path, or does it just feel like being cornered; is ~4 Novas/minute still too many; does the melee rotation feel varied now.
+- **Blocked on:** human feel-check of the Nova frequency and the Sunder herding
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -23,6 +23,7 @@
 | 9 | SFX, VFX, rumble, polish | ✅ done (pending feel-check) — SFX are synthesised placeholders |
 | 10 | Real boss fight: moveset, health phases, Immune tier, boss bar, ground telegraphs | ✅ done (pending feel-check) |
 | 10.1 | Boss difficulty: greed punish, floor hazards, leading projectiles, faster cadence | ✅ done (pending feel-check) |
+| 10.2 | Nova frequency, varied cadence, Sunder herding move | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -33,6 +34,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M10.2: Nova frequency, variety, and a herding move
+- **The Nova spam had one cause**: `SelectRetaliation` ignored cooldowns *entirely*. Bypassing the **global** cooldown is the point of a counter; bypassing the move's **own** cooldown was a mistake, and with Nova authored at 0 it fired on every third hit forever. It now respects its own recharge (9 s), so the counter is a threat rather than the rhythm.
+- **A retaliation that is still recharging is forgiven, not banked.** Holding the debt would fire the counter long after the greed that earned it, which reads as arbitrary. Out of *range* it still stays owed — backing off should delay the answer, not cancel it. Those are two different reasons for "can't do it right now" and they deserve opposite answers.
+- **The counter's price is now a range (3–6 hits), re-drawn each time** rather than a fixed 3, so the player has to read the boss instead of counting. Bounded, so "lots of hits is dangerous" stays learnable. Drawn from the seeded stream, and a max at or below the min costs **no draw at all** — which is what keeps every existing determinism test byte-identical.
+- **Measured rather than guessed.** Simulated 20 seeds × 60 s of a player parked in melee attacking non-stop (≈2.3 hits/s, the real chain rate). Before: Nova on essentially every cycle. After: **Nova 17% / 4 per minute**, Cleave 40%, Sweep 23%, CleaveChain 19%. First measurement showed Cleave at 53% — its own kind of predictable — so Cleave's cooldown went 0.9 → 1.6 and **Sweep moved to phase 1** for melee variety from the opening. Volley 1.8 → 2.6 for the same reason at range.
+- **Sunder — the "forced position" move** (phase 3). Link 1 drops 5 hazards in a **250° arc rather than a ring, with the gap aimed back at the boss**, so the only safe ground is the ground next to the thing trying to kill you. Link 2 is a forward cleave into exactly that spot. Deliberately *not* another centred burst — the complaint was too many circles. Two escapes stay open, which is what keeps it fair: dash out through a hazard before it erupts, or take the gap and dodge the cleave whose telegraph is already running. Measured clearance: ~98° of open arc facing the boss.
+- **Hazards belong to a move's first link only.** Without that a chained hazard move drops its zones again on every link, and — worse — the follow-up link is treated as a hazard link and skips its melee hitbox, so the punish half of a setup-then-punish move would deal no damage.
+- **Second placement bug, same family as the first.** Hazards were landing at **y = 3.00**: the walls are solid boxes spanning the full wall height, so a downward ray cast just past one hits its **roof** and reports perfectly good "ground" three metres up. The floor check now also requires the surface to be within a step of the target's own level. The boss's own decal had the same latent flaw and now takes an explicit ground reference from the caller — the only thing that knows where an attacker's feet are is the attacker.
+- **Verified**: 358 EditMode tests (was 354). New coverage: a retaliation bypasses the global cooldown but not its own; one still recharging is forgiven; the threshold varies within its range; a max at or below the min keeps it fixed. Live: 5/5 hazards placed on the floor with a 98° gap facing the boss.
+- **Harness trap, cost real time**: a pile of `NullReferenceException`s in `Update()` across five unrelated components, plus "referenced script (Unknown) is missing", turned out to be **editing scripts while play mode was still running** — the domain reloads mid-play and every component loses its `Awake` state. A scan found no missing scripts anywhere. Stop play mode before editing; if the console shows broad NREs in unrelated `Update()` methods, check `Application.isPlaying` first.
 
 ### 2026-08-07 — M10.1: boss difficulty pass ("great, but not challenging enough")
 - **Diagnosis first, because the obvious lever was the wrong one.** The fight was easy for a specific reason: **the boss roots itself during its own 700 ms wind-up, so the telegraph *was* a free punish window.** The player could stand at 1.5 m, land two punches, and dash out with 200 ms to spare — on top of the 0.9 s cooldown after every move. Free attacking time was ~1.5 s per ~2.2 s cycle, almost exactly one full 42-damage chain, so the boss died in ~14 cycles / ~32 s while the player could misread **1 attack in 3** and still win. **Raising HP was explicitly rejected**: it makes the fight longer, not harder.

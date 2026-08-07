@@ -29,6 +29,8 @@ namespace Game.Enemies
         LayerMask blockingLayers;
         [SerializeField, Tooltip("Environment layers that count as floor when placing hazards. Must NOT include characters, or a hazard lands on the player's head instead of the ground.")]
         LayerMask groundLayers = 1;
+        [SerializeField, Tooltip("How far a hazard's floor may sit from the target's own level. Anything beyond this is a wall top, not ground the player could have stood on.")]
+        float maxHazardStepHeight = 1.5f;
         [SerializeField] Projectile projectilePrefab;
         [SerializeField, Tooltip("Telegraphed floor hazard dropped by hazard moves.")]
         FloorHazard hazardPrefab;
@@ -189,6 +191,9 @@ namespace Game.Enemies
             UpdateTelegraph();
         }
 
+        /// <summary>Where the boss is actually standing, for anything that needs to sit on the floor.</summary>
+        float FeetY => transform.position.y - (controller != null ? controller.height * 0.5f : 0.9f);
+
         public float HealthFraction =>
             actor.Health != null && actor.Health.Max > 0f
                 ? Mathf.Clamp01(actor.Health.Current / actor.Health.Max)
@@ -264,9 +269,19 @@ namespace Game.Enemies
             if (move.ProjectileCount > 0)
                 FireFan(attack, move);
 
-            if (move.HazardCount > 0)
+            if (IsHazardLink(move))
                 DropHazards(attack, move);
         }
+
+        /// <summary>
+        /// Hazards belong to a move's <em>first</em> link only.
+        ///
+        /// Without this a chained hazard move would drop its zones again on every link, and — worse
+        /// — its follow-up link would be treated as a hazard link and skip its melee hitbox
+        /// entirely, so the punish half of a setup-then-punish move would deal no damage.
+        /// </summary>
+        bool IsHazardLink(IBossMove move) =>
+            move != null && move.HazardCount > 0 && brain != null && brain.LinkIndex == 0;
 
         /// <summary>
         /// Scatters telegraphed floor hazards around the target, denying ground rather than
@@ -284,21 +299,43 @@ namespace Game.Enemies
 
             int count = Mathf.Max(1, move.HazardCount);
             float scatter = Mathf.Max(0f, move.HazardScatterRadius);
+            float arc = Mathf.Clamp(move.HazardArcDegrees <= 0f ? 360f : move.HazardArcDegrees, 30f, 360f);
+            bool fullRing = arc >= 359f;
             int placed = 0;
+
+            // For a partial arc, centre the covered ground on the direction *away* from the boss.
+            // The gap is then the line back toward it: the player's safe ground is the ground next
+            // to the boss, which is exactly where its next move can reach them.
+            Vector3 toBoss = transform.position - target.position;
+            toBoss.y = 0f;
+            float awayDegrees = toBoss.sqrMagnitude > 0.0001f
+                ? Mathf.Atan2(-toBoss.x, -toBoss.z) * Mathf.Rad2Deg
+                : 0f;
 
             for (int i = 0; i < count; i++)
             {
-                // Ring-and-jitter rather than pure random: a uniform scatter clumps, which leaves
-                // an obvious safe wedge and makes the whole move free to walk out of.
-                float angle = (360f / count) * i + random.NextFloat(-25f, 25f);
+                // Jitter is smaller on an arc than on a ring — too much and the deliberate gap
+                // stops being a gap, which is the whole point of the move.
+                float angle;
+                if (fullRing)
+                {
+                    angle = (360f / count) * i + random.NextFloat(-25f, 25f);
+                }
+                else
+                {
+                    float spread = count == 1 ? 0f : (i / (float)(count - 1)) - 0.5f;
+                    angle = awayDegrees + spread * arc + random.NextFloat(-8f, 8f);
+                }
+
                 float radius = random.NextFloat(scatter * 0.25f, scatter);
 
                 Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * radius;
                 Vector3 spot = new Vector3(target.position.x + offset.x, target.position.y, target.position.z + offset.z);
 
-                // No floor under it means the spot is past a wall — fighting with your back to one
-                // would otherwise waste half the move on zones you could never have stood in.
-                if (!TryGroundHeight(spot, out float groundY))
+                // No floor at the target's own level means the spot is past a wall — fighting with
+                // your back to one would otherwise waste half the move on zones you could never
+                // have stood in, or worse, put one on top of the wall.
+                if (!TryGroundHeight(spot, target.position.y, out float groundY))
                     continue;
 
                 FloorHazard hazard = Instantiate(
@@ -309,6 +346,7 @@ namespace Game.Enemies
 
             GameLog.Info(LogCategory.Enemy,
                 $"BOSS hazards {move.Id}  {placed}/{count} zone(s) within {scatter:0.#}m  " +
+                $"arc {arc:0}deg{(fullRing ? string.Empty : " (gap toward boss)")}  " +
                 $"telegraph {attack.WindupSeconds:0.00}s");
         }
 
@@ -319,17 +357,27 @@ namespace Game.Enemies
         /// lands on the target's own capsule, putting hazards at chest height instead of on the
         /// ground. Only environment layers count as floor.
         /// </summary>
-        bool TryGroundHeight(Vector3 position, out float groundY)
+        /// <summary>
+        /// Finds walkable floor at a spot, or reports that there is none.
+        ///
+        /// The height check is not paranoia: the room's walls are solid boxes spanning the full
+        /// wall height, so a downward ray cast just past one hits its *roof* and reports perfectly
+        /// good "ground" three metres up. Only a surface at roughly the target's own level is floor
+        /// the player could actually have been standing on.
+        /// </summary>
+        bool TryGroundHeight(Vector3 position, float referenceY, out float groundY)
         {
-            if (Physics.Raycast(position + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
-                    groundLayers, QueryTriggerInteraction.Ignore))
-            {
-                groundY = hit.point.y;
-                return true;
-            }
-
             groundY = 0f;
-            return false;
+
+            if (!Physics.Raycast(position + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f,
+                    groundLayers, QueryTriggerInteraction.Ignore))
+                return false;
+
+            if (Mathf.Abs(hit.point.y - referenceY) > maxHazardStepHeight)
+                return false;
+
+            groundY = hit.point.y;
+            return true;
         }
 
         /// <summary>
@@ -479,12 +527,12 @@ namespace Game.Enemies
             if (decal == null)
                 return;
 
-            // Projectiles have no ground footprint (their hitbox travels), and hazard moves draw
-            // their own decals where they land rather than one under the boss.
+            // Projectiles have no ground footprint (their hitbox travels), and a hazard-dropping
+            // link draws its decals where the zones land rather than one under the boss.
             bool hasFootprint = telegraphing
                 && current != null
                 && (brain.CurrentMove == null
-                    || (brain.CurrentMove.ProjectileCount <= 0 && brain.CurrentMove.HazardCount <= 0));
+                    || (brain.CurrentMove.ProjectileCount <= 0 && !IsHazardLink(brain.CurrentMove)));
 
             if (hasFootprint)
             {
@@ -493,7 +541,8 @@ namespace Game.Enemies
                     transform.position + Vector3.up * hitboxHeightOffset,
                     transform.forward,
                     current.TelegraphColor,
-                    attacks.WindupProgress);
+                    attacks.WindupProgress,
+                    FeetY);
             }
             else
             {
@@ -507,10 +556,11 @@ namespace Game.Enemies
             if (attack == null)
                 return;
 
-            // Projectile and hazard moves deliver their damage elsewhere; running the melee query
-            // too would let them hit twice from one wind-up.
+            // Projectiles and hazard-dropping links deliver their damage elsewhere; running the
+            // melee query too would let them hit twice from one wind-up. A chained move's later
+            // links still swing normally, which is what makes setup-then-punish work.
             IBossMove move = brain.CurrentMove;
-            if (move != null && (move.ProjectileCount > 0 || move.HazardCount > 0))
+            if (move != null && (move.ProjectileCount > 0 || IsHazardLink(move)))
                 return;
 
             HitboxShape shape = attack.Hitbox;

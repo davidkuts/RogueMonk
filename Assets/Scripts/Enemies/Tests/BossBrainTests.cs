@@ -773,12 +773,12 @@ namespace Game.Enemies.Tests
         }
 
         [Test]
-        public void ARetaliationBypassesEveryCooldown()
+        public void ARetaliationBypassesTheGlobalCooldown()
         {
             var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(223u));
 
             brain.Tick(0.05f, 2f, true, false, 1f);   // opens with something
-            brain.NotifyLinkFinished();               // 5 s cooldown now running
+            brain.NotifyLinkFinished();               // 5 s global cooldown now running
             Assert.That(brain.CooldownRemaining, Is.GreaterThan(4f));
 
             brain.NotifyDamaged();
@@ -787,9 +787,86 @@ namespace Game.Enemies.Tests
 
             brain.Tick(0.05f, 2f, true, false, 1f);
 
-            Assert.That(brain.WantsToAttack, Is.True, "the answer must not wait out the cooldown");
+            Assert.That(brain.WantsToAttack, Is.True, "the answer must not wait out the global cooldown");
             Assert.That(brain.CurrentMove.Id, Is.EqualTo("nova"));
             Assert.That(brain.RetaliationArmed, Is.False, "and it is spent once thrown");
+        }
+
+        [Test]
+        public void ARetaliationStillRespectsItsOwnCooldown()
+        {
+            // Ignoring this too was the bug behind "it uses the circle attack way too much": with a
+            // zero cooldown the counter fired on every third hit forever, so it stopped being a
+            // punish and became the fight.
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(263u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.Tick(0.05f, 2f, true, false, 1f);
+            Assert.That(brain.CurrentMove.Id, Is.EqualTo("nova"), "first one lands");
+            brain.NotifyLinkFinished();
+
+            // Provoke it again straight away. The nova is on a 30 s cooldown.
+            for (int i = 0; i < 10; i++)
+                brain.NotifyDamaged();
+
+            for (int i = 0; i < 40; i++)
+            {
+                brain.Tick(0.05f, 2f, true, false, 1f);
+                if (brain.WantsToAttack)
+                    Assert.That(brain.CurrentMove.Id, Is.Not.EqualTo("nova"), "it must be recharging");
+            }
+        }
+
+        [Test]
+        public void ARetaliationThatIsStillRechargingIsForgivenRatherThanBanked()
+        {
+            // Holding the debt would fire the counter long after the greed that earned it, which
+            // reads as arbitrary rather than as a punish.
+            var brain = new BossBrain(WithRetaliation(), new XorShiftRandom(269u));
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.Tick(0.05f, 2f, true, false, 1f);
+            brain.NotifyLinkFinished();
+
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            brain.NotifyDamaged();
+            Assert.That(brain.RetaliationArmed, Is.True);
+
+            brain.Tick(0.05f, 2f, true, false, 1f);
+
+            Assert.That(brain.RetaliationArmed, Is.False, "the player got away with that one");
+        }
+
+        [Test]
+        public void TheThresholdVariesWithinItsRangeSoItCannotBeCounted()
+        {
+            var definition = WithRetaliation(threshold: 3);
+            definition.RetaliationHitThresholdMax = 6;
+
+            var seen = new HashSet<int>();
+            for (uint seed = 1; seed <= 60; seed++)
+            {
+                var brain = new BossBrain(definition, new XorShiftRandom(seed));
+                seen.Add(brain.NextThreshold);
+                Assert.That(brain.NextThreshold, Is.InRange(3, 6), $"seed {seed}");
+            }
+
+            Assert.That(seen.Count, Is.GreaterThan(1), "a fixed cost would just be counted to");
+        }
+
+        [Test]
+        public void AMaxAtOrBelowTheMinimumKeepsTheThresholdFixed()
+        {
+            var definition = WithRetaliation(threshold: 4);
+            definition.RetaliationHitThresholdMax = 0;
+
+            for (uint seed = 1; seed <= 20; seed++)
+                Assert.That(new BossBrain(definition, new XorShiftRandom(seed)).NextThreshold, Is.EqualTo(4));
         }
 
         [Test]
