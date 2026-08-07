@@ -120,15 +120,26 @@ namespace Game.Level
             return true;
         }
 
-        public LevelPlan Generate(RunContext run)
+        public LevelPlan Generate(RunContext run) => Generate(run, 0);
+
+        /// <summary>
+        /// Builds one level of a run. <paramref name="levelIndex"/> drives escalation: later levels
+        /// get more rooms and a bigger spend budget, which is what stops level three being easier
+        /// than level one now that the player arrives carrying boons.
+        /// </summary>
+        public LevelPlan Generate(RunContext run, int levelIndex)
         {
             IRandomSource random = run.Random;
+            levelIndex = Mathf.Max(0, levelIndex);
+
+            int extraRooms = Mathf.FloorToInt(Mathf.Max(0f, settings.RoomGrowthPerLevel) * levelIndex);
+            float levelBudgetBonus = Mathf.Max(0f, settings.BudgetGrowthPerLevel) * levelIndex;
 
             // The boss room is appended, not drawn: the player must always face it last, and
             // always after the same number of ordinary rooms.
             int standardRooms = random.NextInt(
                 Mathf.Max(1, settings.MinStandardRooms),
-                Mathf.Max(1, settings.MaxStandardRooms) + 1);
+                Mathf.Max(1, settings.MaxStandardRooms) + 1) + extraRooms;
 
             var rooms = new List<RoomPlan>(standardRooms + 1);
             IRoomTemplate previous = null;
@@ -137,7 +148,8 @@ namespace Game.Level
             {
                 IRoomTemplate template = PickTemplate(random, previous, RoomRole.Standard);
                 previous = template;
-                rooms.Add(new RoomPlan(template.Id, index, BuildWaves(random, template, index), RoomRole.Standard));
+                rooms.Add(new RoomPlan(
+                    template.Id, index, BuildWaves(random, template, index, levelBudgetBonus), RoomRole.Standard));
             }
 
             IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
@@ -216,13 +228,13 @@ namespace Game.Level
             return waves;
         }
 
-        List<WavePlan> BuildWaves(IRandomSource random, IRoomTemplate template, int roomIndex)
+        List<WavePlan> BuildWaves(IRandomSource random, IRoomTemplate template, int roomIndex, float levelBudgetBonus)
         {
             int waveCount = random.NextInt(
                 Mathf.Max(1, settings.MinWavesPerRoom),
                 Mathf.Max(1, settings.MaxWavesPerRoom) + 1);
 
-            float budget = settings.BaseWaveBudget + settings.BudgetGrowthPerRoom * roomIndex;
+            float budget = settings.BaseWaveBudget + settings.BudgetGrowthPerRoom * roomIndex + levelBudgetBonus;
             var waves = new List<WavePlan>(waveCount);
 
             for (int w = 0; w < waveCount; w++)

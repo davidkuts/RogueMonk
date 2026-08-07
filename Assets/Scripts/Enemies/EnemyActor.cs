@@ -30,6 +30,10 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How fast knockback bleeds off. Higher = stops sooner.")]
         float knockbackDamping = 8f;
 
+        [Header("Statuses")]
+        [SerializeField, Tooltip("What Burning/Chilled/Rooted actually do. Shared by every enemy so a status means the same thing whatever inflicted it.")]
+        StatusSettings statusSettings;
+
         [Header("Death")]
         [SerializeField, Tooltip("Seconds the body stays for a death beat before it is removed. 0 removes it immediately, which is what trash does.")]
         float deathSequenceSeconds;
@@ -47,6 +51,7 @@ namespace Game.Enemies
         Vector3 knockbackVelocity;
         float flashRemaining;
 
+        float burnTickRemaining;
         float deathRemaining;
         float deathTotal;
         Vector3 deathStartScale;
@@ -67,6 +72,13 @@ namespace Game.Enemies
 
         /// <summary>True while poise is broken — the enemy cannot act and takes the punish.</summary>
         public bool IsStaggered => Poise != null && Poise.IsStaggered;
+
+        /// <summary>
+        /// Movement scaling from active statuses. Read by the controllers each frame rather than
+        /// baked into the definition, because it changes while the enemy is alive.
+        /// </summary>
+        public float StatusMoveSpeedMultiplier =>
+            statusSettings != null ? statusSettings.MoveSpeedMultiplier(Statuses) : 1f;
 
         /// <summary>
         /// True between the killing blow and the body actually being removed. Anything tracking
@@ -232,6 +244,7 @@ namespace Game.Enemies
 
             Poise.Tick(deltaTime);
             Statuses.Tick(deltaTime);
+            TickBurn(deltaTime);
 
             if (flashRemaining > 0f)
                 flashRemaining -= deltaTime;
@@ -261,6 +274,37 @@ namespace Game.Enemies
 
             if (deathRemaining <= 0f)
                 FinishDeath();
+        }
+
+        /// <summary>
+        /// Burns in discrete ticks rather than continuously, so each one is its own damage number
+        /// and its own flash. A smooth drain would be invisible — the same mistake the passive
+        /// empowered strike made.
+        ///
+        /// Burn damage does not go through the hit resolver: it is the *consequence* of a hit that
+        /// already resolved, and running it back through the pipeline would let a modifier that
+        /// applies Burning re-apply it from its own damage, forever.
+        /// </summary>
+        void TickBurn(float deltaTime)
+        {
+            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive)
+            {
+                burnTickRemaining = 0f;
+                return;
+            }
+
+            burnTickRemaining -= deltaTime;
+            if (burnTickRemaining > 0f)
+                return;
+
+            burnTickRemaining = statusSettings.BurnTickSeconds;
+
+            float applied = Health.TakeDamage(statusSettings.BurnDamagePerTick);
+            flashRemaining = hitFlashSeconds;
+
+            GameLog.Debug(LogCategory.Enemy,
+                $"burn {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
+                $"{Statuses.Remaining(StatusEffect.Burning):0.0}s left");
         }
 
         void ApplyKnockback(float deltaTime)
@@ -303,6 +347,12 @@ namespace Game.Enemies
                     float intensity = ramp * Mathf.Lerp(0.55f, 1f, pulse);
                     color = Color.Lerp(baseColors[i], TelegraphOverride.Value, intensity);
                 }
+
+                // A status the player inflicted has to be visible on the target, or a boon that
+                // applies one is as invisible as the empowered strike was.
+                Color? statusTint = statusSettings != null ? statusSettings.Tint(Statuses) : null;
+                if (statusTint.HasValue && !TelegraphOverride.HasValue)
+                    color = Color.Lerp(color, statusTint.Value, 0.7f);
 
                 if (IsStaggered)
                     color = staggeredColor;

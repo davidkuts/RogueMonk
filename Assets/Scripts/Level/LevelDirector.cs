@@ -32,6 +32,7 @@ namespace Game.Level
 
         PlayerAttackController playerAttacks;
         PlayerHealth playerHealth;
+        PlayerBoons playerBoons;
         CinemachineConfiner3D confiner;
         CinemachineFollow follow;
         BoxCollider confinerVolume;
@@ -39,6 +40,8 @@ namespace Game.Level
         RoomRunner currentRunner;
         Transform enemyParent;
         int roomIndex = -1;
+        int levelIndex;
+        bool awaitingLevelAdvance;
 
         public RunContext Run { get; private set; }
 
@@ -46,9 +49,23 @@ namespace Game.Level
 
         public int CurrentRoomNumber => roomIndex + 1;
 
+        /// <summary>1-based level the player is on.</summary>
+        public int CurrentLevelNumber => levelIndex + 1;
+
+        public int LevelsPerRun => settings != null ? settings.LevelsPerRun : 1;
+
+        /// <summary>True on the last level, where beating the boss ends the run rather than the level.</summary>
+        public bool OnFinalLevel => CurrentLevelNumber >= LevelsPerRun;
+
         public RoomRunner CurrentRoom => currentRunner;
 
-        /// <summary>Raised when the final room is cleared.</summary>
+        /// <summary>
+        /// Raised when a level's final room is cleared and another level follows. The boon screen
+        /// listens for this; the run is paused until it answers with <see cref="ContinueToNextLevel"/>.
+        /// </summary>
+        public event Action<int> LevelCleared;
+
+        /// <summary>Raised when the whole run is won — the last boss of the last level.</summary>
         public event Action LevelCompleted;
 
         /// <summary>Raised as each room is built, so UI can announce it.</summary>
@@ -120,6 +137,7 @@ namespace Game.Level
             // and knows the RunContext. Without this the death screen would show all zeros.
             playerAttacks = player.GetComponent<PlayerAttackController>();
             playerHealth = player.GetComponent<PlayerHealth>();
+            playerBoons = player.GetComponent<PlayerBoons>();
 
             if (playerAttacks != null)
                 playerAttacks.Hit += OnPlayerDealtDamage;
@@ -167,7 +185,21 @@ namespace Game.Level
                 seed = (uint)Environment.TickCount;
 
             Run = new RunContext(seed);
+            levelIndex = 0;
+            awaitingLevelAdvance = false;
 
+            // A new run starts empty-handed. Without this a restart would inherit the previous
+            // run's loadout and make its first room trivial.
+            if (playerBoons != null)
+                playerBoons.ClearForNewRun();
+
+            GameLog.Info(LogCategory.Level, $"RUN START  {LevelsPerRun} level(s)");
+            BuildLevel();
+        }
+
+        /// <summary>Generates and starts the level at <see cref="levelIndex"/>.</summary>
+        void BuildLevel()
+        {
             var generator = new LevelGenerator(settings);
             if (!generator.CanGenerate(out string reason))
             {
@@ -176,7 +208,7 @@ namespace Game.Level
                 return;
             }
 
-            Plan = generator.Generate(Run);
+            Plan = generator.Generate(Run, levelIndex);
 
             // Validate before playing rather than discovering a broken level mid-run. The soak
             // test makes this near-impossible, but a content edit could still break it.
@@ -188,10 +220,29 @@ namespace Game.Level
             }
 
             GameLog.Info(LogCategory.Level,
-                $"LEVEL PLAN  seed {Plan.Seed}  {Plan.RoomCount} rooms  {Plan.TotalEnemies} enemies total");
+                $"LEVEL {CurrentLevelNumber}/{LevelsPerRun}  seed {Plan.Seed}  " +
+                $"{Plan.RoomCount} rooms  {Plan.TotalEnemies} enemies total");
 
             roomIndex = -1;
             AdvanceRoom();
+        }
+
+        /// <summary>
+        /// Called by the boon screen once the player has chosen. Kept as an explicit call rather
+        /// than a timer so the run genuinely waits for them instead of racing an animation.
+        ///
+        /// Guarded against being called twice: it is only valid while a level is actually waiting
+        /// to be continued. A mashed confirm button would otherwise advance two levels and skip one
+        /// entirely, which is exactly the kind of thing a player does on a results screen.
+        /// </summary>
+        public void ContinueToNextLevel()
+        {
+            if (IsComplete || Run == null || !awaitingLevelAdvance)
+                return;
+
+            awaitingLevelAdvance = false;
+            levelIndex++;
+            BuildLevel();
         }
 
         void AdvanceRoom()
@@ -211,9 +262,26 @@ namespace Game.Level
             roomIndex++;
             if (roomIndex >= Plan.RoomCount)
             {
+                currentRunner = null;
+                currentRoom = null;
+
+                if (!OnFinalLevel)
+                {
+                    // The level is over but the run is not. Hand off to the boon screen and stop;
+                    // ContinueToNextLevel resumes once the player has chosen.
+                    Run.RecordLevelCleared();
+                    awaitingLevelAdvance = true;
+                    GameLog.Info(LogCategory.Level,
+                        $"LEVEL {CurrentLevelNumber}/{LevelsPerRun} CLEARED in {Run.ElapsedSeconds:0.0}s - offering a boon");
+                    LevelCleared?.Invoke(CurrentLevelNumber);
+                    return;
+                }
+
+                Run.RecordLevelCleared();
                 IsComplete = true;
                 GameLog.Info(LogCategory.Level,
-                    $"LEVEL COMPLETE  seed {Plan.Seed}  {Run.RoomsCleared} rooms in {Run.ElapsedSeconds:0.0}s");
+                    $"RUN COMPLETE  seed {Run.Seed}  {Run.LevelsCleared} level(s), " +
+                    $"{Run.RoomsCleared} rooms in {Run.ElapsedSeconds:0.0}s");
                 LevelCompleted?.Invoke();
                 return;
             }

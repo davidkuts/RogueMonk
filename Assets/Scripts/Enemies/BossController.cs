@@ -226,7 +226,7 @@ namespace Game.Enemies
             FaceTowards(direction, deltaTime);
 
             // Signed: positive closes, negative backs away toward a band it can actually use.
-            return direction * (definition.MoveSpeed * brain.MoveSpeedFraction);
+            return direction * (definition.MoveSpeed * brain.MoveSpeedFraction * actor.StatusMoveSpeedMultiplier);
         }
 
         void StartLink(IAttackDefinition attack)

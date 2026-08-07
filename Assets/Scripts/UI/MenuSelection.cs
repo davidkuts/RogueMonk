@@ -11,17 +11,26 @@ namespace Game.UI
     /// its own map and an EventSystem, or would let a menu press leak into the game. Reading
     /// devices directly keeps a paused game genuinely paused.
     /// </summary>
+    /// <summary>Which way a menu's options are laid out, and therefore which stick axis moves them.</summary>
+    public enum MenuAxis
+    {
+        Vertical = 0,
+        Horizontal = 1,
+    }
+
     public sealed class MenuSelection
     {
         readonly int optionCount;
         readonly float repeatDelay;
+        readonly MenuAxis axis;
 
         float repeatCooldown;
 
-        public MenuSelection(int optionCount, float repeatDelay = 0.18f)
+        public MenuSelection(int optionCount, float repeatDelay = 0.18f, MenuAxis axis = MenuAxis.Vertical)
         {
             this.optionCount = Mathf.Max(1, optionCount);
             this.repeatDelay = repeatDelay;
+            this.axis = axis;
         }
 
         public int Index { get; private set; }
@@ -38,7 +47,7 @@ namespace Game.UI
             if (repeatCooldown > 0f)
                 repeatCooldown -= unscaledDeltaTime;
 
-            int step = ReadStep();
+            int step = axis == MenuAxis.Horizontal ? ReadHorizontalStep() : ReadStep();
             if (step == 0 || repeatCooldown > 0f)
                 return false;
 
@@ -79,6 +88,34 @@ namespace Game.UI
 
             Gamepad pad = Gamepad.current;
             return pad != null && pad.startButton.wasPressedThisFrame;
+        }
+
+        /// <summary>
+        /// The same reading for a row of options rather than a column. Cards laid out left to right
+        /// have to move left to right, or the on-screen prompt is a lie.
+        /// </summary>
+        static int ReadHorizontalStep()
+        {
+            float axis = 0f;
+
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null)
+            {
+                if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed) axis += 1f;
+                if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed) axis -= 1f;
+            }
+
+            Gamepad pad = Gamepad.current;
+            if (pad != null)
+            {
+                if (pad.dpad.right.isPressed) axis += 1f;
+                if (pad.dpad.left.isPressed) axis -= 1f;
+                axis += pad.leftStick.ReadValue().x;
+            }
+
+            if (axis > 0.5f) return 1;
+            if (axis < -0.5f) return -1;
+            return 0;
         }
 
         static int ReadStep()

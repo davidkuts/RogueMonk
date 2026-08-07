@@ -7,6 +7,14 @@ namespace Game.Level
     [CreateAssetMenu(menuName = "Monk/Level Generation Settings", fileName = "LevelGenerationSettings")]
     public sealed class LevelGenerationSettings : ScriptableObject, ILevelGenerationSettings
     {
+        [Header("Run")]
+        [SerializeField, Tooltip("Levels in a full run, each ending in a boss with a boon choice between them. 1 reproduces the pre-run single-level game.")]
+        int levelsPerRun = 3;
+        [SerializeField, Tooltip("Extra spend budget per level index. The escalation knob — without it, later levels are EASIER because the player arrives carrying boons.")]
+        float budgetGrowthPerLevel = 2.5f;
+        [SerializeField, Tooltip("Extra standard rooms per level index. Fractional values round down, so 0.5 adds a room every second level.")]
+        float roomGrowthPerLevel = 0.5f;
+
         [Header("Shape")]
         [SerializeField, Tooltip("Ordinary fight rooms before the boss. The boss room is appended on top, so 5 here means the boss is the 6th room.")]
         int minStandardRooms = 5;
@@ -39,12 +47,19 @@ namespace Game.Level
         readonly List<IRoomTemplate> templateView = new List<IRoomTemplate>();
         readonly List<IEnemyArchetype> archetypeView = new List<IEnemyArchetype>();
 
+        public int LevelsPerRun => Mathf.Max(1, levelsPerRun);
+        public float BudgetGrowthPerLevel => budgetGrowthPerLevel;
+        public float RoomGrowthPerLevel => roomGrowthPerLevel;
         public int MinStandardRooms => minStandardRooms;
         public int MaxStandardRooms => maxStandardRooms;
 
-        // Totals include the appended boss room.
+        // Totals include the appended boss room. The maximum also has to allow for every room that
+        // escalation can add by the final level, because the validator sees one level's plan
+        // without knowing which level it is.
         public int MinRooms => minStandardRooms + 1;
-        public int MaxRooms => maxStandardRooms + 1;
+
+        public int MaxRooms =>
+            maxStandardRooms + 1 + Mathf.FloorToInt(Mathf.Max(0f, roomGrowthPerLevel) * (LevelsPerRun - 1));
 
         public string BossArchetypeId => bossArchetype != null ? bossArchetype.Id : null;
         public int BossRoomWaves => bossRoomWaves;

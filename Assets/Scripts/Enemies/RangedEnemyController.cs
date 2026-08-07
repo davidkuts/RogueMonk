@@ -105,7 +105,8 @@ namespace Game.Enemies
                 Vector3 toTarget = target.position - transform.position;
                 toTarget.y = 0f;
                 if (toTarget.sqrMagnitude > 0.0001f)
-                    planarVelocity = toTarget.normalized * (definition.MoveSpeed * brain.MoveSpeedFraction);
+                    planarVelocity = toTarget.normalized
+                        * (definition.MoveSpeed * brain.MoveSpeedFraction * actor.StatusMoveSpeedMultiplier);
             }
 
             verticalSpeed = controller.isGrounded ? -groundedStickSpeed : verticalSpeed + gravity * deltaTime;

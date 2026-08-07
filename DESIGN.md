@@ -123,11 +123,20 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - HUD: HP bar, 2 dash pips
 - Death screen w/ stats
 
-## Future system (architect now, build later): elemental boons
-After each level the player picks a power: fire, ice, wind, earth, nature, power/force — modifying attack mechanics. NOT in MVP, but the combat core must not preclude it:
-1. Hit resolution goes through a **modifier pipeline**: resolver builds a HitContext and passes it through an ordered IHitModifier list (empty in MVP)
-2. Every damageable entity has a **status effect container** (MVP's only status = stagger)
-3. AttackDefinition carries a **DamageType enum** (default Physical) from day one
+## Elemental boons — BUILT 2026-08-07 (M12)
+After each level the player picks a power: fire, ice, wind, earth, nature, force. The three seams reserved in M3 are what made this a data-and-wiring job rather than a rewrite:
+1. Hit resolution goes through a **modifier pipeline** — boons are `IHitModifier`s at Order 50
+2. Every damageable entity has a **status effect container** — Burning/Chilled/Rooted now have consumers
+3. AttackDefinition carries a **DamageType enum** — now drives spark colour
+
+### Locked decisions
+- **A run is N levels**, each ending in a boss, with a boon choice between them. The run *waits* for the choice; it is the only moment in a run that is a decision rather than an execution.
+- **Difficulty must escalate per level.** Without it, later levels are easier than earlier ones, because the player arrives carrying boons and the content never grew to answer them.
+- **Status magnitudes are global, in `StatusSettings` — never on the boon.** Burning always burns at the same rate whatever inflicted it, so the player learns a status once. A boon decides *whether* to apply one, not how hard it bites. This is why the status container stores only durations.
+- **Damage-over-time bypasses the hit resolver.** It is the consequence of a hit that already resolved; running it back through the pipeline would let a burn modifier re-apply burning from its own damage, forever.
+- **A Physical boon never stamps its damage type**, or stacking a pure-damage boon after an elemental one would blank the element.
+- **Offers are drawn by shuffling and taking the front**, never by picking and rejecting duplicates — the latter consumes an unpredictable number of draws and desynchronises the seed.
+- Boons are **offensive only** for now: the pipeline is wired on the attacker's resolver. A defensive boon would have to register on every enemy's instead.
 
 ## Data model (ScriptableObjects)
 ```csharp

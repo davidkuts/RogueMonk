@@ -3,11 +3,12 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M11.2 — perfect-dodge grace window, built and verified.** Human confirmed M11.1 "works, it feels good now"; the one remaining ask was a more forgiving dodge window.
+- **Active milestone:** **M12 — runs and boons, built and verified.** A run is now **3 levels** with a **boon choice between each**, and the elemental system DESIGN reserved in M3 is finally real.
 - **Next action for the human:**
-  1. Play `Builds/Win64/RogueMonk.exe` and check the dodge window feels right. Protection is now **0.243 s** (0.153 s i-frames + 0.09 s grace), up 59%, and it outlasts the dash itself by 0.063 s. The span in which a dash can catch the grunt's swing went **0.253 s → 0.343 s**. One number to tune: `DashSettings.perfectDodgeGraceSeconds`.
-  2. **Still open, whenever you like:** a Mixamo clip for the Riposte — **"Standing Melee Attack 360 High"** or **"Spin Kick"** suit the 180° sweep. Assign to `MonkAnimations.asset` → *Riposte*. It falls back to the Kick clip meanwhile, so nothing is broken.
-- **Blocked on:** nothing. Human has asked for the next milestone to be planned.
+  1. Play `Builds/Win64/RogueMonk.exe`. Clear a level's boss and you get a **three-card boon choice** (left/right, cross to confirm). Six boons exist: Ember (burn), Frostbite (chill), Gale Force (throw), Stone Fist (poise), Creeping Vine (root), Focused Palm (raw damage). Owned boons show bottom-left; elemental hits now take their element's spark colour.
+  2. Judge specifically: **do the boons feel worth choosing between**, or is one obviously best; is the escalation right (levels get more rooms and enemies but you also get stronger); does 3 levels feel like a run or a slog.
+  3. **Still open:** the Riposte's Mixamo clip — "Standing Melee Attack 360 High" or "Spin Kick". Falls back to Kick meanwhile.
+- **Blocked on:** human feel-check of the boons and run length
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -29,6 +30,7 @@
 | 11 | Fairness pass: attack aiming, trash telegraphs, spawn grace, perfect-dodge reward | ✅ done (pending feel-check) |
 | 11.1 | Arc (pizza-slice) hitboxes + the Riposte counter-attack on its own button | ✅ **done** (human-signed-off 2026-08-07) |
 | 11.2 | Perfect-dodge grace window | ✅ done (pending feel-check) |
+| 12 | Runs and boons: multi-level runs, 6 elemental boons, real status effects | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -39,6 +41,20 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M12: runs and boons (the system M3 was architected for)
+- **A run is now 3 levels**, each ending in a boss, with a boon choice between them. `LevelDirector` regenerates per level instead of ending after one; `LevelCleared` hands off to the boon screen and the run *waits* rather than running a timer, because this is the only moment in a run that is a decision instead of an execution.
+- **Escalation is not optional, it is the point.** Without it level three would be *easier* than level one, because the player arrives carrying two boons and the content never grew to answer them. `BudgetGrowthPerLevel` (2.5) and `RoomGrowthPerLevel` (0.5) fix that; measured over 200 seeds, the last level fields strictly more enemies and more rooms than the first.
+- **The three inert statuses are finally real.** `Burning`/`Chilled`/`Rooted` have existed since M3 with **no consumer at all**. Now: Burning ticks damage in discrete ticks (each its own number and flash — a smooth drain would be invisible, the exact mistake the empowered strike made), Chilled halves movement, Rooted pins the enemy while still letting it swing.
+  - Magnitudes live in one shared `StatusSettings` asset, **not on the boon that applies them**. Burning always burns at the same rate whatever inflicted it, which keeps the status learnable and leaves boons with the one decision that is theirs: *whether* to apply it, not how hard it bites. It is also why `StatusEffectContainer` stores only durations.
+  - Burn damage deliberately bypasses the hit resolver: it is the *consequence* of a hit that already resolved, and running it back through the pipeline would let a burn modifier re-apply Burning from its own damage, forever.
+- **Six boons, one shape.** `BoonModifier` is multipliers plus an optional status, and every element is data. Six bespoke classes would each need their own tests and ordering argument when what actually differs between fire and ice is two numbers and an enum. Order 50 sits between setup and anything with the final say, so a late modifier multiplies the boosted number rather than being boosted by it.
+  - A **Physical** boon deliberately does not stamp its damage type, or stacking Focused Palm after Ember Palm would blank the fire.
+- **`DamageType` finally has a consumer.** It has ridden on every hit since M3 with nothing reading it; hit sparks now take the element's colour, and enemies tint by active status. An elemental boon that did not change what a hit *looks* like would be another invisible reward.
+- **Offers are drawn by shuffling and taking the front**, not by picking-and-rejecting-duplicates: the latter consumes an unpredictable number of draws and would desynchronise the seed. A whole 3-level run replays identically from a seed — pinned by a test.
+- **Bug found by driving the run end to end**: `ContinueToNextLevel` had no guard against being called twice, so a **mashed confirm button would advance two levels and skip one entirely** — exactly what a player does on a results screen. Now guarded by an `awaitingLevelAdvance` latch, and the verification mashes it three times to prove it.
+- **Verified**: 409 EditMode tests (was 394; +15). Live, driving a full run: level 1 → boon screen (clock paused, 3 distinct offers) → level 2 → boon → level 3 → **run complete at 3/3**. Boons measured working through the real pipeline: Creeping Vine stamped `Nature`, applied Rooted, and dropped the target's move multiplier to **0.00**; Ember Palm stamped `Fire` and burned an enemy from **40 → 11.2 HP** over its 3.5 s.
+- Known issues / TODO next: boons are **offensive only** — the pipeline is wired on the attacker's resolver, so a defensive boon would have to register on every enemy's instead. The death screen does not yet report which boons were held. No boon rarity or stacking; each can be taken once.
 
 ### 2026-08-07 — M11.2: perfect-dodge grace (melee and projectiles were not equally dodgeable)
 - Human: perfect-dodging a bolt is comfortable, perfect-dodging melee is not. **The asymmetry is structural, not a tuning accident.** A projectile's hitbox travels toward the player, so *any* instant of the i-frame window can catch it. A melee swing is live for **0.10 s** and the player must still be standing inside the arc when it opens. Same i-frames, wildly different difficulty.

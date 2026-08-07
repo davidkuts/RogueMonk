@@ -31,6 +31,19 @@ namespace Game.Combat
         float riposteSparkScale = 2.6f;
         [SerializeField] AttackDefinition riposte;
 
+        [Header("Elements")]
+        [SerializeField, Tooltip("Spark colour per damage type, indexed by the DamageType enum. Physical falls through to the light/heavy colours above.")]
+        Color[] elementColors =
+        {
+            new Color(1f, 0.85f, 0.45f, 0.9f),   // Physical (unused — falls through)
+            new Color(1f, 0.45f, 0.15f, 1f),     // Fire
+            new Color(0.45f, 0.8f, 1f, 1f),      // Ice
+            new Color(0.7f, 0.95f, 0.9f, 1f),    // Wind
+            new Color(0.85f, 0.7f, 0.45f, 1f),   // Earth
+            new Color(0.5f, 0.85f, 0.35f, 1f),   // Nature
+            new Color(1f, 0.85f, 0.35f, 1f),     // Force
+        };
+
         [Header("Rumble")]
         [SerializeField, Tooltip("Hitstop above this counts as a heavy hit for feedback purposes.")]
         float heavyHitstopThreshold = 0.08f;
@@ -122,7 +135,21 @@ namespace Game.Combat
             Vector2 rumble = heavy ? heavyRumble : lightRumble;
             RumbleDirector.Rumble(rumble.x, rumble.y);
 
-            SpawnSpark(context.Point, -context.Direction, heavy ? heavyHitColor : lightHitColor, heavy ? 1.4f : 1f);
+            // DamageType has been carried on every hit since M3 with nothing reading it. An
+            // elemental boon that did not change what a hit looks like would be another invisible
+            // reward, so the spark takes the element's colour.
+            Color tint = ResolveSparkColor(context.DamageType, heavy);
+            SpawnSpark(context.Point, -context.Direction, tint, heavy ? 1.4f : 1f);
+        }
+
+        Color ResolveSparkColor(DamageType type, bool heavy)
+        {
+            int index = (int)type;
+            if (type != DamageType.Physical && elementColors != null &&
+                index >= 0 && index < elementColors.Length)
+                return elementColors[index];
+
+            return heavy ? heavyHitColor : lightHitColor;
         }
 
         void OnWhiff(IAttackDefinition attack) => AudioDirector.PlaySound(GameSound.Whiff);

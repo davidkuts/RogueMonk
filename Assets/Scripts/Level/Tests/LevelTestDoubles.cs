@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Level.Tests
 {
@@ -19,10 +20,17 @@ namespace Game.Level.Tests
 
     internal sealed class FakeGenerationSettings : ILevelGenerationSettings
     {
+        // Defaults chosen so existing single-level tests are unaffected: one level, no escalation.
+        public int LevelsPerRun { get; set; } = 1;
+        public float BudgetGrowthPerLevel { get; set; }
+        public float RoomGrowthPerLevel { get; set; }
         public int MinStandardRooms { get; set; } = 5;
         public int MaxStandardRooms { get; set; } = 5;
         public int MinRooms => MinStandardRooms + 1;
-        public int MaxRooms => MaxStandardRooms + 1;
+
+        // Must allow for escalation, or a later level fails its own room-count bound.
+        public int MaxRooms =>
+            MaxStandardRooms + 1 + Mathf.FloorToInt(Mathf.Max(0f, RoomGrowthPerLevel) * (LevelsPerRun - 1));
         public string BossArchetypeId { get; set; } = "warden";
         public int BossRoomWaves { get; set; } = 1;
         public float BossBudgetBonus { get; set; } = 3f;

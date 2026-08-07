@@ -32,11 +32,32 @@ namespace Game.Level
     /// <summary>Tuning for level generation. All values are data (CLAUDE.md hard rule 2).</summary>
     public interface ILevelGenerationSettings
     {
+        /// <summary>
+        /// Levels in a full run. Each ends in a boss and, between them, a boon choice. One makes a
+        /// run a single level, which is exactly what it was before runs existed.
+        /// </summary>
+        int LevelsPerRun { get; }
+
+        /// <summary>
+        /// Extra spend budget added per level index, on top of the per-room growth. This is the
+        /// escalation knob: without it level three would be no harder than level one, and the boons
+        /// the player has collected by then would make it easier.
+        /// </summary>
+        float BudgetGrowthPerLevel { get; }
+
+        /// <summary>Extra standard rooms added per level index. Fractional values round down.</summary>
+        float RoomGrowthPerLevel { get; }
+
         /// <summary>Ordinary fight rooms before the boss.</summary>
         int MinStandardRooms { get; }
         int MaxStandardRooms { get; }
 
-        /// <summary>Total rooms including the boss room, which is always appended last.</summary>
+        /// <summary>
+        /// Total rooms including the appended boss room, across <em>any</em> level of a run — so
+        /// <see cref="MaxRooms"/> has to allow for everything <see cref="RoomGrowthPerLevel"/> can
+        /// add by the final level. The validator checks a single level's plan against this, and it
+        /// has no idea which level it is looking at.
+        /// </summary>
         int MinRooms { get; }
         int MaxRooms { get; }
 

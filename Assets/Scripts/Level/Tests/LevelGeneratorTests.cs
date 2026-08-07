@@ -213,6 +213,124 @@ namespace Game.Level.Tests
         }
 
         [Test]
+        public void LaterLevelsAreHarderThanEarlierOnes()
+        {
+            // Without escalation, level three would be EASIER than level one, because the player
+            // arrives carrying two boons and the content never grew to answer them.
+            var settings = new FakeGenerationSettings
+            {
+                LevelsPerRun = 3,
+                BudgetGrowthPerLevel = 3f,
+                RoomGrowthPerLevel = 0.5f,
+            };
+            var generator = new LevelGenerator(settings);
+
+            float first = 0f, last = 0f;
+            int firstRooms = 0, lastRooms = 0;
+
+            for (uint seed = 1; seed <= 200; seed++)
+            {
+                LevelPlan a = generator.Generate(new RunContext(seed), 0);
+                LevelPlan b = generator.Generate(new RunContext(seed), 2);
+
+                first += a.TotalEnemies;
+                last += b.TotalEnemies;
+                firstRooms += a.RoomCount;
+                lastRooms += b.RoomCount;
+            }
+
+            Assert.That(last, Is.GreaterThan(first), "the last level must field more enemies");
+            Assert.That(lastRooms, Is.GreaterThan(firstRooms), "and more rooms");
+        }
+
+        [Test]
+        public void ZeroEscalationReproducesTheSingleLevelGame()
+        {
+            var settings = new FakeGenerationSettings { BudgetGrowthPerLevel = 0f, RoomGrowthPerLevel = 0f };
+            var generator = new LevelGenerator(settings);
+
+            for (uint seed = 1; seed <= 100; seed++)
+            {
+                LevelPlan a = generator.Generate(new RunContext(seed), 0);
+                LevelPlan b = generator.Generate(new RunContext(seed), 5);
+
+                Assert.That(b.RoomCount, Is.EqualTo(a.RoomCount), $"seed {seed}");
+                Assert.That(b.TotalEnemies, Is.EqualTo(a.TotalEnemies), $"seed {seed}");
+            }
+        }
+
+        [Test]
+        public void EveryLevelOfAMultiLevelRunIsSolvable()
+        {
+            var settings = new FakeGenerationSettings
+            {
+                LevelsPerRun = 4,
+                BudgetGrowthPerLevel = 3f,
+                RoomGrowthPerLevel = 0.5f,
+            };
+            var generator = new LevelGenerator(settings);
+
+            for (uint seed = 1; seed <= 400; seed++)
+            {
+                var run = new RunContext(seed);
+                for (int level = 0; level < settings.LevelsPerRun; level++)
+                {
+                    LevelPlan plan = generator.Generate(run, level);
+                    Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.True,
+                        $"seed {seed}, level {level + 1}: {reason}");
+                    Assert.That(plan.FinalRoom.IsBossRoom, Is.True, $"seed {seed}, level {level + 1}");
+                }
+            }
+        }
+
+        [Test]
+        public void EachLevelOfARunDrawsFromTheSameStreamSoTheyDiffer()
+        {
+            // Levels must come from one continuous run stream, or every level of a run would be
+            // an identical copy of the first.
+            var settings = new FakeGenerationSettings { LevelsPerRun = 3 };
+            var generator = new LevelGenerator(settings);
+            var run = new RunContext(4242u);
+
+            LevelPlan a = generator.Generate(run, 0);
+            LevelPlan b = generator.Generate(run, 1);
+
+            bool identical = a.RoomCount == b.RoomCount;
+            for (int i = 0; identical && i < a.RoomCount; i++)
+                identical = a.Rooms[i].TemplateId == b.Rooms[i].TemplateId
+                            && a.Rooms[i].TotalEnemies == b.Rooms[i].TotalEnemies;
+
+            Assert.That(identical, Is.False, "level 2 should not be a carbon copy of level 1");
+        }
+
+        [Test]
+        public void AWholeRunReplaysIdenticallyFromTheSameSeed()
+        {
+            var settings = new FakeGenerationSettings { LevelsPerRun = 3, BudgetGrowthPerLevel = 3f };
+
+            for (uint seed = 1; seed <= 50; seed++)
+            {
+                var runA = new RunContext(seed);
+                var runB = new RunContext(seed);
+                var genA = new LevelGenerator(settings);
+                var genB = new LevelGenerator(settings);
+
+                for (int level = 0; level < settings.LevelsPerRun; level++)
+                {
+                    LevelPlan a = genA.Generate(runA, level);
+                    LevelPlan b = genB.Generate(runB, level);
+
+                    Assert.That(b.RoomCount, Is.EqualTo(a.RoomCount), $"seed {seed}, level {level}");
+                    for (int r = 0; r < a.RoomCount; r++)
+                    {
+                        Assert.That(b.Rooms[r].TemplateId, Is.EqualTo(a.Rooms[r].TemplateId), $"seed {seed} L{level} R{r}");
+                        Assert.That(b.Rooms[r].TotalEnemies, Is.EqualTo(a.Rooms[r].TotalEnemies), $"seed {seed} L{level} R{r}");
+                    }
+                }
+            }
+        }
+
+        [Test]
         public void CanGenerateRejectsABossArchetypeThatIsNotInTheList()
         {
             // Otherwise the boss room's only spawn fails silently and the room can never clear.

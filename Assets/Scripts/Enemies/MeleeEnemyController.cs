@@ -150,7 +150,10 @@ namespace Game.Enemies
 
             Vector3 direction = toTarget.normalized;
             FaceTowards(direction, deltaTime);
-            return direction * (definition.MoveSpeed * brain.MoveSpeedFraction);
+
+            // Chilled and Rooted bite here. Applied to the resulting speed rather than the
+            // fraction, so "half speed" is half speed rather than half of a curve.
+            return direction * (definition.MoveSpeed * brain.MoveSpeedFraction * actor.StatusMoveSpeedMultiplier);
         }
 
         void StartAttack()

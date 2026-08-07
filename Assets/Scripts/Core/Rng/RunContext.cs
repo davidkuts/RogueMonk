@@ -25,6 +25,7 @@ namespace Game.Core.Rng
 
         public float ElapsedSeconds { get; private set; }
         public int RoomsCleared { get; private set; }
+        public int LevelsCleared { get; private set; }
         public float DamageDealt { get; private set; }
         public float DamageTaken { get; private set; }
         public int PerfectDodges { get; private set; }
@@ -37,6 +38,7 @@ namespace Game.Core.Rng
         }
 
         public void RecordRoomCleared() => RoomsCleared++;
+        public void RecordLevelCleared() => LevelsCleared++;
         public void RecordDamageDealt(float amount) => DamageDealt += amount;
         public void RecordDamageTaken(float amount) => DamageTaken += amount;
         public void RecordPerfectDodge() => PerfectDodges++;
