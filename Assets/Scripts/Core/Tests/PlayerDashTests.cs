@@ -258,6 +258,132 @@ namespace Game.Core.Tests
             Assert.That(dash.CanStart, Is.True);
         }
 
+        // --- Perfect-dodge grace -----------------------------------------------------------
+
+        static PlayerDash WithGrace(out FakeDashSettings settings, float grace = 0.09f)
+        {
+            settings = new FakeDashSettings { PerfectDodgeGraceSeconds = grace };
+            return new PlayerDash(settings);
+        }
+
+        [Test]
+        public void Grace_OpensWhenTheIFramesClose()
+        {
+            PlayerDash dash = WithGrace(out FakeDashSettings settings);
+            dash.TryStart(Vector3.right);
+
+            dash.Tick(settings.DurationSeconds * 0.8f);
+            Assert.That(dash.IsInvulnerable, Is.True);
+            Assert.That(dash.IsInDodgeGrace, Is.False, "not while the i-frames are still running");
+
+            dash.Tick(settings.DurationSeconds * 0.1f);   // past the 85% mark
+            Assert.That(dash.IsInvulnerable, Is.False);
+            Assert.That(dash.IsInDodgeGrace, Is.True, "the grace picks up where the i-frames stopped");
+            Assert.That(dash.IsProtected, Is.True);
+        }
+
+        [Test]
+        public void Grace_OutlastsTheDashItself()
+        {
+            // The point of the change: a melee swing is live for barely a tenth of a second, so
+            // protection has to extend past the dash or a melee dodge is frame-perfect while a
+            // projectile dodge is comfortable.
+            PlayerDash dash = WithGrace(out _, grace: 0.09f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            Assert.That(dash.IsDashing, Is.False);
+            Assert.That(dash.IsProtected, Is.True, "still protected after the dash has finished");
+
+            dash.Tick(0.1f);
+            Assert.That(dash.IsProtected, Is.False, "but not forever");
+        }
+
+        [Test]
+        public void Grace_AHitLandingInItStillCountsAsAPerfectDodge()
+        {
+            PlayerDash dash = WithGrace(out _);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            Assert.That(dash.IsInvulnerable, Is.False, "the i-frames are over");
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.True, "and it should still be a dodge");
+            Assert.That(dash.Charges.Available, Is.EqualTo(2), "the charge came back");
+        }
+
+        [Test]
+        public void Grace_AHitAfterItIsJustAHit()
+        {
+            PlayerDash dash = WithGrace(out _, grace: 0.05f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+            dash.Tick(0.06f);
+
+            Assert.That(dash.IsProtected, Is.False);
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.False);
+        }
+
+        [Test]
+        public void Grace_StillOnlyRefundsOncePerDash()
+        {
+            PlayerDash dash = WithGrace(out _);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.True);
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.False, "a multi-hit attack cannot farm charges");
+        }
+
+        [Test]
+        public void Grace_ANewDashDoesNotInheritTheOldOne()
+        {
+            PlayerDash dash = WithGrace(out _, grace: 5f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+            Assert.That(dash.IsInDodgeGrace, Is.True);
+
+            dash.TryStart(Vector3.forward);
+
+            Assert.That(dash.IsInDodgeGrace, Is.False, "the new dash owns its own protection");
+            Assert.That(dash.IsInvulnerable, Is.True, "and starts on fresh i-frames");
+        }
+
+        [Test]
+        public void Grace_ANewDashRearmsTheRefund()
+        {
+            PlayerDash dash = WithGrace(out _);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+            dash.TryRegisterPerfectDodge();
+
+            dash.TryStart(Vector3.forward);
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.True, "a second dash earns its own refund");
+        }
+
+        [Test]
+        public void Grace_CancelDropsItToo()
+        {
+            PlayerDash dash = WithGrace(out _, grace: 5f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            dash.Cancel();
+
+            Assert.That(dash.IsProtected, Is.False);
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.False);
+        }
+
+        [Test]
+        public void Grace_ZeroKeepsTheOldBehaviourExactly()
+        {
+            PlayerDash dash = WithGrace(out _, grace: 0f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            Assert.That(dash.IsProtected, Is.False);
+            Assert.That(dash.TryRegisterPerfectDodge(), Is.False);
+        }
+
         [Test]
         public void Cancel_EndsTheDashWithoutRefunding()
         {

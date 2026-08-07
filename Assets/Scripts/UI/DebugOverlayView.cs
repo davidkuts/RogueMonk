@@ -106,7 +106,8 @@ namespace Game.UI
                 builder.Clear();
                 builder.AppendFormat("dash  charges {0}/{1}  next {2:P0}   ",
                     motor.Dash.Charges.Available, motor.Dash.Charges.Max, motor.Dash.Charges.NextChargeProgress);
-                builder.AppendFormat("dashing {0}  i-frames {1}", motor.Dash.IsDashing, motor.Dash.IsInvulnerable);
+                builder.AppendFormat("dashing {0}  i-frames {1}  grace {2:0.000}s",
+                    motor.Dash.IsDashing, motor.Dash.IsInvulnerable, motor.Dash.DodgeGraceRemaining);
                 Line(builder.ToString(), new Color(0.55f, 0.85f, 0.95f));
             }
 

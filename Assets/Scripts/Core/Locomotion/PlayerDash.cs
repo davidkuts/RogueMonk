@@ -17,6 +17,7 @@ namespace Game.Core.Locomotion
 
         float elapsed;
         float travelled;
+        float graceRemaining;
         bool refundedThisDash;
 
         public DashCharges Charges { get; }
@@ -30,8 +31,24 @@ namespace Game.Core.Locomotion
         public float NormalizedTime =>
             !IsDashing || settings.DurationSeconds <= 0f ? 0f : Mathf.Clamp01(elapsed / settings.DurationSeconds);
 
-        /// <summary>True while the dash's i-frames are live.</summary>
+        /// <summary>True while the dash's i-frames proper are live.</summary>
         public bool IsInvulnerable => IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction);
+
+        /// <summary>
+        /// True during the trailing grace that follows the i-frames. Kept separate from
+        /// <see cref="IsInvulnerable"/> so the two can be read and tuned independently, even though
+        /// both protect the player.
+        /// </summary>
+        public bool IsInDodgeGrace => graceRemaining > 0f;
+
+        /// <summary>
+        /// The window that actually matters to combat: i-frames plus grace. Anything asking
+        /// "can this hit the player right now" wants this, not the raw i-frames.
+        /// </summary>
+        public bool IsProtected => IsInvulnerable || IsInDodgeGrace;
+
+        /// <summary>Seconds of grace left, for the debug overlay.</summary>
+        public float DodgeGraceRemaining => graceRemaining;
 
         /// <summary>True when a dash could be started right now.</summary>
         public bool CanStart => !IsDashing && Charges.HasCharge;
@@ -59,6 +76,10 @@ namespace Game.Core.Locomotion
             IsDashing = true;
             elapsed = 0f;
             travelled = 0f;
+
+            // A fresh dash owns the protection outright; leftover grace from the previous one
+            // would let a second dash inherit a window it did not earn.
+            graceRemaining = 0f;
             refundedThisDash = false;
             return true;
         }
@@ -68,8 +89,14 @@ namespace Game.Core.Locomotion
         {
             Charges.Tick(deltaTime);
 
+            // Runs whether or not a dash is live: the grace deliberately outlasts the dash itself.
+            if (deltaTime > 0f && graceRemaining > 0f)
+                graceRemaining = Mathf.Max(0f, graceRemaining - deltaTime);
+
             if (!IsDashing || deltaTime <= 0f)
                 return Vector3.zero;
+
+            bool wasInvulnerable = IsInvulnerable;
 
             elapsed += deltaTime;
 
@@ -89,6 +116,12 @@ namespace Game.Core.Locomotion
             if (finished)
                 IsDashing = false;
 
+            // Open the grace on the frame the i-frames close, whether they ran out mid-dash or the
+            // dash simply ended. Opening it here rather than at dash start means the two windows
+            // are contiguous and the total is exactly i-frames + grace.
+            if (wasInvulnerable && !IsInvulnerable)
+                graceRemaining = Mathf.Max(0f, settings.PerfectDodgeGraceSeconds);
+
             return step;
         }
 
@@ -99,7 +132,7 @@ namespace Game.Core.Locomotion
         /// </summary>
         public bool TryRegisterPerfectDodge()
         {
-            if (!IsInvulnerable || refundedThisDash)
+            if (!IsProtected || refundedThisDash)
                 return false;
 
             refundedThisDash = true;
@@ -114,6 +147,7 @@ namespace Game.Core.Locomotion
             IsDashing = false;
             elapsed = 0f;
             travelled = 0f;
+            graceRemaining = 0f;
         }
     }
 }

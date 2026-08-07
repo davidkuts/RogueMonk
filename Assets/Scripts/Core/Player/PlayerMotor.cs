@@ -37,8 +37,12 @@ namespace Game.Core.Player
         /// <summary>The dash simulation — owns charges, i-frames and the perfect-dodge refund.</summary>
         public PlayerDash Dash { get; private set; }
 
-        /// <summary>True while dash i-frames are live. Combat asks this before applying damage.</summary>
-        public bool IsInvulnerable => Dash != null && Dash.IsInvulnerable;
+        /// <summary>
+        /// True while the dash is protecting the player — i-frames or the trailing dodge grace.
+        /// Combat asks this before applying damage, so it must be the full window: the grace has to
+        /// actually stop the hit, or a "perfect dodge" would be credited for a blow that landed.
+        /// </summary>
+        public bool IsInvulnerable => Dash != null && Dash.IsProtected;
 
         void Awake()
         {

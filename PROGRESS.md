@@ -3,12 +3,11 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M11.1 — arc hitboxes and the Riposte, built and verified.**
+- **Active milestone:** **M11.2 — perfect-dodge grace window, built and verified.** Human confirmed M11.1 "works, it feels good now"; the one remaining ask was a more forgiving dodge window.
 - **Next action for the human:**
-  1. Play `Builds/Win64/RogueMonk.exe`. Melee attacks are now **pizza-slice arcs** you can step out of sideways, and the decal draws the real wedge.
-  2. **Land a perfect dodge, then press Triangle (or Q).** The prompt appears bottom-centre. The counter does 50 damage in a 180° arc — a whole combo's worth in one press, and it hits everything in front.
-  3. **Optional, and the one thing that needs you:** grab a Mixamo clip for the Riposte. **"Standing Melee Attack 360 High"** or **"Spin Kick"** fit best, because the hitbox is a wide sweep and a spinning animation is honest to it. Drop it in and assign it to `MonkAnimations.asset` → *Riposte*. Until then it falls back to the Kick clip, so the move is never invisible.
-- **Blocked on:** human feel-check of the Riposte and the arc telegraphs
+  1. Play `Builds/Win64/RogueMonk.exe` and check the dodge window feels right. Protection is now **0.243 s** (0.153 s i-frames + 0.09 s grace), up 59%, and it outlasts the dash itself by 0.063 s. The span in which a dash can catch the grunt's swing went **0.253 s → 0.343 s**. One number to tune: `DashSettings.perfectDodgeGraceSeconds`.
+  2. **Still open, whenever you like:** a Mixamo clip for the Riposte — **"Standing Melee Attack 360 High"** or **"Spin Kick"** suit the 180° sweep. Assign to `MonkAnimations.asset` → *Riposte*. It falls back to the Kick clip meanwhile, so nothing is broken.
+- **Blocked on:** nothing. Human has asked for the next milestone to be planned.
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -28,7 +27,8 @@
 | 10.1 | Boss difficulty: greed punish, floor hazards, leading projectiles, faster cadence | ✅ done (pending feel-check) |
 | 10.2 | Nova frequency, varied cadence, Sunder herding move | ✅ done (pending feel-check) |
 | 11 | Fairness pass: attack aiming, trash telegraphs, spawn grace, perfect-dodge reward | ✅ done (pending feel-check) |
-| 11.1 | Arc (pizza-slice) hitboxes + the Riposte counter-attack on its own button | ✅ done (pending feel-check) |
+| 11.1 | Arc (pizza-slice) hitboxes + the Riposte counter-attack on its own button | ✅ **done** (human-signed-off 2026-08-07) |
+| 11.2 | Perfect-dodge grace window | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -39,6 +39,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — M11.2: perfect-dodge grace (melee and projectiles were not equally dodgeable)
+- Human: perfect-dodging a bolt is comfortable, perfect-dodging melee is not. **The asymmetry is structural, not a tuning accident.** A projectile's hitbox travels toward the player, so *any* instant of the i-frame window can catch it. A melee swing is live for **0.10 s** and the player must still be standing inside the arc when it opens. Same i-frames, wildly different difficulty.
+- Fix: `PerfectDodgeGraceSeconds` — a trailing window after the i-frames close during which a hit is still nullified **and** still counts as a perfect dodge. Protection went **0.153 s → 0.243 s (+59%)**, and now outlasts the dash itself by 0.063 s. The span in which a dash can be started and still catch the grunt's swing went **0.253 s → 0.343 s**.
+- The grace has to *actually stop the hit*, not merely relabel it — crediting a "perfect dodge" for a blow that landed would be incoherent. So `PlayerMotor.IsInvulnerable` and `PlayerHealth` both moved to `PlayerDash.IsProtected` (i-frames ∪ grace). `IsInvulnerable` still means the i-frames alone, so the two remain independently readable and tunable.
+- It is deliberately opened when the i-frames *close* rather than at dash start, so the two windows are contiguous and the total is exactly i-frames + grace with no overlap to reason about. A new dash clears any leftover grace: a second dash must not inherit protection it did not earn.
+- 9 new tests, including that the old behaviour is preserved exactly at grace = 0, that a new dash re-arms the refund, and that a multi-hit attack still cannot farm charges through the grace.
+- **Worth knowing for the melee case**: dashing *away* from a swing means it whiffs entirely, so no hit event fires and there is no perfect dodge to register. The technique is to dash **through** the attacker — which dash-through-enemies (M6) already allows. That is skill expression, not a bug, so it was left alone.
+- Verified: 394 EditMode tests (was 385).
 
 ### 2026-08-07 — M11.1: arc hitboxes, and the Riposte replaces the invisible buff
 - **`HitboxKind.Arc` — a pizza slice.** A sphere in front of an attacker punishes standing anywhere near it, which reads as "the attack just happens to you"; a wedge can be stepped out of sideways, so answering a telegraph becomes a decision about where to stand. Converted the grunt's lunge (110°), the boss's Cleave (120°), Cleave2 (140°) and both Sweep links (210° / 240°). Nova stays a full sphere — it genuinely *is* a circle.

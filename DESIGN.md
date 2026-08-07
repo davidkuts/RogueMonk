@@ -33,7 +33,8 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Knockback = manual velocity impulse
 - Dash: ~4 m over ~0.18 s; i-frames cover first ~85% of the dash; never crosses room boundaries
 - **2 dash charges**, **sequential recharge — only one charge refills at a time**, ~1.5 s each (revised 2026-08-06 after playtest; was "2.5 s each, independent parallel timers", which made both charges return together and removed the cost of burning them back-to-back); two pips on HUD
-- **Perfect dodge:** if dash i-frames overlap an attack's active frames, the charge is refunded instantly (distinct SFX/flash). Strict overlap required.
+- **Perfect dodge:** if dash i-frames overlap an attack's active frames, the charge is refunded instantly (distinct SFX/flash).
+- **Dodge grace** (added 2026-08-07): protection extends a little past the i-frames, still counting as a perfect dodge. This exists because melee and projectiles are *not* equally dodgeable — a projectile's hitbox travels toward the player so any instant of the window catches it, while a melee swing is live for a tenth of a second and the player must still be standing in the arc. Without the grace one is comfortable and the other is frame-perfect.
 - **Perfect-dodge reward** (revised 2026-08-07, M11 — the refund alone tested as correct but unrewarding, because it pays out on the HUD, a second later, in a resource the player usually had anyway). It now also grants:
   1. **Focus** — a brief slow-motion window. The immediate sensory payoff, and also tactical: the slow is what gives room to walk into the punish just earned.
   2. **The Riposte** — a counter-attack on its own button (Triangle / Q) that does not exist until earned, and is spent on use. A wide arc, worth roughly a whole combo in one press.

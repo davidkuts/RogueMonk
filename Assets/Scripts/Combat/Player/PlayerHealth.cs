@@ -82,7 +82,7 @@ namespace Game.Combat
                 return;
 
             // Dash i-frames come first: a strict overlap is a perfect dodge, and refunds the charge.
-            if (motor != null && motor.Dash != null && motor.Dash.IsInvulnerable)
+            if (motor != null && motor.Dash != null && motor.Dash.IsProtected)
             {
                 if (motor.Dash.TryRegisterPerfectDodge())
                 {

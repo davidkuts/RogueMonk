@@ -23,6 +23,8 @@ namespace Game.Core.Locomotion
         [Header("Invulnerability")]
         [SerializeField, Range(0f, 1f), Tooltip("Fraction of the dash covered by i-frames. The uncovered tail is the punish window.")]
         float iFrameFraction = 0.85f;
+        [SerializeField, Tooltip("Extra protection after the i-frames end, still counting as a perfect dodge. Exists because a melee swing is only live for a tenth of a second, so without it a melee perfect dodge is frame-perfect while a projectile one is comfortable.")]
+        float perfectDodgeGraceSeconds = 0.09f;
 
         [Header("Charges")]
         [SerializeField, Tooltip("Charges held at once. Two pips on the HUD.")]
@@ -37,6 +39,7 @@ namespace Game.Core.Locomotion
         public float DistanceMeters => distanceMeters;
         public float DurationSeconds => durationSeconds;
         public float IFrameFraction => iFrameFraction;
+        public float PerfectDodgeGraceSeconds => perfectDodgeGraceSeconds;
         public int MaxCharges => maxCharges;
         public float RechargeSeconds => rechargeSeconds;
         public float BufferSeconds => bufferSeconds;

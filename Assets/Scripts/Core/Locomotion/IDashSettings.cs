@@ -15,6 +15,17 @@ namespace Game.Core.Locomotion
         /// <summary>Fraction of the dash (0..1) covered by invulnerability frames.</summary>
         float IFrameFraction { get; }
 
+        /// <summary>
+        /// Extra protection carried past the end of the i-frames, during which a hit is still
+        /// nullified and still counts as a perfect dodge.
+        ///
+        /// It exists because melee and projectiles are not equally dodgeable. A bolt's hitbox
+        /// travels toward the player, so any instant of the i-frame window can catch it; a melee
+        /// swing is live for barely a tenth of a second and the player has to still be standing in
+        /// it. Without this, one is comfortable and the other is frame-perfect.
+        /// </summary>
+        float PerfectDodgeGraceSeconds { get; }
+
         /// <summary>Number of charges the player holds.</summary>
         int MaxCharges { get; }
 
