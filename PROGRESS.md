@@ -3,9 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** M6 complete with boss room — awaiting human playtest before M7
-- **Next action:** Human: run `Builds/Win64/RogueMonk.exe` and play a full level. 5 ordinary rooms then a **boss room** (red-tinted Vault, banner on entry, "the next door leads to the boss" warning the room before). Confirm the camera follows properly again and that death/victory read clearly (R or Start restarts, T replays the same seed). Then M7: pause menu, HUD, proper death screen.
-- **Blocked on:** human feel-check of the full level flow
+- **Active milestone:** M6 complete + combat readability pass — awaiting human playtest before M7
+- **Next action:** Human: run `Builds/Win64/RogueMonk.exe`. Melee grunts **no longer lunge**, so backing off during the 450 ms telegraph now works; the telegraph also pulses and brightens as it completes. ~15–18 enemies per level. **L2 (or K) clears the current room** for fast iteration. R/Start restarts, T replays the seed, F1 is the overlay. Then M7: pause menu, HUD, proper death screen.
+- **Blocked on:** human feel-check of melee readability and the shorter level
 
 ## Milestones
 | # | Milestone | Status |
@@ -30,6 +30,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-07 — Melee readability: lunge removed, telegraph strengthened, debug room skip
+- Human: melee damage is hard to avoid with no attack animation; suggested a wind-up colour. **The wind-up tint already existed and was working** — verified frame by frame that the grunt ramps from rgb(0.67, 0.41, 0.39) at 0 % wind-up to rgb(0.88, 0.30, 0.25) at 99 %. So the tell was visible; the reason it could not be acted on was the **lunge**, which carried the grunt 2.2 m during its 0.1 s active window. Seeing the telegraph did not help because backing off could not outrun it.
+- **Lunge removed** from the melee grunt (`lungeDistance` 2.2 → 0, `attackRange` 2.4 → 2.0). The capability stays in `EnemyDefinition` for a future dashing archetype, as the human asked. Now the attack only lands if you are still in range when the active frames open, so retreating during the telegraph works.
+- **Telegraph strengthened anyway**: it now pulses (6 Hz) and ramps toward fully saturated as the wind-up completes, so the strike moment is the brightest. Applies to both enemy types. Without attack animation this is the entire tell, so it is deliberately loud.
+- **Enemy count cut**: base budget 3 → 2, growth 1.2 → 0.6, max per wave 5 → 3, max waves 3 → 2, boss bonus 3 → 2. A level is now ~15–18 enemies, down from 45–62 at M6 and 29 after the boss change.
+- **Debug room skip**: `DebugCheats` on the Diagnostics object — **L2** (analogue trigger, manually edge-detected since triggers have no reliable "pressed this frame") or **K** clears the current room. It routes through `RoomRunner.ForceClear`, which kills survivors and skips remaining waves but raises `Cleared` exactly as a real clear does, so the door, stats and transition all follow the normal path rather than a special case. Every cheat logs at Warning level so a playtest log can never be mistaken for an honest one.
+- Verified: 286/286 tests; a build generates 6 rooms / 15 enemies and runs clean.
 
 ### 2026-08-07 — Boss room (signalled, no mechanics)
 - **Room concept decided by the human: Hades-like discrete rooms stay.** One room exists at a time, the exit door swaps it for the next. Connected/walkable rooms were considered and rejected. Recorded here because it settles a question DESIGN.md left open, and it is what justifies per-room camera confinement and the future per-room NavMesh bake.
@@ -150,7 +158,7 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - **~45 % of swings whiff, confirmed across two separate sessions** (63/140 then 21/48). Cause: auto-aim range is 3 m but the punch hitbox only reaches ~1.8 m, so aim can lock a target the attack cannot reach. Either shorten auto-aim range to match reach or lengthen reach. Still not changed unilaterally — the human has twice said it feels nice, so this needs an explicit call.
 - **0 perfect dodges across 9 dash-cancels** in the M4 session. The window is dash i-frames (153 ms) strictly overlapping an enemy's 100 ms active frames — possibly too tight to ever hit by accident. Worth deciding whether i-frames should cover the whole dash, or whether the refund should trigger on overlapping the *wind-up* instead.
 - Enemy numbers are first drafts: 60 HP (so punch/punch/kick ≈ 42 damage, i.e. two combos to kill), 30 poise (the kick alone breaks it), 1.2 s stagger, 1.1 s attack cooldown, 450 ms telegraph. All want a feel pass.
-- Level shape is a first draft too: 6–7 rooms, 1–3 waves each, budget 3 + 1.2/room, cap 5 per wave. A generated level currently holds 45–62 enemies — that may be far too long for a single sitting.
+- (resolved) Level length — cut twice on 2026-08-07, now ~15–18 enemies across 6 rooms.
 - (resolved) Projectile speed 9 → 11.5 m/s on 2026-08-06; 700 ms telegraph confirmed good.
 - (resolved) M3 damage numbers — set against 60 HP grunts in M4; two full combos kill one.
 - (resolved) Attacks no longer root the player — human called rooting clunky on 2026-08-06. Now 0.55 punches / 0.40 kick, with facing locked while committed so strafing does not break auto-aim.

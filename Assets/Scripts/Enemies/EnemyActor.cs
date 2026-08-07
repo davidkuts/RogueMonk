@@ -15,6 +15,12 @@ namespace Game.Enemies
     {
         [SerializeField] EnemyDefinition definition;
 
+        [Header("Telegraph")]
+        [SerializeField, Tooltip("Pulse rate of the wind-up flash. Without animation this is the only tell, so it has to be unmissable.")]
+        float telegraphPulseHz = 6f;
+        [SerializeField, Tooltip("How saturated the telegraph is at the very start of the wind-up.")]
+        float telegraphMinIntensity = 0.45f;
+
         [Header("Reaction")]
         [SerializeField] Color hitFlashColor = new Color(1f, 0.95f, 0.9f);
         [SerializeField, Tooltip("Colour held for the whole stagger, so the punish window is unmistakable.")]
@@ -52,6 +58,9 @@ namespace Game.Enemies
 
         /// <summary>Overridden colour while a telegraph is running. Null when not telegraphing.</summary>
         public Color? TelegraphOverride { get; set; }
+
+        /// <summary>0..1 through the wind-up. Drives how hard the telegraph reads.</summary>
+        public float TelegraphProgress { get; set; }
 
         void Awake()
         {
@@ -181,8 +190,18 @@ namespace Game.Enemies
                     continue;
 
                 Color color = baseColors[i];
+
                 if (TelegraphOverride.HasValue)
-                    color = TelegraphOverride.Value;
+                {
+                    // Pulsing, and ramping toward fully saturated as the wind-up completes, so
+                    // the moment of the strike is the brightest. A static tint is far too easy
+                    // to miss when the enemy has no attack animation to read.
+                    float pulse = Mathf.PingPong(Time.unscaledTime * telegraphPulseHz, 1f);
+                    float ramp = Mathf.Lerp(telegraphMinIntensity, 1f, Mathf.Clamp01(TelegraphProgress));
+                    float intensity = ramp * Mathf.Lerp(0.55f, 1f, pulse);
+                    color = Color.Lerp(baseColors[i], TelegraphOverride.Value, intensity);
+                }
+
                 if (IsStaggered)
                     color = staggeredColor;
                 if (flash > 0f)

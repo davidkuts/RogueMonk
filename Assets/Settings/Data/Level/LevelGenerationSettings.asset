@@ -15,12 +15,12 @@ MonoBehaviour:
   minStandardRooms: 5
   maxStandardRooms: 5
   minWavesPerRoom: 1
-  maxWavesPerRoom: 3
+  maxWavesPerRoom: 2
   bossRoomWaves: 1
-  bossBudgetBonus: 3
-  baseWaveBudget: 3
-  budgetGrowthPerRoom: 1.2
-  maxEnemiesPerWave: 5
+  bossBudgetBonus: 2
+  baseWaveBudget: 2
+  budgetGrowthPerRoom: 0.6
+  maxEnemiesPerWave: 3
   allowConsecutiveRepeats: 0
   templates:
   - {fileID: 11400000, guid: a379b6099e67086478190655e2672d16, type: 2}

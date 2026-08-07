@@ -21,7 +21,14 @@ MonoBehaviour:
   staggerDurationSeconds: 1.2
   moveSpeed: 3.2
   aggroRange: 12
-  attackRange: 2.4
+  attackRange: 2
   attackCooldownSeconds: 1.1
-  lungeDistance: 2.2
+  lungeDistance: 0
   attack: {fileID: 11400000, guid: 9d8f8470a0c9f8c489596ba7296f9fbd, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 9
+    ProjectileSpeed: 9
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.35
+    KiteSpeedFraction: 0.7

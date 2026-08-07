@@ -179,6 +179,7 @@ namespace Game.Enemies
             actor.TelegraphOverride = telegraphing && attackAsset != null
                 ? attackAsset.TelegraphColor
                 : (Color?)null;
+            actor.TelegraphProgress = telegraphing ? attacks.WindupProgress : 0f;
         }
 
         void FaceTowards(Vector3 direction, float deltaTime)

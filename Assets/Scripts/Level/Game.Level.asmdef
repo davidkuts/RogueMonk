@@ -5,7 +5,8 @@
         "Game.Core",
         "Game.Combat",
         "Game.Enemies",
-        "Unity.Cinemachine"
+        "Unity.Cinemachine",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

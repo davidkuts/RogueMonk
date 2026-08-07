@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 209475364}
   - component: {fileID: 209475367}
   - component: {fileID: 209475368}
+  - component: {fileID: 209475369}
   m_Layer: 0
   m_Name: Diagnostics
   m_TagString: Untagged
@@ -220,6 +221,22 @@ MonoBehaviour:
   fadeSeconds: 0.6
   standardColor: {r: 0.85, g: 0.9, b: 0.95, a: 1}
   bossColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+--- !u!114 &209475369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c26db34deaf1f8b40babd9cd49c489fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Level::Game.Level.DebugCheats
+  director: {fileID: 673184060}
+  clearRoomKey: 25
+  useLeftTrigger: 1
+  triggerThreshold: 0.6
 --- !u!1 &261461479
 GameObject:
   m_ObjectHideFlags: 0
@@ -1333,6 +1350,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyActor
   definition: {fileID: 11400000, guid: fd4e9455c0c68b442bc783bcf5a97ab5, type: 2}
+  telegraphPulseHz: 6
+  telegraphMinIntensity: 0.45
   hitFlashColor: {r: 1, g: 0.95, b: 0.9, a: 1}
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
@@ -2977,6 +2996,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyActor
   definition: {fileID: 11400000, guid: fd4e9455c0c68b442bc783bcf5a97ab5, type: 2}
+  telegraphPulseHz: 6
+  telegraphMinIntensity: 0.45
   hitFlashColor: {r: 1, g: 0.95, b: 0.9, a: 1}
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
@@ -3415,6 +3436,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyActor
   definition: {fileID: 11400000, guid: 933c7940569efc74ea39e8baec3c39b6, type: 2}
+  telegraphPulseHz: 6
+  telegraphMinIntensity: 0.45
   hitFlashColor: {r: 1, g: 0.95, b: 0.9, a: 1}
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09

@@ -124,6 +124,30 @@ namespace Game.Level
                 AdvanceWave();
         }
 
+        /// <summary>
+        /// Debug aid: ends the room immediately, skipping any remaining waves, and raises
+        /// <see cref="Cleared"/> exactly as a real clear would — so the door, the run stats and
+        /// the room transition all follow the normal path rather than a special case.
+        /// </summary>
+        public void ForceClear()
+        {
+            if (IsCleared)
+                return;
+
+            GameLog.Warn(LogCategory.Level,
+                $"FORCE CLEAR room {plan.Index + 1} (debug) - skipped {plan.Waves.Count - WaveNumber} remaining wave(s)");
+
+            for (int i = alive.Count - 1; i >= 0; i--)
+            {
+                if (alive[i] != null && alive[i].IsAlive)
+                    alive[i].Health.TakeDamage(float.MaxValue);
+            }
+
+            alive.Clear();
+            waveIndex = plan.Waves.Count - 1;
+            AdvanceWave();
+        }
+
         /// <summary>Drops any survivors, for aborting a run.</summary>
         public void Abort()
         {
