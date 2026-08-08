@@ -3,7 +3,8 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **M13 through M13.2 built and verified.** **430 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the spin (now a guaranteed full circle, no longer rooting) and the doubled dodge grace.
+- **M13 through M13.3 built and verified.** **430 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the spin (full circle across the whole move, foot-traced smear, short visible pull) and the doubled dodge grace.
+- **Coolness is an explicit priority, stated 2026-08-08.** The dash trail is the bar: the human showed it to friends and it landed. Effects for new abilities should be judged against that, not merely "present".
 - ⚠️ **`Right Hook.fbx` still has no animation data — re-download it from Mixamo.** The Riposte now plays a half-turn cut from the Hurricane Kick take as a placeholder, which is better than reusing the combo's Kick but is not a real counter-attack animation.
 - **Next, already agreed with the human:** perfect-dodging a **projectile is far too easy** now that the grace is 0.20 s. Melee and projectiles need different treatment — the M11.2 reasoning still holds, but the fix has over-corrected in the projectile direction. Likely shape: grace that depends on the threat type rather than one global number.
 - **Locked by the human 2026-08-08:** the **dash blue is the chromatic hue** for the whole Second Hand kit. Confirmed as correct on sight; do not re-open it.
@@ -44,6 +45,7 @@
 | 13 | The Vortex (the Undertow): radial pull on ○/E, damage ticks, arrival stagger, hit-fed cooldown | ✅ done (pending feel-check) |
 | 13.1 | Playtest pass: grace doubled, vortex spammable + slowed spin + chromatic smear, knockback long-frame fix | ✅ done (pending feel-check) |
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
+| 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -54,6 +56,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — M13.3: the smear moves to the feet, and the spin stops stalling
+- Human playtest: the animation "freezes or stops at one point"; keep the speed but a hint faster; spin for the whole duration; the chromatic effect "looks very clustered in the middle" because only the leg actually moves; and the pull is not visible — it should "grab them from the edge of the leg to about half a leg distance". Coolness explicitly named as a priority (the dash trail is the bar to hit).
+- **The freeze was mine.** The turn was spread over wind-up + active only, so the body stood still for the whole 0.10 s recovery while the clip's limbs kept moving. It now spans the **whole** move (`SpinSeconds = TotalSeconds`).
+- ⚠️ **And the model was drifting.** Rotating it in `Update` let the Animator — which poses the character *after* Update — overwrite it, leaving a residue that accumulated: measured **10.5° off rest and creeping**. Moved to **`LateUpdate`**, which also now restores the rest pose every frame rather than once on a transition, so nothing can leave the body askew. Verified drift **0.000°**.
+- **Timing**: 0.10/0.22/0.10 = **0.42 s total**, one revolution across all of it = **2.38 rev/s** (was 2.22 over a 0.63 s move). Slightly faster, noticeably shorter, and it ends square because the turn is a whole revolution.
+- **The smear is now traced by the feet.** Body ghosts suit the dash because the body *travels*; on a stationary spin they all land on the same spot and pile into a blob — exactly what the human saw. New `Monk/Smear` shader + `VortexSmear` component put ribbon trails on both feet in the same dash hue: soft-edged, brighter along the core, fading down the tail. Verified emitting **43 and 112 points** across one spin. The dash keeps its body ghosts, so the two abilities now read as distinct effects rather than the same one twice.
+- **The pull is now a short, visible grab** instead of a long invisible one: radius **4 → 2.2 m** (about a leg's reach), ring **1.5 → 1.1 m**, so the most anything travels is 1.1 m. Added **`minPullImpulse` (4)** — a floor for anything past the ring, because proportional-only pull moved a target sitting just outside the ring by a couple of centimetres, which is indistinguishable from the move doing nothing. **This is the likeliest reason it read as "doesn't pull them in" at all**: a melee enemy fighting you is usually already at or inside the old 1.5 m ring, so it got zero impulse. Verified: 2.000 → **1.073 m** against a 1.100 ring.
+  - ⚠️ **This narrows the anti-swarm role.** DESIGN's original 4 m was chosen so a *spread* swarm could be gathered; at 2.2 m the vortex only catches what is already close. Worth re-checking against a real crowd once enemy variety exists.
+- **Verified**: 430/430 EditMode tests, build clean, damage exactly 4.5 through the pipeline.
 
 ### 2026-08-08 — M13.2: the spin closes its circle, and stops rooting the player
 - Human: the spin "doesn't actually do a full circle", it "roots me in place, which should not be the case", and the Riposte is still unfixed.

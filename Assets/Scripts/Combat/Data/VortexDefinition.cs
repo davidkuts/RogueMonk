@@ -34,6 +34,8 @@ namespace Game.Combat
         float pullImpulsePerMeter = 8f;
         [SerializeField, Tooltip("Ceiling on that impulse, so a target caught at the rim is not slingshotted through the player.")]
         float maxPullImpulse = 24f;
+        [SerializeField, Tooltip("Floor on the impulse for anything outside the ring. Without it, an enemy standing just past the ring is technically pulled by a few centimetres and the move reads as doing nothing at all — which is exactly how it tested. Anything the vortex catches should visibly move.")]
+        float minPullImpulse = 4f;
         [SerializeField, Tooltip("How long a target is immune to being pulled again after arriving. Prevents vortex-into-vortex juggle loops once a boon cuts the cooldown.")]
         float pullImmunitySeconds = 1f;
 
@@ -110,13 +112,20 @@ namespace Game.Combat
         public float InnerRingMeters => Mathf.Max(0f, innerRingMeters);
         public float PullImpulsePerMeter => Mathf.Max(0f, pullImpulsePerMeter);
         public float MaxPullImpulse => Mathf.Max(0f, maxPullImpulse);
+        public float MinPullImpulse => Mathf.Max(0f, minPullImpulse);
         public float PullImmunitySeconds => Mathf.Max(0f, pullImmunitySeconds);
 
         /// <summary>Total degrees the body turns across wind-up + active, signed for direction.</summary>
         public float SpinDegrees => spinRevolutions * 360f * (spinClockwise ? 1f : -1f);
 
-        /// <summary>The span the turn is spread over: the whole move except its recovery.</summary>
-        public float SpinSeconds => Mathf.Max(0.0001f, windupSeconds + activeSeconds);
+        /// <summary>
+        /// The span the turn is spread over: the <em>whole</em> move.
+        ///
+        /// <para>It used to end with the active window, which left the body standing still through
+        /// recovery while the clip's limbs kept moving — and that read exactly like the animation
+        /// freezing part-way through. The turn now runs as long as the move does.</para>
+        /// </summary>
+        public float SpinSeconds => Mathf.Max(0.0001f, TotalSeconds);
         public int TickCount => Mathf.Max(1, tickCount);
         public float ArrivalStaggerSeconds => Mathf.Max(0f, arrivalStaggerSeconds);
         public float CooldownSeconds => Mathf.Max(0f, cooldownSeconds);

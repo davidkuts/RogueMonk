@@ -95,12 +95,12 @@ namespace Game.Combat
             else if (!dashing && wasDashing)
                 perfectDodgeThisDash = false;
 
-            // The spin borrows the dash's own smear rather than getting an effect of its own. That
-            // is not laziness: the ghosts are snapshots of the body, so the direction the smear
-            // swirls is the direction the body turns, and the two can never disagree — which is the
-            // one thing DESIGN.md insists on for this move. The dash outranks it, because a
-            // dash-cancel out of the spin should read as a dash.
-            bool spinning = !dashing && vortex != null && vortex.IsSpinning;
+            // Deliberately NOT emitted during the vortex any more. Body ghosts work for the dash
+            // because the body travels; on a stationary spin the torso stays put, every ghost lands
+            // on the same spot and the result is a blob in the middle rather than a rotation. The
+            // spin is drawn by VortexSmear instead, as ribbons traced by the feet — the only part
+            // actually sweeping the circle.
+            bool spinning = false;
             if (spinning && !wasSpinning)
                 BeginSpin();
 

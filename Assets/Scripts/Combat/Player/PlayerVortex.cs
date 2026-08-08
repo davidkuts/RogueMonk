@@ -48,6 +48,8 @@ namespace Game.Combat
         VortexAbility ability;
         VortexSpin spin;
         bool spinning;
+        bool bodySpinning;
+        float spinElapsed;
         Quaternion modelRestRotation = Quaternion.identity;
 
         /// <summary>0 just spent, 1 ready. For a HUD dial.</summary>
@@ -57,8 +59,15 @@ namespace Game.Combat
 
         public float CooldownRemaining => ability != null ? ability.CooldownRemaining : 0f;
 
-        /// <summary>True while the spin is actually running, for VFX and the animation driver.</summary>
+        /// <summary>True while the pull window is open — the gameplay half of the move.</summary>
         public bool IsSpinning => spinning;
+
+        /// <summary>
+        /// True while the body is still turning, which outlasts the pull: the pull ends with the
+        /// active window, the turn runs to the end of recovery. VFX follow this one, or the smear
+        /// would cut out part-way through a spin that is visibly still going.
+        /// </summary>
+        public bool IsBodySpinning => bodySpinning;
 
         public VortexDefinition Definition => vortex;
 
@@ -112,18 +121,24 @@ namespace Game.Combat
             if (!spinning && input != null && input.VortexPressedThisFrame)
                 TryCast();
 
+            // The turn is driven off the attack itself rather than off the pull window, so it keeps
+            // going through recovery. Tying it to the pull left the body standing still for the last
+            // stretch of a move whose limbs were still moving, which read as the animation freezing.
+            // The rotation itself is applied in LateUpdate — see there for why.
+            bool vortexRunning = attacks.Attacks.Current != null && attacks.Attacks.Current.Id == vortex.Id;
+            bodySpinning = vortexRunning;
+            spinElapsed = vortexRunning ? attacks.Attacks.Elapsed : 0f;
+
             if (!spinning)
                 return;
 
             // Dash-cancelled, or interrupted some other way: keep whatever pull already happened and
             // forfeit the remaining ticks, which is what makes cancelling a real mid-spin decision.
-            if (attacks.Attacks.Current == null || attacks.Attacks.Current.Id != vortex.Id)
+            if (!vortexRunning)
             {
                 EndSpin(cancelled: true);
                 return;
             }
-
-            DriveSpin(attacks.Attacks.Elapsed);
 
             if (attacks.Attacks.Phase != AttackPhase.Active)
                 return;
@@ -187,8 +202,14 @@ namespace Game.Combat
                 // Pull strength is proportional to how far past the ring they are, so the spin
                 // gathers a spread crowd onto the ring instead of firing everything through the
                 // player. Something already on the ring is ticked but not moved.
+                // Anything past the ring gets a floor on its impulse. Proportional-only pull meant
+                // a target standing just outside the ring moved a few centimetres, which is
+                // indistinguishable from the move doing nothing — and "it doesn't pull them in" is
+                // exactly how it read in play. If the vortex catches you, you move.
                 float overshoot = Mathf.Max(0f, distance - vortex.InnerRingMeters);
-                float impulse = Mathf.Min(overshoot * vortex.PullImpulsePerMeter, vortex.MaxPullImpulse);
+                float impulse = overshoot > 0f
+                    ? Mathf.Clamp(overshoot * vortex.PullImpulsePerMeter, vortex.MinPullImpulse, vortex.MaxPullImpulse)
+                    : 0f;
 
                 // Recently dragged in, so this spin neither moves it nor interrupts it again. With
                 // no cooldown on the ability this window is the only thing standing between
@@ -237,6 +258,29 @@ namespace Game.Combat
         }
 
         /// <summary>
+        /// Applies the spin — and, when there is no spin, holds the model at its rest pose.
+        ///
+        /// <para>In <c>LateUpdate</c> because the Animator poses the character <em>after</em>
+        /// <c>Update</c> runs. Rotating the model in Update meant the Animator wrote over it the
+        /// same frame, and the residue accumulated: the model drifted several degrees off rest and
+        /// kept creeping. Procedural rotation layered on top of animation has to come after the
+        /// animation, which is exactly what LateUpdate is for.</para>
+        ///
+        /// <para>Restoring every frame rather than once on the transition is deliberate for the
+        /// same reason — it means nothing can leave the body quietly askew.</para>
+        /// </summary>
+        void LateUpdate()
+        {
+            if (modelRoot == null)
+                return;
+
+            if (bodySpinning)
+                DriveSpin(spinElapsed);
+            else
+                RestoreModel();
+        }
+
+        /// <summary>
         /// Turns the model across the move.
         ///
         /// <para>The clip is authored with a full revolution in it, but Unity's humanoid
@@ -258,15 +302,26 @@ namespace Game.Combat
             modelRoot.localRotation = modelRestRotation * Quaternion.Euler(0f, vortex.SpinDegrees * t, 0f);
         }
 
+        /// <summary>
+        /// Hands the body back square. Always called when the attack stops being the vortex, however
+        /// it stopped — a cancelled spin that left the model at 200° would leave the character
+        /// permanently facing the wrong way.
+        /// </summary>
+        void RestoreModel()
+        {
+            if (modelRoot != null)
+                modelRoot.localRotation = modelRestRotation;
+        }
+
         void EndSpin(bool cancelled)
         {
             spinning = false;
             attacks.SuppressDefaultHitbox = false;
 
-            // Always hand the body back square, however the spin ended. A cancelled spin that left
-            // the model at 200 degrees would leave the character permanently facing the wrong way.
-            if (modelRoot != null)
-                modelRoot.localRotation = modelRestRotation;
+            // Deliberately does NOT restore the model here: the pull ends with the active window but
+            // the turn runs on through recovery, and LateUpdate owns the model either way.
+            if (cancelled)
+                bodySpinning = false;
 
             float now = Time.time;
             for (int i = 0; i < caught.Count; i++)

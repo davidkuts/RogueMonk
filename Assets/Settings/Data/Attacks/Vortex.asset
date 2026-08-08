@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: Vortex
   m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexDefinition
   windupSeconds: 0.1
-  activeSeconds: 0.35
-  recoverySeconds: 0.18
-  radiusMeters: 4
-  innerRingMeters: 1.5
+  activeSeconds: 0.22
+  recoverySeconds: 0.1
+  radiusMeters: 2.2
+  innerRingMeters: 1.1
   pullImpulsePerMeter: 8
   maxPullImpulse: 24
+  minPullImpulse: 4
   pullImmunitySeconds: 1
   tickCount: 3
   tickDamage: 1.5

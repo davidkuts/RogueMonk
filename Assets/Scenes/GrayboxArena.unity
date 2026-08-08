@@ -7023,6 +7023,7 @@ GameObject:
   - component: {fileID: 1949805142}
   - component: {fileID: 1949805143}
   - component: {fileID: 1949805144}
+  - component: {fileID: 1949805145}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7249,6 +7250,9 @@ MonoBehaviour:
   ghostLifetime: 0.28
   ghostColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.55}
   perfectDodgeColor: {r: 1, g: 0.86, b: 0.35, a: 0.85}
+  vortex: {fileID: 0}
+  vortexGhostInterval: 0.035
+  vortexGhostLifetimeScale: 1.6
 --- !u!114 &1949805141
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7347,6 +7351,27 @@ MonoBehaviour:
     m_Bits: 256
   hitboxHeightOffset: 0.9
   castRumble: {x: 0.35, y: 0.6}
+  modelRoot: {fileID: 0}
+--- !u!114 &1949805145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fce0d69d885b1334ea45d4ddd9e8bc8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexSmear
+  vortex: {fileID: 1949805144}
+  emitters: []
+  smearMaterial: {fileID: 2100000, guid: 042e9bb4f0b68ba4fb914058d88d433f, type: 2}
+  trailSeconds: 0.28
+  startWidth: 0.3
+  endWidth: 0.02
+  smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
+  minVertexDistance: 0.02
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0
