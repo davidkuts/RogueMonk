@@ -342,6 +342,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Attack `moveSpeedMultiplier` **0 → 0.55** (punches) / **0.40** (kick), playtest 2026-08-06: rooting felt clunky. Facing stays locked while committed.
 - Dash recharge **2.5 s parallel → 1.5 s sequential** (playtest: parallel timers returned both charges at once). i-frames 85 %, 2 charges, 0.15 s buffer unchanged and not yet feel-tested — no enemies to dodge until M4.
 
+## Boon balance — diagnosed 2026-08-08, deliberately NOT fixed yet
+Human's read after playing: **Ember Palm is the right pick ~99% of the time**, and the reason is not that its numbers are too high.
+
+- **Enemy movement is not threatening**, so control boons solve a problem the player does not have. Frostbite and Creeping Vine are answers to pressure that is not there.
+- **Rooting is theoretically the strongest and practically wasted**, because the monk is melee: the player has to close the distance anyway, so pinning something in place mostly saves a step. Root would be excellent on a ranged build — stand off and nuke a stationary target — which is a *character* the game does not have.
+- Damage over time is the only offer that is unconditionally useful, so it wins by default.
+
+**Do not fix this by re-tuning boon numbers.** The imbalance is a symptom of thin enemy design, not of bad multipliers: with only two trash archetypes and one boss, there is no situation a control boon is the answer to. Making enemies varied and genuinely threatening is what would make the choice interesting, and it would do so without touching the boons at all. Human's call: park it, revisit after the gameplay around it is richer.
+
+Also worth knowing when that revisit happens: **the Armored tier is fully implemented and effectively unused as a design space.** `PoiseSystem` handles all three tiers, and `RangedSkirmisher` is nominally Armored, but no enemy is *built around* armour as a threat.
+
 ## Open questions for the human
 - (resolved) Clip lengths versus frame data — auto-fitted on 2026-08-07 rather than hand-trimmed. Punch2 hits the 3.5× cap; if the swings read as frantic, lower `maxAttackSpeed` and accept some clip truncation, or lengthen that attack's frame data.
 - Enemies still use capsules; the Mixamo character is player-only so far. Retargeting the same humanoid clips onto them is now cheap, since every clip is Humanoid with a copied avatar.
