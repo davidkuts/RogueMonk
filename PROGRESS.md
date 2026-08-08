@@ -3,18 +3,17 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Everything through M12.1 is done, verified, committed and pushed.** `origin/main` is at `deca65c`; working tree clean. All 13 milestones complete, **409 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` current.
-- **Active milestone: none.** This is a clean stopping point, deliberately.
-- **NEXT MILESTONE IS BLOCKED ON INFORMATION, NOT WORK.** The agreed next step is **enemy variety** (see the boon-balance diagnosis below for why it matters more than re-tuning boons). But the human has settled on a **game theme in a separate conversation, and considers it final**, and enemies should be designed to it. Designing archetypes before the theme is known would mean throwing them away.
-  - **First action of the next session: get the theme, write it into DESIGN.md, and only then design enemies.** DESIGN.md is the source of truth for locked decisions — a theme that lives only in a chat log will be lost the same way this one nearly was.
-- **Still open, whenever convenient:** the Riposte's Mixamo clip — "Standing Melee Attack 360 High" or "Spin Kick" suit its 180° sweep. Assign to `MonkAnimations.asset` → *Riposte*. Falls back to the Kick clip meanwhile, so nothing is broken.
+- **Everything through M12.1 is done, verified, committed and pushed.** All 13 milestones complete, **409 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` current. No code has changed since `deca65c`.
+- **The theme is no longer blocking.** `THEME.md` is in the repo and DESIGN.md now carries a **Theme (locked 2026-08-08)** section holding the part that binds engineering, plus the **Vortex** ability and its animation/VFX decisions. The next milestone is unblocked.
+- **Active milestone: none.** Deliberate stopping point — one human call is outstanding first (below).
+- ⚠️ **ONE DECISION NEEDED BEFORE ENEMY WORK: the amber collision.** The theme reserves amber-gold for the Armored tier "everywhere, no exceptions", but the telegraph grammar already assigns **amber = incoming projectile**, and the perfect-dodge trail and Riposte spark are **gold**. Three meanings on one hue defeats the grammar. Recommendation: the theme keeps amber, and the **projectile telegraph moves to magenta** — the armour colour is load-bearing narratively, the projectile hue is one value in two assets. This blocks enemy work because every amber-crusted archetype would be built to the wrong answer.
+- **Next milestone: enemy variety, Biome 1 (Cretaceous)** — contaminated fauna plus the stranded-camper set, built around the amber Armored tier as a real threat. Then, or alongside, **the Vortex**, since a swarm answer wants a swarm to answer.
+- **Still open, whenever convenient:** the Riposte's Mixamo clip. Note it now competes with the Vortex for the same "spin kick" clip family — DESIGN.md records the required contrast (Riposte travels and commits forward; the Vortex is stationary and symmetrical). Falls back to the Kick clip meanwhile, so nothing is broken.
 
-### Where enemy work should start once the theme is known
-Not a commitment, just what the current code makes cheap — re-judge all of it against the theme:
-- **The Armored tier is implemented and unused as a design space.** `PoiseSystem` handles all three tiers and `RangedSkirmisher` is nominally Armored, but nothing is *built around* armour as a threat.
-- Archetypes that would give control boons a reason to exist: something that **closes fast** (root answers it), something that **swarms** (chill answers it), something that **punishes standing still** (forces movement).
+### Notes carried into the enemy milestone
+- **The Armored tier is implemented and unused as a design space.** `PoiseSystem` handles all three tiers and `RangedSkirmisher` is nominally Armored, but nothing is *built around* armour as a threat. The theme now supplies the reason: amber.
 - Enemies are still **capsules** while the player is a rigged Mixamo character. Every clip is Humanoid with a copied avatar, so retargeting is cheap.
-- A 3-level run currently fights **the same Stone Warden three times** — the most repetitive part of a full run.
+- A 3-level run currently fights **the same Stone Warden three times** — the most repetitive part of a full run. Under the theme, the three levels are biomes 1–3 and want Tyrant / the Twice-Crowned / Talos. The Stone Warden's moveset is a fine placeholder for Tyrant.
 - Content pipeline is ready: adding an archetype is a `EnemyDefinition` + an `AttackDefinition` + an `EnemyArchetypeDefinition` + a prefab, with no code changes (`LevelGenerator` draws by weight and cost).
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
@@ -48,6 +47,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — The theme landed, and it is now binding
+- Human dropped `THEME.md` (BETWEEN SECONDS, the time-loop pitch) into the repo root and left the call to me. **Documentation session, no code touched.**
+- **`THEME.md` stays the source of truth for fiction; DESIGN.md takes only what binds engineering.** The pitch is 167 lines of story, hub design and asset strategy, most of which does not constrain a single line of code. Copying it wholesale would have buried the locked decisions DESIGN.md exists to hold. What went in: the premise in a line, the biome/boss ladder, amber-as-stagger-lore, contamination as art direction, the Deep Age boon patrons, and the signature tick.
+- **The moveset was already canon, which is the reason this theme fits at all.** Dash = the Blink, perfect dodge = the Split Second, no healing = "his body has no present tense". These are player-facing names for systems that already ship — vocabulary for HUD and audio, explicitly *not* a refactor. Nothing in the simulation needs renaming.
+- ⚠️ **Found the one real collision: amber is triple-booked.** The theme reserves amber-gold for Armored "everywhere, no exceptions"; the telegraph grammar already means **amber = incoming projectile**; the perfect-dodge trail and Riposte spark are **gold**. Three meanings on one hue is precisely what the "same colour = same threat type" rule exists to prevent. Recommended the projectile telegraph move to **magenta** — the armour colour is load-bearing narratively and the projectile hue is one value in two assets — but left it as a human call, because it changes every enemy in the next milestone.
+- Two lesser tensions recorded rather than silently resolved: **Talos is billed as an Armored showcase while every boss is Immune tier** (likely answer: Immune, with amber plating as a phase layer the Split Second cracks), and **THEME §8 wants the combat set hand-keyframed** where the shipped pipeline is Mixamo speed-fitted to frame data (a later upgrade, not a contradiction).
+- **A run stays 3 levels.** The theme wants five; the code takes any number and content is what is missing, not capacity. The existing three map cleanly onto biomes 1–3, so the change is per-level bosses instead of the Stone Warden three times — content, not engineering.
+- **Folded `DESIGN-vortex-block.md` into DESIGN.md and deleted it**, since the file's own header said it was a paste-in block. Filled its two `[YOUR CALL]` slots: bound to **○ / B, E** (clear of the Riposte on △ / Q), working name **the Undertow** — one string to change if the Draw or Turnabout reads better.
+- Recorded the Vortex's animation decisions from the human: stationary grounded spin, Spinning-Crane-Kick silhouette, clip fitted to the 120/450/250 phases, time-identity carried by VFX in the dash hue, spin and swirl direction matched. Flagged that **the Vortex and the Riposte now want the same Mixamo clip family** and must differ on silhouette — the Riposte travels forward, the Vortex goes nowhere — and that the dash hue currently also means *dash charges*, so if the pips stop reading as "my dashes", the Vortex effect is what changed.
 
 ### 2026-08-08 — Session close: pushed, and parked pending the theme
 - Pushed 9 commits (M10 → M12.1 plus the boon diagnosis) to `origin/main` at `deca65c`. Working tree clean, 409 tests green, build current.

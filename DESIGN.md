@@ -1,6 +1,37 @@
-# Monk Roguelike — MVP Design Document
+# BETWEEN SECONDS (working title) — Design Document
 
 Top-down action roguelike (Hades-2-like). One highly mobile monk character; melee combos (punch, punch, kick), short Genji-style dash with i-frames. Combat is read-and-react: every enemy attack is telegraphed and human-reactable. Clear rooms of enemies; level ends when the final room is cleared.
+
+## Theme (locked 2026-08-08)
+
+**The full pitch lives in `THEME.md` at the repo root — that file is the source of truth for fiction, and this section is only the part that binds engineering and content work.** It was settled elsewhere and is treated as final; the reason it is written down here at all is that a theme living in a chat log is a theme that gets lost.
+
+Tagline: *"She dies at 6:14. You have all the time in the world."*
+
+- **Premise in one line.** June, a physicist, dies sealing the breach of her own time machine at 6:14 PM. Cole — her partner, a martial artist, not a scientist — grabs her prototype wrist unit, the **Second Hand**, and falls to the deepest anchor she ever pinged. He climbs the eras back toward 6:14 to stop it. He fails. He jumps again. **The run structure is the story**, and each loop drags debris through history, which is why the eras bleed into each other.
+- **The existing moveset is already canon — nothing in the simulation needs renaming to fit.** Dash = the **Blink**. Perfect dodge = the **Split Second**. The Riposte is the counter that comes from between two instants. No healing = his body has no present tense. These are diegetic names for systems that already ship; treat them as the player-facing vocabulary (HUD, sounds, tutorial text), not as a refactor.
+- **Amber is the stagger system as lore.** Time hardens around fixed events like amber. Staggerable = loose in time · **Armored = amber-crusted, fused to a fixed point** · Immune = **Menders**, constructs made of set time. This is why the Armored tier finally has a reason to exist as a design space — see the palette conflict below, which must be resolved before any amber enemy is built.
+- **Contamination is the art direction, and it is the solo-dev dividend.** Biomes are eras *infected by previous loops*: bronze in Cretaceous mud, hieroglyphs of a falling man, knights with jet-lances. Mixing asset packs across wildly different eras is normally incoherent; here it is the point, unified by the one toon shader and the palette strip. **Contamination props deliberately keep their source-era palette band so they read as intrusions.**
+- **The villain is the Custodian** — causality's immune system, a courteous man with a watch that does not tick. June's death is a *containment weld*: saving her tears history open. He is a sympathetic jailer who might be right, which is what makes him work as a repeat final boss where "evil future you" would not. Future-Cole exists as a **mid**-boss, not the end.
+- **Signature sound: the tick.** The Custodian's watch and the Split Second share one perfect tick. Worth designing early — it is the audio identity of the whole game, and the vortex's ready-state cue already leans on it.
+
+### Biomes and the run
+Chronological ascent, four full biomes (6–7 rooms each) plus one short final gauntlet: **Cretaceous → Egypt → Greece → Medieval → 6:14**. Bosses: **Tyrant** (the T-rex that comes back carrying the debris of your past fights) → **the Twice-Crowned** → **Talos** → **Mordred** → **the Custodian**.
+
+- **A run stays 3 levels for now.** The theme wants five and the code takes any number, but content is what is missing, not capacity. The three levels that already exist map onto biomes 1–3, so the shipped run becomes Cretaceous → Egypt → Greece with no code change and a per-level boss instead of the Stone Warden three times. Extending to five is a content decision, not an engineering one.
+- **The Stone Warden is a placeholder for Tyrant.** Its moveset is fine; what changes is the model, the name and the biome around it.
+
+### Boons are the Deep Ages
+The six elements are not gods but epochs so old that history's bleeding does not reach them: **the Hadean** (Fire) · **the Long Winter** (Ice) · **the Green Reach** (Nature) · **the First Breath** (Wind, patron of the Blink) · **the Bedrock** (Earth) · **the Unspent** (Force). `DamageType` is untouched — this is a naming and flavour pass over the six existing boon assets, and one of the cheapest wins available.
+
+### Conflicts with decisions already locked (resolve before building to them)
+1. ⚠️ **Amber is triple-booked, and this is the one that blocks enemy work.** The theme reserves amber-gold for the Armored tier "everywhere, no exceptions". But the telegraph grammar already assigns **amber = incoming projectile**, and the perfect-dodge trail plus the Riposte spark are **gold**. Three different meanings on one hue defeats the whole point of the grammar. **Recommended resolution: the theme keeps amber, and the projectile telegraph moves off it** — the armour colour is load-bearing narratively and the projectile hue is one value in two assets. Magenta is the cheapest free hue that stays legible against the muted palette. Needs a human call; see the hue assignments below.
+2. **Talos is described as an Armored-tier showcase, but bosses are Immune tier.** Both cannot be literally true. Likely answer: Talos is Immune like every boss, and its amber plating is a *phase* layer that the Split Second cracks — which is the fantasy the pitch actually describes.
+3. **THEME §8 wants the combat set hand-keyframed**; the shipped pipeline is Mixamo clips speed-fitted to frame data (`AnimationSet.SpeedToFit`). Not a contradiction so much as a later upgrade — game feel is the product, and hand-keying is where it ends up. Nothing to do now.
+4. **Hub, meta-progression, wreckage currency, PETRI, June's portraits** are all post-MVP. Recorded so they are not re-invented, explicitly not scoped.
+
+### Still open (author's call, not Claude's)
+Cole's real name and the name of his discipline · June's arc and how much she notices · the true ending · Mordred's resolution · the cat's name · final title call. None of these block engineering.
 
 ## Locked decisions
 
@@ -54,6 +85,46 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Starting frame data (tune later): punch 100/60/180 ms, punch2 90/60/200 ms, kick 180/90/350 ms (kick ≈3× poise damage); combo window 400 ms; hitstop 60 ms light / 100 ms heavy
 - All timings/values live in ScriptableObjects, never hardcoded
 
+### The Vortex — default anti-swarm ability (added 2026-08-08, not yet built)
+Diegetically **the Undertow**: the Second Hand drags the local second into a whirlpool, everything loose in time slides toward the drain, and what is set in amber holds. (Working name — *the Draw* and *Turnabout* were the alternatives; it is one string to change.) Bound to **○ / B on pad, E on keyboard**, deliberately clear of the Riposte on △ / Q.
+
+A radial spin (~0.6 s) that **pulls every staggerable enemy in radius to an inner ring around the player**, dealing light damage ticks on the way in and delivering them **briefly staggered on arrival**.
+
+- **It exists because the base kit otherwise has no answer to being swarmed.** Without it every multi-enemy room is "kite until a boon fixes it", and a player who never draws the right boon has no tool at all. The default kit must solve the default problem.
+- **The arrival stagger is non-negotiable.** The ability voluntarily drags threats into hug range; if they arrive mid-wind-up it is a self-inflicted wound, not a tool. Pull = interrupt, always.
+- **Its job is space and setup, not damage.** Base damage stays modest; boons are what scale it into a damage tool. Ticks resolve through the ordinary hit resolver, so elemental boons land on it via the existing `IHitModifier` pipeline with zero new plumbing. The intended combat sentence is **vortex gathers → supercharged attack spends the pile** — discoverable, not tutorialised.
+- Phases follow the universal grammar: windup (committed) → active (pull + ticks) → recovery, **dash-cancellable from its first frame** per the cancel rule. Cancelling early keeps whatever pull already happened but forfeits the remaining ticks — a real mid-spin decision.
+- **Pull is negative knockback** through the existing manual velocity impulse. Same system, reversed sign, no new movement code path.
+
+**Stagger-tier interaction** — Staggerable: pulled, ticked, staggered on arrival. **Armored: takes ticks and armour damage but resists the pull** — amber holds its position, and the failed drag flares gold. This keeps the tier readable in a single frame (who slid and who did not) and preserves the Split Second as the only answer to amber; a late Bedrock/Force boon that lets the vortex move even amber is the reserved upgrade slot. Immune: full hit feedback, no displacement, no interrupt, consistent with tier 3 everywhere else.
+
+**Recharge is hits, not perfect dodges.** Baseline cooldown ~10 s; every landed player hit shaves ~0.4 s; whiffs shave nothing. Aggressive play cycles it roughly twice as fast as passive play, and passive play still gets it on a fair timer. It is **explicitly not** tied to perfect dodges: a perfect dodge already pays three rewards (charge refund, Focus, Riposte), and a fourth would overload one input and make the entire kit degrade at once for players who struggle with timing — the exact frustration this ability exists to prevent. Vortex uptime rides the accessible skill axis; perfect dodging rides its own. HUD is one radial dial beside the dash pips, and readiness must be perceivable without looking at it (dial glow plus the game's signature **tick**) or players will sit on it.
+
+**Watch in playtest:** pulling *ranged* enemies out of their firing positions is likely stronger than the swarm-clear itself. Acceptable — it is skill expression and it reinforces "space, not damage" — but it is precisely why base damage must stay low and must never scale except through boons.
+
+**Animation & VFX** (locked 2026-08-08):
+- **A stationary grounded spin.** The body stays planted and rotates in place; it must not travel, because the vortex moves *enemies*, and a spin that also slid the player would read as the player being pulled too, inverting the whole idea. Code owns position as always.
+- **Silhouette: Spinning Crane Kick** — a wide horizontal leg sweep at a low-to-mid guard, so the shape itself says "everything around me at once" rather than "the thing in front of me". Reading at a glance from the top-down camera is the only job the pose has.
+- **Clip fitted to the 120 / 450 / 250 ms phases**, so wind-up, spin and settle land on the frame data rather than near it. The established mechanism is `AnimationSet.SpeedToFit` — one clip fitted to one attack length; fitting a single clip across all three phases is the cheap version, and if the spin's visual sweep drifts off the 450 ms pull it needs per-phase mapping, which is a small piece of real work rather than a data tweak.
+- **Time-identity is carried by the VFX, not the body.** The pose is ordinary martial arts; what makes it a time ability is the effect — the Blink's chromatic smear, circular — in the **reserved dash hue**, exactly as the dash itself is sold entirely on VFX in that hue. This keeps the whole Second Hand kit reading as one colour family. ⚠️ That hue currently also means *dash charges*: if the pips stop reading as "my dashes" in play, the vortex effect is what changed, and the fix is a shifted tint rather than a new colour.
+- **The spin direction and the VFX swirl direction must match.** A body turning one way inside a vortex turning the other reads as broken before anyone can say why. Whichever way the chosen clip rotates is the authority; the effect follows it.
+- ⚠️ **Clip collision with the Riposte**, whose own animation TODO names "Standing Melee Attack 360 High" / "Spin Kick" — the same family. Two spins that look alike would blur the game's two most distinct buttons. They must differ on silhouette: the Riposte is a **directional** sweep committing forward through one target, the vortex is **stationary and symmetrical**, going nowhere. Pick the Riposte clip with that contrast in mind, or hand it the travelling one.
+
+**Playtest knobs** (all ScriptableObject, never hardcoded): radius 4 m (too big trivialises rooms, too small whiffs on spread swarms) · inner ring 1.5 m (inside kick range, outside body-block jank) · 120/450/250 ms phases (active must feel instant-ish under pressure) · 3 light ticks, total ≤ one punch, poise per tick ≈ punch-level · arrival stagger 0.4 s (long enough to start a supercharge, short enough not to chain-stun) · baseline cooldown 10 s · per-hit refund 0.4 s (a 3-hit combo ≈ 1.2 s) · pull-immunity 1.0 s after arrival, which is what prevents vortex→vortex juggle loops once boons cut the cooldown.
+
+```csharp
+VortexDefinition {           // or extend AttackDefinition with a nullable pull block
+  float radius, innerRing;
+  float pullDurationSec;     // = active phase
+  int   tickCount; float tickDamage, tickPoiseDamage;
+  float arrivalStaggerSec;
+  float cooldownSec, perHitRefundSec;
+  DamageType damageType;     // Physical; boons stamp elements via the pipeline
+}
+```
+
+**Build slot:** the original note placed it at step 4.5, after the melee enemy and before the ranged one, because the pull needs bodies to prove itself and the ranged enemy is its best stress test. Both of those shipped long ago, so it now sits **alongside enemy variety** — a swarm answer wants a swarm to answer, and the archetype that swarms does not exist yet.
+
 ### Stagger tiers (enemies)
 1. **Staggerable** (most trash): poise bar → break = interrupt + hit reaction + brief vulnerability, poise refills after delay
 2. **Armored** (some normals): armor bar must be stripped first, then behaves as tier 1
@@ -64,7 +135,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Melee windups 400–500 ms; ranged 600–800 ms (human reaction ~250 ms + read margin)
 - Consistent visual language: same color = same threat type; every attack has an audio cue
 - Gameplay-reserved hues: saturated colors used ONLY for telegraphs, projectiles, dash trail, elemental FX — never in the environment
-- **Hue assignments** (locked 2026-08-07): **red** = melee arc or burst · **amber** = incoming projectile · **violet** = gap-closer, "it is coming to you" · **lime-yellow** = ground hazard, "this floor is about to hurt". Violet arrived with the boss's Slam and lime with its Eruption, each so a new threat class could never be confused with one already learned. A centred burst (the boss's Nova) deliberately stays red — it is still a melee threat, and the ground decal already distinguishes a disc around the attacker from an arc in front of it.
+- **Hue assignments** (locked 2026-08-07): **red** = melee arc or burst · **amber** = incoming projectile ⚠️ *(contested — the theme reserves amber-gold for the Armored tier; see Theme § conflicts. Recommended move: magenta.)* · **violet** = gap-closer, "it is coming to you" · **lime-yellow** = ground hazard, "this floor is about to hurt". Violet arrived with the boss's Slam and lime with its Eruption, each so a new threat class could never be confused with one already learned. A centred burst (the boss's Nova) deliberately stays red — it is still a melee threat, and the ground decal already distinguishes a disc around the attacker from an arc in front of it.
 - **Ground decal** (added 2026-08-07, M10; extended to trash enemies in M11): attacks with a static footprint also paint the real hitbox on the floor during windup, filling from the centre outward so the fill reaches the outline exactly as the attack goes active. Colour says *what*; the decal says *where* and *when*. **It draws the actual hitbox, so it can never lie about reach** — that is the property that makes it trustworthy. Every telegraphed melee attack in the game uses it, so a wind-up is answered by **position** rather than by frame-perfect timing.
 - Because telegraphs own the saturated end of the palette, **room tints must stay desaturated** — the boss room was retinted from red to cold slate for exactly this reason.
 
@@ -93,6 +164,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 ### Enemies (MVP: two types)
 - Melee humanoid: telegraphed lunge; Staggerable tier
 - Ranged: telegraphed projectile; pick tier during tuning (candidate for Armored)
+- **Variety is the next milestone, and it is now themed** (2026-08-08): the first archetype set is **Biome 1, the Cretaceous** — contaminated fauna and a stranded time-tourist camp, with the amber-crusted Armored tier finally built around as a threat rather than merely supported by `PoiseSystem`. The archetypes worth having are the ones that give the control boons and the Vortex a reason to exist: something that **closes fast** (root answers it), something that **swarms** (chill and the Vortex answer it), something that **punishes standing still**. Adding one is a `EnemyDefinition` + `AttackDefinition` + `EnemyArchetypeDefinition` + prefab, with no code changes.
 
 ### Boss (added 2026-08-07, M10)
 - **Immune tier, so it is never interrupted.** Its poise and armour pools are therefore zero — a non-zero pool would be a number the inspector shows but nothing can ever move.
@@ -117,6 +189,7 @@ Top-down action roguelike (Hades-2-like). One highly mobile monk character; mele
 - Gray-box (capsules) until milestone 8; animations from Mixamo (Humanoid rig, retargeted to enemies), root motion off, clips trimmed to match frame data
 - **The dash has no animation clip** (decided 2026-08-07). Mixamo has none, and at 0.18 s — about five frames at 30 fps — a bespoke clip would be invisible. Genre convention is to sell a dash with VFX: afterimage ghosts in the reserved dash hue plus a trail, while the body keeps whatever pose it already had. `AnimationSet.Dash` stays optional; assigning a roll or dodge clip is possible but not required.
 - Animation playback: Animancer (preferred) or Playables API — clips driven from code, no Animator Controller graphs
+- **Theme-derived, added 2026-08-08** (full reasoning in `THEME.md` §2, §8): the limited palette is now a **palette strip** — one gradient atlas, all meshes UV'd to bands, one texture per biome — and **contamination props deliberately keep their source-era band** so they read as intrusions rather than as mistakes. **Amber is a shader showcase**: translucent, refractive, glowing, and one good amber material carries the entire Armored-tier visual language. Human enemies across all eras share one humanoid skeleton (hoplite / guard / knight = same rig, different silhouette and palette); **Tyrant and Talos are the two bespoke rigs worth real time**, and they are also the marketing images.
 
 ### UI
 - ESC / pad Start: pause menu (resume, restart level, quit)
