@@ -3,12 +3,19 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M12.1 — menu input no longer leaks into gameplay.** Built headlessly; the boon cards were already random, so this pass fixed what would have broken them in practice.
-- **Next action for the human:**
-  1. Play `Builds/Win64/RogueMonk.exe`. Clear a level's boss and you get a **three-card boon choice, drawn at random** from the boons you do not already hold (left/right, cross to confirm). Six exist: Ember (burn), Frostbite (chill), Gale Force (throw), Stone Fist (poise), Creeping Vine (root), Focused Palm (raw damage). Owned boons show bottom-left; elemental hits take their element's spark colour.
-  2. Judge specifically: **do the boons feel worth choosing between**, or is one obviously best; is the escalation right; does 3 levels feel like a run or a slog.
-  3. **Still open:** the Riposte's Mixamo clip — "Standing Melee Attack 360 High" or "Spin Kick". Falls back to Kick meanwhile.
-- **Blocked on:** human feel-check of the boons and run length
+- **Everything through M12.1 is done, verified, committed and pushed.** `origin/main` is at `deca65c`; working tree clean. All 13 milestones complete, **409 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` current.
+- **Active milestone: none.** This is a clean stopping point, deliberately.
+- **NEXT MILESTONE IS BLOCKED ON INFORMATION, NOT WORK.** The agreed next step is **enemy variety** (see the boon-balance diagnosis below for why it matters more than re-tuning boons). But the human has settled on a **game theme in a separate conversation, and considers it final**, and enemies should be designed to it. Designing archetypes before the theme is known would mean throwing them away.
+  - **First action of the next session: get the theme, write it into DESIGN.md, and only then design enemies.** DESIGN.md is the source of truth for locked decisions — a theme that lives only in a chat log will be lost the same way this one nearly was.
+- **Still open, whenever convenient:** the Riposte's Mixamo clip — "Standing Melee Attack 360 High" or "Spin Kick" suit its 180° sweep. Assign to `MonkAnimations.asset` → *Riposte*. Falls back to the Kick clip meanwhile, so nothing is broken.
+
+### Where enemy work should start once the theme is known
+Not a commitment, just what the current code makes cheap — re-judge all of it against the theme:
+- **The Armored tier is implemented and unused as a design space.** `PoiseSystem` handles all three tiers and `RangedSkirmisher` is nominally Armored, but nothing is *built around* armour as a threat.
+- Archetypes that would give control boons a reason to exist: something that **closes fast** (root answers it), something that **swarms** (chill answers it), something that **punishes standing still** (forces movement).
+- Enemies are still **capsules** while the player is a rigged Mixamo character. Every clip is Humanoid with a copied avatar, so retargeting is cheap.
+- A 3-level run currently fights **the same Stone Warden three times** — the most repetitive part of a full run.
+- Content pipeline is ready: adding an archetype is a `EnemyDefinition` + an `AttackDefinition` + an `EnemyArchetypeDefinition` + a prefab, with no code changes (`LevelGenerator` draws by weight and cost).
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
 
 ## Milestones
@@ -41,6 +48,11 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — Session close: pushed, and parked pending the theme
+- Pushed 9 commits (M10 → M12.1 plus the boon diagnosis) to `origin/main` at `deca65c`. Working tree clean, 409 tests green, build current.
+- **Stopped deliberately rather than starting enemy work.** The agreed next milestone is enemy variety, but the human has a **finalised game theme decided in a separate conversation**. Designing archetypes without it would mean building things that then get discarded — and the theme is exactly the kind of locked decision DESIGN.md exists to hold.
+- Recommended a fresh session for the next milestone: this one carries a long history that is now summarised rather than verbatim, and the next piece of work depends on information none of that history contains. **The handoff mechanism is PROGRESS.md + DESIGN.md, not the chat log** — which is precisely why the theme must be written into DESIGN.md before any enemy is designed.
 
 ### 2026-08-08 — M12.1: menu presses were leaking into gameplay
 - Asked for a build plus "boons chosen from random boons presented as cards" — which M12 already did. Checking the input path before building surfaced two things that would have ruined it in practice.
