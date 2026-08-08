@@ -70,6 +70,17 @@ namespace Game.Combat
         /// <summary>The hit pipeline. Boons register modifiers here later.</summary>
         public HitResolver Resolver => resolver;
 
+        /// <summary>
+        /// Hands the active window's hit detection to someone else for the current attack.
+        ///
+        /// <para>The shared pass deliberately strikes each target at most once per attack, which is
+        /// exactly wrong for the Undertow: its whole payload is several ticks on the same enemy
+        /// across one active window. Rather than teach the shared pass a second mode, the vortex
+        /// owns its own querying and switches this on while it runs. Hits still go through the same
+        /// <see cref="Resolver"/>, so boons and feedback are unaffected.</para>
+        /// </summary>
+        public bool SuppressDefaultHitbox { get; set; }
+
         public AttackStateMachine Attacks => attacks;
 
         /// <summary>
@@ -230,7 +241,7 @@ namespace Game.Combat
 
             SteerAimDuringWindup(deltaTime);
 
-            if (attacks.Phase == AttackPhase.Active)
+            if (attacks.Phase == AttackPhase.Active && !SuppressDefaultHitbox)
                 QueryHitbox();
         }
 
@@ -405,7 +416,9 @@ namespace Game.Combat
 
         void OnActiveEnded(IAttackDefinition definition)
         {
-            if (alreadyHit.Count == 0)
+            // An attack whose hits are owned elsewhere leaves this set empty by design, so reading
+            // it as a whiff would report every vortex as a miss and play the whiff sound over it.
+            if (alreadyHit.Count == 0 && !SuppressDefaultHitbox)
             {
                 GameLog.Debug(LogCategory.Combat, $"whiff         {definition.Id}  (active window closed, nothing in range)");
                 Whiffed?.Invoke(definition);

@@ -65,6 +65,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "Vortex",
+                    "type": "Button",
+                    "id": "b1f0a1c2-0008-4a10-9f01-0d5e6a7b8c90",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -252,6 +262,28 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Riposte",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0111-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Gamepad>/buttonEast",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Vortex",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0112-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Vortex",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -10,6 +10,7 @@ namespace Game.Combat.Tests
             public bool IsAlive => true;
             public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
             public void ApplyHit(in HitContext context) { }
+            public void ApplyStagger(float seconds) { }
         }
 
         static HitContext Hit(FakeTarget target) => new HitContext

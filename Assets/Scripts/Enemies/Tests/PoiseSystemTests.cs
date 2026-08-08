@@ -218,5 +218,73 @@ namespace Game.Enemies.Tests
             poise.ClearStagger();
             Assert.That(poise.IsStaggered, Is.False);
         }
+
+        // --- Forced stagger (the vortex's arrival beat) ---
+
+        [Test]
+        public void ForcedStaggerBypassesAFullPoiseBar()
+        {
+            PoiseSystem poise = Make(out _);
+
+            Assert.That(poise.ForceStagger(0.4f), Is.True);
+            Assert.That(poise.IsStaggered, Is.True);
+            Assert.That(poise.StaggerRemaining, Is.EqualTo(0.4f));
+            Assert.That(poise.Poise, Is.EqualTo(30f), "the poise bar is untouched - this is not poise damage");
+        }
+
+        [Test]
+        public void ForcedStaggerRaisesBrokeSoControllersInterrupt()
+        {
+            PoiseSystem poise = Make(out _);
+            float notified = -1f;
+            poise.Broke += duration => notified = duration;
+
+            poise.ForceStagger(0.4f);
+
+            Assert.That(notified, Is.EqualTo(0.4f));
+        }
+
+        [Test]
+        public void ForcedStaggerExtendsButNeverShortensOne()
+        {
+            PoiseSystem poise = Make(out _);
+            poise.ForceStagger(0.9f);
+
+            Assert.That(poise.ForceStagger(0.4f), Is.False, "already down - this is not a fresh interrupt");
+            Assert.That(poise.StaggerRemaining, Is.EqualTo(0.9f), "a second source must not cut a stagger short");
+        }
+
+        [Test]
+        public void ForcedStaggerDoesNotRepeatTheInterruptWhileAlreadyDown()
+        {
+            PoiseSystem poise = Make(out _);
+            int brokeCount = 0;
+            poise.Broke += _ => brokeCount++;
+
+            poise.ForceStagger(0.4f);
+            poise.ForceStagger(0.4f);
+
+            Assert.That(brokeCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ImmuneEnemiesCannotBeForceStaggeredEither()
+        {
+            PoiseSystem poise = Make(out _, StaggerTier.Immune);
+
+            Assert.That(poise.ForceStagger(0.4f), Is.False);
+            Assert.That(poise.IsStaggered, Is.False);
+        }
+
+        [Test]
+        public void AForcedStaggerStillExpiresOnItsOwnTimer()
+        {
+            PoiseSystem poise = Make(out _);
+            poise.ForceStagger(0.4f);
+
+            poise.Tick(0.5f);
+
+            Assert.That(poise.IsStaggered, Is.False);
+        }
     }
 }

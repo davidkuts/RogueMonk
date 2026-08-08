@@ -3,7 +3,8 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Everything through M12.1 is done, verified, committed and pushed.** All 13 milestones complete, **409 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` current. No code has changed since `deca65c`.
+- **M13 (the Vortex) is built and verified; everything through M12.1 was already done and pushed.** **429 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the spin.
+- ⚠️ **`Right Hook.fbx` has no animation data in it — re-download it from Mixamo.** It is a skeleton-only export (0 takes, 0 clips), so the Riposte slot was a dead reference and has been playing the Kick clip. The slot is now explicitly empty and warns at startup. Everything else about the Riposte works.
 - **The theme is no longer blocking.** `THEME.md` is in the repo and DESIGN.md now carries a **Theme (locked 2026-08-08)** section holding the part that binds engineering, plus the **Vortex** ability and its animation/VFX decisions. The next milestone is unblocked.
 - **Active milestone: none.** Deliberate stopping point — one human call is outstanding first (below).
 - ⚠️ **ONE DECISION NEEDED BEFORE ENEMY WORK: the amber collision.** The theme reserves amber-gold for the Armored tier "everywhere, no exceptions", but the telegraph grammar already assigns **amber = incoming projectile**, and the perfect-dodge trail and Riposte spark are **gold**. Three meanings on one hue defeats the grammar. Recommendation: the theme keeps amber, and the **projectile telegraph moves to magenta** — the armour colour is load-bearing narratively, the projectile hue is one value in two assets. This blocks enemy work because every amber-crusted archetype would be built to the wrong answer.
@@ -37,6 +38,7 @@
 | 11.1 | Arc (pizza-slice) hitboxes + the Riposte counter-attack on its own button | ✅ **done** (human-signed-off 2026-08-07) |
 | 11.2 | Perfect-dodge grace window | ✅ done (pending feel-check) |
 | 12 | Runs and boons: multi-level runs, 6 elemental boons, real status effects | ✅ done (pending feel-check) |
+| 13 | The Vortex (the Undertow): radial pull on ○/E, damage ticks, arrival stagger, hit-fed cooldown | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -47,6 +49,21 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — M13: the Vortex is real, and the Riposte clip is not
+- Human added two Mixamo FBXs and asked to fix the Riposte (which "sinks into the floor") and hook the spin up to ○.
+- ⚠️ **`Right Hook.fbx` contains no animation.** Not a settings problem: 0 takes, 0 clips, a `mixamorig1:` skeleton and no skin, confirmed after a forced synchronous reimport. `MonkAnimations.riposte` was a **dangling fileID into a clipless file**, so it resolved to null and the Riposte has silently been playing the **Kick** clip this whole time. **The file needs re-downloading from Mixamo with the animation** — nothing on this end can recover it.
+  - **I could not reproduce the sinking**, and should say so rather than claim a fix. All seven working clips carry identical root-transform settings, and Kick is one of them. The dead reference is now cleared and `PlayerAnimationDriver` **warns at startup** when the Riposte or Vortex clip is missing, so this class of silent fallback cannot hide for a session again. If a sink survives a real clip, it is a separate bug and I have not seen it yet.
+- **`Hurricane Kick.fbx` had the M8 import problem** and is fixed: it imported **Generic with no avatar** (`animationType 2 / avatarSetup 0`), which cannot retarget onto the humanoid rig at all. Now Human + CopyFromOther with the same root settings as every other clip — rotation and Y baked into the pose, XZ extracted and discarded. 1.833 s, speed-fitted to the vortex's 0.82 s.
+- **The Undertow ships.** `VortexDefinition` implements `IAttackDefinition` directly, so it *is* an attack with a pull bolted on: one asset holds both the frame data and the radius, and it inherits the wind-up/active/recovery grammar, the dash-cancel rule and the long-frame guarantee for free. Bound to **○ / B / E**, clear of the Riposte on △ / Q.
+  - **Pull is negative knockback**, exactly as DESIGN specified — same impulse channel, reversed sign, no second movement path to keep in step. Strength is proportional to overshoot past the inner ring, so it gathers a spread crowd *onto* the ring instead of firing everyone through the player.
+  - **The one thing it does not reuse is hit detection.** The shared pass strikes each target at most once per attack, which is precisely wrong for an ability whose payload is several ticks on the same enemy. Rather than teach that pass a second mode, `PlayerAttackController.SuppressDefaultHitbox` hands the window over and the vortex queries for itself — still resolving through the same `HitResolver`, so boons and feedback are untouched.
+  - **The vortex does not refund its own cooldown**: its ticks are excluded from the per-hit refund, or it would pay for itself out of the crowd it just gathered.
+  - **Armored resistance ends when the armour does** (see DESIGN). The tuning keeps the read clean — 3 × 8 = 24 poise cannot strip 40 armour, so no fresh Armored enemy is cracked and dragged by the same spin.
+  - **A dash-cancel forfeits the remaining ticks but never the arrival stagger.** The stagger is what answers the ability's own risk; dropping it would make cancelling a trap rather than a choice.
+- **Verified live, not just compiled.** Staggerable grunt: **4.001 m → 1.485 m** (inner ring 1.5) and **60 → 51 HP** = 3 ticks × 3. Log shows `knock -20` then `-9.3` as the spring closes, `caught 1  ticks 3/3  stagger 0.40s`. Fresh Armored subject: **hp 45 → 36** and **armour 40 → 16** while **distance stayed 4.000** — takes the ticks, holds its ground. **429/429 EditMode tests** (was 409; +20).
+- **Harness trap, re-hit and cost a measurement**: a spin that appeared frozen mid-cast was the *idle player having died* — the death screen pauses `GameClock` and `Time.deltaTime` goes to 0. Already recorded in M10; disabling the enemy brains before measuring is the fix. Also: a newly created asset referenced in the *same* `execute_code` call serialises as `fileID: 0` — assign it in a second call, from a fresh `LoadAssetAtPath`.
+- Known issues / TODO next: **no HUD dial and no ready-tick sound of its own** — readiness currently borrows the perfect-dodge sound, and DESIGN wants a radial dial by the dash pips plus the game's signature tick. **No vortex VFX at all yet** — the chromatic time-smear in the dash hue is what carries its time-identity, and without it the spin reads as an ordinary kick. Pull-resistance has an event (`EnemyActor.PullResisted`) but nothing draws the gold flare yet.
 
 ### 2026-08-08 — The theme landed, and it is now binding
 - Human dropped `THEME.md` (BETWEEN SECONDS, the time-loop pitch) into the repo root and left the call to me. **Documentation session, no code touched.**

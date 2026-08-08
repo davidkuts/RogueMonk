@@ -30,6 +30,9 @@ namespace Game.Combat
         [SerializeField, Tooltip("The riposte attack, so its own clip can be selected — it is outside the combo chain, so the combo cursor cannot identify it.")]
         AttackDefinition riposte;
 
+        [SerializeField, Tooltip("The vortex, matched the same way and for the same reason as the riposte.")]
+        VortexDefinition vortex;
+
         AnimationClip lastAttackClip;
 
         void Awake()
@@ -40,6 +43,18 @@ namespace Game.Combat
             if (health == null) health = GetComponent<PlayerHealth>();
 
             enabled = animations != null && animations.HasAnyClip && player != null && player.IsReady;
+
+            // Both of these fall back to a combo clip so the move is never invisible, but a silent
+            // fallback is how an unassigned (or unimportable) clip goes unnoticed for a whole
+            // session and gets mistaken for a broken animation. Say so once, at startup.
+            if (!enabled || animations == null)
+                return;
+
+            if (riposte != null && !animations.HasRiposteClip)
+                Debug.LogWarning($"{name}: no Riposte clip assigned — falling back to the last combo clip.", this);
+
+            if (vortex != null && !animations.HasVortexClip)
+                Debug.LogWarning($"{name}: no Vortex clip assigned — falling back to the last combo clip.", this);
         }
 
         void Update()
@@ -108,10 +123,15 @@ namespace Game.Combat
             if (animations.AttackCount == 0)
                 return null;
 
-            // The riposte is not part of the chain, so the combo cursor says nothing about it.
-            // Matched by identity against the attack actually running.
-            if (riposte != null && attacks.Attacks.Current != null && attacks.Attacks.Current.Id == riposte.Id)
+            // Neither the riposte nor the vortex is part of the chain, so the combo cursor says
+            // nothing about them. Matched by identity against the attack actually running.
+            IAttackDefinition current = attacks.Attacks.Current;
+
+            if (riposte != null && current != null && current.Id == riposte.Id)
                 return animations.Riposte;
+
+            if (vortex != null && current != null && current.Id == vortex.Id)
+                return animations.Vortex;
 
             int step = 0;
             if (attacks.Combo != null)

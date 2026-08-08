@@ -36,6 +36,11 @@ namespace Game.Combat.Tests
         public HitContext LastHit => Hits[Hits.Count - 1];
 
         public void ApplyHit(in HitContext context) => Hits.Add(context);
+
+        /// <summary>Total seconds of forced stagger received, so a test can assert the arrival beat.</summary>
+        public float StaggerApplied { get; private set; }
+
+        public void ApplyStagger(float seconds) => StaggerApplied += seconds;
     }
 
     /// <summary>Runs an arbitrary mutation, so a test can express any pipeline stage inline.</summary>

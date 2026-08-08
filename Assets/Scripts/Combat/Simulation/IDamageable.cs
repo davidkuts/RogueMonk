@@ -16,5 +16,17 @@ namespace Game.Combat
         /// reading the attack definition again.
         /// </summary>
         void ApplyHit(in HitContext context);
+
+        /// <summary>
+        /// Forces a stagger for <paramref name="seconds"/> without going through poise.
+        ///
+        /// <para>Exists for the Undertow's arrival stagger. The ability voluntarily drags threats
+        /// into hug range, so delivering them mid-wind-up would make it a self-inflicted wound
+        /// rather than a tool — pull always means interrupt (DESIGN.md § The Vortex).</para>
+        ///
+        /// <para>The caller does not decide who is eligible: the implementation does, because
+        /// eligibility is a stagger-tier question and the tier lives with the enemy.</para>
+        /// </summary>
+        void ApplyStagger(float seconds);
     }
 }

@@ -21,5 +21,11 @@ MonoBehaviour:
   - {fileID: -203655887218126122, guid: a4817956b5c55564889d96ff8febb88d, type: 3}
   hitReaction: {fileID: -203655887218126122, guid: 94381d4988bdf2f4f92b24c399880677, type: 3}
   death: {fileID: -203655887218126122, guid: df1c08ab24cbd0d40b301fc44a17ae53, type: 3}
+  riposte: {fileID: 0}
+  vortex: {fileID: -203655887218126122, guid: e27f4d0b1e7369c40ba779b79314323c, type: 3}
   locomotionFadeSeconds: 0.12
   actionFadeSeconds: 0.04
+  fitAttacksToFrameData: 1
+  maxAttackSpeed: 3.5
+  runPlaybackSpeed: 1.35
+  reactionPlaybackSpeed: 1.4

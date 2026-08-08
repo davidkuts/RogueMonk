@@ -142,6 +142,31 @@ namespace Game.Enemies
                 Poise = Mathf.Min(definition.PoiseMax, Poise + definition.PoiseRegenRate * deltaTime);
         }
 
+        /// <summary>
+        /// Forces a stagger regardless of the poise bar — the Undertow delivers what it pulled in
+        /// already interrupted, whatever that enemy's poise happened to be.
+        ///
+        /// <para>Extends rather than restarts, so a second source can never <em>shorten</em> a
+        /// stagger already running. <see cref="Broke"/> is raised only on the transition into a
+        /// stagger: it means "you have just been interrupted", and firing it at something already
+        /// on the floor would have controllers interrupt an action they are not taking.</para>
+        /// </summary>
+        /// <returns>True when this call is what put the enemy on the floor.</returns>
+        public bool ForceStagger(float seconds)
+        {
+            if (definition.Tier == StaggerTier.Immune || seconds <= 0f)
+                return false;
+
+            bool wasStaggered = IsStaggered;
+            StaggerRemaining = Mathf.Max(StaggerRemaining, seconds);
+
+            if (wasStaggered)
+                return false;
+
+            Broke?.Invoke(StaggerRemaining);
+            return true;
+        }
+
         /// <summary>Ends a stagger early — used when the enemy dies mid-stagger.</summary>
         public void ClearStagger() => StaggerRemaining = 0f;
     }

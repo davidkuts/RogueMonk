@@ -25,6 +25,8 @@ namespace Game.Core.Animation
         [SerializeField] AnimationClip death;
         [SerializeField, Tooltip("The perfect-dodge counter. A spinning or sweeping attack reads best, because the hitbox is a wide arc — Mixamo's \"Standing Melee Attack 360 High\" or \"Spin Kick\" both fit. Optional: the riposte falls back to the last combo clip if empty.")]
         AnimationClip riposte;
+        [SerializeField, Tooltip("The vortex spin. A stationary, symmetrical spin — it must not travel, and it must not look like the riposte, which sweeps forward through one target.")]
+        AnimationClip vortex;
 
         [Header("Blending")]
         [SerializeField, Tooltip("Cross-fade used between locomotion states.")]
@@ -53,6 +55,17 @@ namespace Game.Core.Animation
         /// invisible while the dedicated clip is still being sourced.
         /// </summary>
         public AnimationClip Riposte => riposte != null ? riposte : GetAttack(AttackCount - 1);
+
+        /// <summary>
+        /// The vortex spin. Falls back to the heaviest combo step so the move is never invisible,
+        /// but unlike the riposte the fallback reads badly — a forward kick does not say "radial" —
+        /// so <see cref="HasVortexClip"/> exists for a startup warning rather than silent fallback.
+        /// </summary>
+        public AnimationClip Vortex => vortex != null ? vortex : GetAttack(AttackCount - 1);
+
+        public bool HasVortexClip => vortex != null;
+
+        public bool HasRiposteClip => riposte != null;
 
         public float LocomotionFadeSeconds => locomotionFadeSeconds;
         public float ActionFadeSeconds => actionFadeSeconds;

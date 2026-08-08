@@ -79,6 +79,16 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// The dummy has no poise, so a forced stagger only sets the status. That is enough for the
+        /// thing this exists to check: that the Undertow's arrival stagger reaches its targets.
+        /// </summary>
+        public void ApplyStagger(float seconds)
+        {
+            if (seconds > 0f)
+                Statuses.Apply(StatusEffect.Stagger, seconds);
+        }
+
         public void ResetStats()
         {
             TotalDamageTaken = 0f;

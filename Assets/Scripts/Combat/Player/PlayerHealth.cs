@@ -76,6 +76,16 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Deliberately does nothing. The player has no poise or stagger system at all — being
+        /// interrupted is something that happens to enemies, and the player's answer to pressure is
+        /// the dash. Nothing in the game currently forces a stagger on the player, and if something
+        /// ever should, it needs its own design pass rather than inheriting the enemies' one.
+        /// </summary>
+        public void ApplyStagger(float seconds)
+        {
+        }
+
         public void ApplyHit(in HitContext context)
         {
             if (!IsAlive)

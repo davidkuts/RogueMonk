@@ -18,6 +18,7 @@ namespace Game.Core.Player
         const string DashActionName = "Dash";
         const string AttackActionName = "Attack";
         const string RiposteActionName = "Riposte";
+        const string VortexActionName = "Vortex";
 
         [SerializeField] InputActionAsset actions;
 
@@ -26,6 +27,7 @@ namespace Game.Core.Player
         InputAction dashAction;
         InputAction attackAction;
         InputAction riposteAction;
+        InputAction vortexAction;
 
         /// <summary>
         /// True while a menu owns the screen and gameplay must not read the pad.
@@ -58,6 +60,10 @@ namespace Game.Core.Player
         public bool RipostePressedThisFrame =>
             riposteAction != null && !GameplayInputSuspended && riposteAction.WasPressedThisFrame();
 
+        /// <summary>True on the frame the vortex button went down (○ / B, or E).</summary>
+        public bool VortexPressedThisFrame =>
+            vortexAction != null && !GameplayInputSuspended && vortexAction.WasPressedThisFrame();
+
         void Awake()
         {
             if (actions == null)
@@ -72,6 +78,7 @@ namespace Game.Core.Player
             dashAction = playerMap.FindAction(DashActionName, throwIfNotFound: true);
             attackAction = playerMap.FindAction(AttackActionName, throwIfNotFound: true);
             riposteAction = playerMap.FindAction(RiposteActionName, throwIfNotFound: true);
+            vortexAction = playerMap.FindAction(VortexActionName, throwIfNotFound: true);
         }
 
         void OnEnable() => playerMap?.Enable();

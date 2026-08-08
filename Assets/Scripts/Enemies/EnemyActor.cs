@@ -90,6 +90,13 @@ namespace Game.Enemies
         /// <summary>Raised when poise breaks, so the controller can interrupt whatever it was doing.</summary>
         public event Action Staggered;
 
+        /// <summary>
+        /// Raised when a pull failed to move this enemy because its amber is still intact. The
+        /// failed drag is meant to flare gold, so the tier stays readable in the one frame the
+        /// player has to read it.
+        /// </summary>
+        public event Action PullResisted;
+
         /// <summary>Raised the moment health reaches zero, before the death beat plays out.</summary>
         public event Action DeathSequenceStarted;
 
@@ -156,8 +163,17 @@ namespace Game.Enemies
                 : PoiseResult.Absorbed;
 
             // Immune-tier enemies get the full feedback but are never moved or interrupted.
-            if (definition.Tier != StaggerTier.Immune)
+            // A negative impulse is a pull (the Undertow) rather than a knockback, and uncracked
+            // amber resists it: it takes the ticks and the armour damage but does not slide, so a
+            // single frame of the spin tells the player which tier is which by who moved. Once the
+            // armour is off, an Armored enemy behaves as tier 1 in this as in everything else.
+            bool isPull = context.Knockback < 0f;
+            bool resistsPull = isPull && definition.Tier == StaggerTier.Armored && !Poise.IsArmorStripped;
+
+            if (definition.Tier != StaggerTier.Immune && !resistsPull)
                 knockbackVelocity += context.Direction * context.Knockback;
+            else if (resistsPull)
+                PullResisted?.Invoke();
 
             flashRemaining = hitFlashSeconds;
 
@@ -165,6 +181,29 @@ namespace Game.Enemies
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
                 $"poise {Poise.Poise:0.##}/{definition.PoiseMax:0.##} -> {poiseResult}" +
                 (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty));
+        }
+
+        /// <summary>
+        /// The Undertow's arrival stagger. Eligibility is decided here rather than by the caller,
+        /// because it is a tier question: Immune is never interrupted, and amber that was never
+        /// pulled never arrived, so there is nothing to interrupt it out of.
+        /// </summary>
+        public void ApplyStagger(float seconds)
+        {
+            if (!IsAlive || IsDying || seconds <= 0f)
+                return;
+
+            if (definition.Tier == StaggerTier.Immune)
+                return;
+
+            if (definition.Tier == StaggerTier.Armored && !Poise.IsArmorStripped)
+                return;
+
+            Poise.ForceStagger(seconds);
+
+            // Applied unconditionally so an extended stagger keeps its status in step with the
+            // poise timer; Broke only fires on the transition into one.
+            Statuses.Apply(StatusEffect.Stagger, Poise.StaggerRemaining);
         }
 
         void OnPoiseBroke(float duration)

@@ -339,6 +339,7 @@ MonoBehaviour:
     Description: {fileID: 835241057}
   selectedColor: {r: 1, g: 0.95, b: 0.8, a: 1}
   unselectedColor: {r: 0.55, g: 0.58, b: 0.65, a: 1}
+  inputLockoutSeconds: 0.5
 --- !u!1 &150488154
 GameObject:
   m_ObjectHideFlags: 0
@@ -7021,6 +7022,7 @@ GameObject:
   - component: {fileID: 1949805141}
   - component: {fileID: 1949805142}
   - component: {fileID: 1949805143}
+  - component: {fileID: 1949805144}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7213,6 +7215,7 @@ MonoBehaviour:
   health: {fileID: 1949805137}
   runThreshold: 0.1
   riposte: {fileID: 11400000, guid: b83f1e02a7c94d5689e34b071fa2c6de, type: 2}
+  vortex: {fileID: 11400000, guid: ae93383fd68e07b419b21586b22e175b, type: 2}
 --- !u!114 &1949805139
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7324,6 +7327,26 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7f94310798ad1e6429c698cf8ff984d7, type: 2}
   - {fileID: 11400000, guid: 0b0ce0e6047cfb94d91221a1ed092e8a, type: 2}
   offerCount: 3
+--- !u!114 &1949805144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59076eacd0a2f7045bec548ee8b6c7b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.PlayerVortex
+  vortex: {fileID: 11400000, guid: ae93383fd68e07b419b21586b22e175b, type: 2}
+  attacks: {fileID: 1949805135}
+  input: {fileID: 1949805132}
+  hittableLayers:
+    serializedVersion: 2
+    m_Bits: 256
+  hitboxHeightOffset: 0.9
+  castRumble: {x: 0.35, y: 0.6}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0
