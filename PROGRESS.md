@@ -3,10 +3,10 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **Active milestone:** **M12 — runs and boons, built and verified.** A run is now **3 levels** with a **boon choice between each**, and the elemental system DESIGN reserved in M3 is finally real.
+- **Active milestone:** **M12.1 — menu input no longer leaks into gameplay.** Built headlessly; the boon cards were already random, so this pass fixed what would have broken them in practice.
 - **Next action for the human:**
-  1. Play `Builds/Win64/RogueMonk.exe`. Clear a level's boss and you get a **three-card boon choice** (left/right, cross to confirm). Six boons exist: Ember (burn), Frostbite (chill), Gale Force (throw), Stone Fist (poise), Creeping Vine (root), Focused Palm (raw damage). Owned boons show bottom-left; elemental hits now take their element's spark colour.
-  2. Judge specifically: **do the boons feel worth choosing between**, or is one obviously best; is the escalation right (levels get more rooms and enemies but you also get stronger); does 3 levels feel like a run or a slog.
+  1. Play `Builds/Win64/RogueMonk.exe`. Clear a level's boss and you get a **three-card boon choice, drawn at random** from the boons you do not already hold (left/right, cross to confirm). Six exist: Ember (burn), Frostbite (chill), Gale Force (throw), Stone Fist (poise), Creeping Vine (root), Focused Palm (raw damage). Owned boons show bottom-left; elemental hits take their element's spark colour.
+  2. Judge specifically: **do the boons feel worth choosing between**, or is one obviously best; is the escalation right; does 3 levels feel like a run or a slog.
   3. **Still open:** the Riposte's Mixamo clip — "Standing Melee Attack 360 High" or "Spin Kick". Falls back to Kick meanwhile.
 - **Blocked on:** human feel-check of the boons and run length
 - ⚠️ **Every seed now generates a different level than before M10.** The boss room no longer runs `Shuffle`/`PickWeighted`, so the RNG stream shifts. No test depends on it, but any previously known-good seed is gone.
@@ -41,6 +41,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — M12.1: menu presses were leaking into gameplay
+- Asked for a build plus "boons chosen from random boons presented as cards" — which M12 already did. Checking the input path before building surfaced two things that would have ruined it in practice.
+- **Confirm is Cross, and Cross is also Dash.** Menus run with the gameplay map still enabled (they read devices directly so a paused game stays genuinely paused), and `PlayerMotor.Update` still runs at `timeScale 0` — `WasPressedThisFrame` is real-time, so choosing a boon buffered a dash that fired the instant the game resumed. The player would be thrown across the room by a menu press. The same leak affected the pause menu.
+  - Gated centrally in `PlayerInputReader`, which is already the place device differences stop — so "the game is not accepting input right now" stops there too, covering move, dash, attack and riposte at once.
+  - Keyed on **`IsPaused`, not `IsStopped`**: hitstop also stops the clock, and dropping input through every hit would defeat the input buffer, which exists precisely so a press during hitstop survives.
+- **The screen opens the instant the boss dies**, so a dash press at that moment confirmed a boon before the cards could be read. Added a 0.5 s confirm lockout, matching the death screen's existing guard. Browsing is allowed immediately — only committing waits.
+- **`BuildCommand` closes a real hole in the workflow**: the build loop went through the MCP bridge, which needs the editor *open*, while the batchmode fallback only works when it is *closed*. With the editor shut there was no way to produce a build at all. Now `-executeMethod Game.EditorTools.BuildCommand.BuildWindows64` does it headlessly with identical settings.
+- Verified entirely headless (editor was closed): batchmode compile clean, **409/409 EditMode tests**, build succeeded at 161.9 MB with 0 warnings. Confirmed the output was genuinely fresh rather than a stale artefact — all five game assemblies and the scene data rewritten, the unchanged `.exe`/`UnityPlayer.dll` being engine stubs that incremental builds legitimately leave alone.
 
 ### 2026-08-07 — M12: runs and boons (the system M3 was architected for)
 - **A run is now 3 levels**, each ending in a boss, with a boon choice between them. `LevelDirector` regenerates per level instead of ending after one; `LevelCleared` hands off to the boon screen and the run *waits* rather than running a timer, because this is the only moment in a run that is a decision instead of an execution.

@@ -1,3 +1,4 @@
+using Game.Core.Timing;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,7 +7,8 @@ namespace Game.Core.Player
     /// <summary>
     /// Thin adapter over the Input System asset. Owns action lookup and enabling so no
     /// gameplay script touches InputAction plumbing. Device/control-scheme differences
-    /// stop here — callers only see conditioned values.
+    /// stop here — callers only see conditioned values, and so does "the game is not accepting
+    /// input right now".
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PlayerInputReader : MonoBehaviour
@@ -25,17 +27,36 @@ namespace Game.Core.Player
         InputAction attackAction;
         InputAction riposteAction;
 
+        /// <summary>
+        /// True while a menu owns the screen and gameplay must not read the pad.
+        ///
+        /// Menus run with the gameplay map still enabled (they read devices directly so a paused
+        /// game stays genuinely paused), and they share buttons with it — confirm is Cross, which
+        /// is also Dash. Without this gate, choosing a boon buffers a dash that fires the instant
+        /// the game resumes, and the player is thrown across the room by a menu press.
+        ///
+        /// Deliberately keyed on <c>IsPaused</c> rather than <c>IsStopped</c>: hitstop also stops
+        /// the clock, and dropping input through every hit would defeat the input buffer, which
+        /// exists precisely so a press during hitstop survives.
+        /// </summary>
+        public static bool GameplayInputSuspended =>
+            GameClock.Instance != null && GameClock.Instance.IsPaused;
+
         /// <summary>Raw (unconditioned) move vector. Deadzone/curve are applied in the simulation.</summary>
-        public Vector2 MoveAxis => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+        public Vector2 MoveAxis =>
+            moveAction != null && !GameplayInputSuspended ? moveAction.ReadValue<Vector2>() : Vector2.zero;
 
         /// <summary>True on the frame the dash button went down.</summary>
-        public bool DashPressedThisFrame => dashAction != null && dashAction.WasPressedThisFrame();
+        public bool DashPressedThisFrame =>
+            dashAction != null && !GameplayInputSuspended && dashAction.WasPressedThisFrame();
 
         /// <summary>True on the frame the attack button went down.</summary>
-        public bool AttackPressedThisFrame => attackAction != null && attackAction.WasPressedThisFrame();
+        public bool AttackPressedThisFrame =>
+            attackAction != null && !GameplayInputSuspended && attackAction.WasPressedThisFrame();
 
         /// <summary>True on the frame the riposte button went down. Only does anything while armed.</summary>
-        public bool RipostePressedThisFrame => riposteAction != null && riposteAction.WasPressedThisFrame();
+        public bool RipostePressedThisFrame =>
+            riposteAction != null && !GameplayInputSuspended && riposteAction.WasPressedThisFrame();
 
         void Awake()
         {

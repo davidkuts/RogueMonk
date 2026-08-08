@@ -33,7 +33,12 @@ namespace Game.UI
         [SerializeField] Color selectedColor = new Color(1f, 0.95f, 0.8f);
         [SerializeField] Color unselectedColor = new Color(0.55f, 0.58f, 0.65f);
 
+        [Header("Feel")]
+        [SerializeField, Tooltip("Confirm is ignored for this long after the screen opens. The screen arrives the instant the boss dies, so without it a dash press mid-fight picks a boon the player never read.")]
+        float inputLockoutSeconds = 0.5f;
+
         MenuSelection selection;
+        float lockout;
         readonly List<BoonDefinition> offer = new List<BoonDefinition>();
 
         /// <summary>One offer card. A plain container so the view can stay about behaviour.</summary>
@@ -86,6 +91,7 @@ namespace Game.UI
 
             selection = new MenuSelection(offer.Count, axis: MenuAxis.Horizontal);
             selection.Reset();
+            lockout = inputLockoutSeconds;
 
             if (title != null)
                 title.text = $"LEVEL {levelNumber} CLEARED";
@@ -109,6 +115,14 @@ namespace Game.UI
             {
                 Highlight();
                 AudioDirector.PlaySound(GameSound.Whiff);
+            }
+
+            // Browsing is allowed immediately; only committing waits. Locking movement too would
+            // feel unresponsive for no benefit.
+            if (lockout > 0f)
+            {
+                lockout -= Time.unscaledDeltaTime;
+                return;
             }
 
             if (!MenuSelection.ConfirmPressed())
