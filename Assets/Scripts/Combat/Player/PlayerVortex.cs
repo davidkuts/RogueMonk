@@ -37,6 +37,8 @@ namespace Game.Combat
 
         [Header("Feedback")]
         [SerializeField] Vector2 castRumble = new Vector2(0.35f, 0.6f);
+        [SerializeField, Tooltip("The character model. Spun in code across the move, because the clip's own rotation only survives Unity's humanoid root baking at about half strength and the circle never closes. Left empty, the first child with a renderer is used.")]
+        Transform modelRoot;
 
         readonly Collider[] overlapResults = new Collider[32];
         readonly List<IDamageable> caught = new List<IDamageable>();
@@ -46,6 +48,7 @@ namespace Game.Combat
         VortexAbility ability;
         VortexSpin spin;
         bool spinning;
+        Quaternion modelRestRotation = Quaternion.identity;
 
         /// <summary>0 just spent, 1 ready. For a HUD dial.</summary>
         public float ReadyFraction => ability != null ? ability.ReadyFraction : 1f;
@@ -70,6 +73,18 @@ namespace Game.Combat
                 enabled = false;
                 return;
             }
+
+            if (modelRoot == null)
+            {
+                var renderer = GetComponentInChildren<Renderer>();
+                if (renderer != null && renderer.transform != transform)
+                    modelRoot = renderer.transform.parent != null && renderer.transform.parent != transform
+                        ? renderer.transform.parent
+                        : renderer.transform;
+            }
+
+            if (modelRoot != null)
+                modelRestRotation = modelRoot.localRotation;
 
             ability = new VortexAbility(vortex.CooldownSeconds, vortex.PerHitRefundSeconds);
             spin = new VortexSpin(vortex.TickCount, vortex.ActiveSeconds);
@@ -107,6 +122,8 @@ namespace Game.Combat
                 EndSpin(cancelled: true);
                 return;
             }
+
+            DriveSpin(attacks.Attacks.Elapsed);
 
             if (attacks.Attacks.Phase != AttackPhase.Active)
                 return;
@@ -219,10 +236,37 @@ namespace Game.Combat
             EndSpin(cancelled: false);
         }
 
+        /// <summary>
+        /// Turns the model across the move.
+        ///
+        /// <para>The clip is authored with a full revolution in it, but Unity's humanoid
+        /// root-rotation baking only delivered about half of it to the body — measured at ~192° of
+        /// an authored 366° — so the circle visibly never closed. Owning the turn in code makes it
+        /// exact, gives the direction a single explicit source, and keeps the clip's job to what it
+        /// is good at: the limbs. Root motion stays off; this rotates the *visual* only, never the
+        /// player transform, so facing, aim and the hitbox are untouched.</para>
+        ///
+        /// <para>Spread over wind-up + active rather than the whole move, so the turn completes as
+        /// the pull does and recovery is the character settling rather than still spinning.</para>
+        /// </summary>
+        void DriveSpin(float elapsed)
+        {
+            if (modelRoot == null)
+                return;
+
+            float t = Mathf.Clamp01(elapsed / vortex.SpinSeconds);
+            modelRoot.localRotation = modelRestRotation * Quaternion.Euler(0f, vortex.SpinDegrees * t, 0f);
+        }
+
         void EndSpin(bool cancelled)
         {
             spinning = false;
             attacks.SuppressDefaultHitbox = false;
+
+            // Always hand the body back square, however the spin ended. A cancelled spin that left
+            // the model at 200 degrees would leave the character permanently facing the wrong way.
+            if (modelRoot != null)
+                modelRoot.localRotation = modelRestRotation;
 
             float now = Time.time;
             for (int i = 0; i < caught.Count; i++)

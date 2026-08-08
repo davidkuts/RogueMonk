@@ -3,7 +3,8 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **M13 + M13.1 built and verified.** **430 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the retuned spin and the doubled dodge grace.
+- **M13 through M13.2 built and verified.** **430 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the spin (now a guaranteed full circle, no longer rooting) and the doubled dodge grace.
+- ⚠️ **`Right Hook.fbx` still has no animation data — re-download it from Mixamo.** The Riposte now plays a half-turn cut from the Hurricane Kick take as a placeholder, which is better than reusing the combo's Kick but is not a real counter-attack animation.
 - **Next, already agreed with the human:** perfect-dodging a **projectile is far too easy** now that the grace is 0.20 s. Melee and projectiles need different treatment — the M11.2 reasoning still holds, but the fix has over-corrected in the projectile direction. Likely shape: grace that depends on the threat type rather than one global number.
 - **Locked by the human 2026-08-08:** the **dash blue is the chromatic hue** for the whole Second Hand kit. Confirmed as correct on sight; do not re-open it.
 - ⚠️ **`Right Hook.fbx` has no animation data in it — re-download it from Mixamo.** It is a skeleton-only export (0 takes, 0 clips), so the Riposte slot was a dead reference and has been playing the Kick clip. The slot is now explicitly empty and warns at startup. Everything else about the Riposte works.
@@ -42,6 +43,7 @@
 | 12 | Runs and boons: multi-level runs, 6 elemental boons, real status effects | ✅ done (pending feel-check) |
 | 13 | The Vortex (the Undertow): radial pull on ○/E, damage ticks, arrival stagger, hit-fed cooldown | ✅ done (pending feel-check) |
 | 13.1 | Playtest pass: grace doubled, vortex spammable + slowed spin + chromatic smear, knockback long-frame fix | ✅ done (pending feel-check) |
+| 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -52,6 +54,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — M13.2: the spin closes its circle, and stops rooting the player
+- Human: the spin "doesn't actually do a full circle", it "roots me in place, which should not be the case", and the Riposte is still unfixed.
+- ⚠️ **The circle was being eaten by Unity's humanoid root-rotation baking, not by the trim.** Measured the take properly this time — it turns **exactly -1440° (4 revolutions) at a dead-constant -26.18°/frame**, so one revolution is 13.75 frames and the 6–20 trim genuinely contains 366°. But sampling the body live during a spin gave only **~192°** of actual rotation. With Bake Into Pose ON the rotation is flattened toward the reference orientation; with it OFF the rotation becomes root motion, which hard rule 3 discards. Either way the clip cannot be trusted to deliver a full turn.
+  - **Fix: the clip keeps the limbs, code owns the turn.** The clip's rotation is drained to root motion (discarded), and `PlayerVortex.DriveSpin` rotates the **CharacterModel** by an exact `spinRevolutions × 360°` across wind-up + active. Verified mid-spin at **modelYaw 274.1 against an expected 274.1**, completing and resetting to 0.0. It rotates the *visual only* — the player transform stayed at yaw 0, so facing, aim and the hitbox are untouched, and `applyRootMotion` is confirmed `false`.
+  - Direction is now a single explicit bool. The smear ghosts are snapshots of the model, so they follow it automatically — spin and swirl still cannot disagree.
+- **No longer rooted**: `moveSpeedMultiplier` 0 → **0.6**. Rooting is most of why a 0.63 s move felt long, and a mobile spin suits an ability whose job is spacing.
+- **The Riposte has a real clip again — but it is a placeholder, not a fix.** `Right Hook.fbx` still has no animation in it. It was falling back to the combo's **Kick**, which is the worst possible choice because it is a move the player already throws. It now uses **"Riposte Sweep"**, a second clip cut from the same Hurricane Kick take at frames **6–13 (183°, one half-turn)** with root rotation left baked — half a sweep against the vortex's full stationary circle, so the two stay readable apart. **The real answer is still a proper counter-attack clip.**
+- **Verified**: 430/430 EditMode tests, build clean. Pull still lands (4.000 → 1.865 with the harness clamp off, damage exactly 4.5).
+- **Harness note**: measuring rotation from a *bone* is unreliable — the hips counter-rotate against the root, so hips yaw is not a proxy for the clip's root rotation. Measure the transform the code drives, or the clip curves themselves. Also: stretching a phase to observe it in slow motion is invalidated by `SpeedToFit`'s 0.25× floor — beyond that the clip finishes early and holds its last pose.
 
 ### 2026-08-08 — M13.1: playtest pass — grace doubled, vortex spammable, spin slowed
 - Human playtest of M13. Five changes, all from their notes.

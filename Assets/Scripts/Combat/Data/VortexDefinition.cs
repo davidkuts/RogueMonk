@@ -48,6 +48,12 @@ namespace Game.Combat
         [SerializeField, Tooltip("Freeze per tick. Deliberately tiny: three ticks across a crowd at punch-level hitstop would stutter the whole spin.")]
         float tickHitstopSeconds = 0.02f;
 
+        [Header("Spin (visual)")]
+        [SerializeField, Tooltip("Turns the body makes across wind-up + active. Driven from code rather than from the clip: Unity's humanoid root-rotation baking delivered only about half of the clip's authored 366 degrees, so the spin never closed. Code owns the turn, the clip owns the limbs, and root motion stays off.")]
+        float spinRevolutions = 1f;
+        [SerializeField, Tooltip("Clockwise seen from above, matching the direction the source clip sweeps. The smear ghosts are snapshots of the body, so they follow this automatically — which is what keeps spin and swirl from ever disagreeing.")]
+        bool spinClockwise = true;
+
         [Header("Arrival")]
         [SerializeField, Tooltip("Stagger applied to everything the pull actually moved. Non-negotiable: the ability drags threats into hug range, so they must not arrive mid-wind-up.")]
         float arrivalStaggerSeconds = 0.4f;
@@ -105,6 +111,12 @@ namespace Game.Combat
         public float PullImpulsePerMeter => Mathf.Max(0f, pullImpulsePerMeter);
         public float MaxPullImpulse => Mathf.Max(0f, maxPullImpulse);
         public float PullImmunitySeconds => Mathf.Max(0f, pullImmunitySeconds);
+
+        /// <summary>Total degrees the body turns across wind-up + active, signed for direction.</summary>
+        public float SpinDegrees => spinRevolutions * 360f * (spinClockwise ? 1f : -1f);
+
+        /// <summary>The span the turn is spread over: the whole move except its recovery.</summary>
+        public float SpinSeconds => Mathf.Max(0.0001f, windupSeconds + activeSeconds);
         public int TickCount => Mathf.Max(1, tickCount);
         public float ArrivalStaggerSeconds => Mathf.Max(0f, arrivalStaggerSeconds);
         public float CooldownSeconds => Mathf.Max(0f, cooldownSeconds);
