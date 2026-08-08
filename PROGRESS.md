@@ -57,6 +57,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Known issues / TODO next: ...
 -->
 
+### 2026-08-08 — Session close: theme locked, the Vortex built and iterated three times
+- **Five commits pushed** (`956c89c` → `3b14488`): the theme into DESIGN.md, then M13 and three playtest passes on the Vortex. 430 EditMode tests green, build current, working tree clean.
+- **The shape of this session was one milestone plus fast iteration on feel.** Each pass came from the human playing the build, and each one found something the previous verification had not: a knockback bug older than the ability itself, a rotation that Unity was silently halving, and a model quietly drifting because procedural rotation ran before the Animator rather than after.
+
+**Start the next session here — three things are waiting, in priority order:**
+1. **Perfect-dodging projectiles is far too easy** now that the grace is 0.20 s (agreed with the human, deferred). M11.2's reasoning still holds — a travelling hitbox is catchable by any instant of the window, a melee arc is not — but one global number cannot serve both. Likely shape: grace that varies by threat type.
+2. **The amber collision is still unresolved and it blocks enemy work.** The theme reserves amber-gold for the Armored tier; the telegraph grammar already means amber = incoming projectile; the perfect-dodge trail and Riposte spark are gold. Recommendation on the table: move the projectile telegraph to magenta. **Needs the human's call** — it shapes every enemy in the next milestone.
+3. **Then the actual next milestone: enemy variety, Biome 1 (Cretaceous)**, built around the amber Armored tier, per the theme now in DESIGN.md.
+
+**Also open, smaller:** `Right Hook.fbx` still contains no animation (re-download from Mixamo; the Riposte runs a half-turn placeholder cut from Hurricane Kick meanwhile). The Vortex has no HUD dial and borrows the perfect-dodge sound for readiness — though with the cooldown at 0 there is currently nothing to read. And the 2.2 m radius means the vortex no longer gathers a *spread* swarm, which was its original brief; re-judge that against a real crowd once more enemy types exist.
+
 ### 2026-08-08 — M13.3: the smear moves to the feet, and the spin stops stalling
 - Human playtest: the animation "freezes or stops at one point"; keep the speed but a hint faster; spin for the whole duration; the chromatic effect "looks very clustered in the middle" because only the leg actually moves; and the pull is not visible — it should "grab them from the edge of the leg to about half a leg distance". Coolness explicitly named as a priority (the dash trail is the bar to hit).
 - **The freeze was mine.** The turn was spread over wind-up + active only, so the body stood still for the whole 0.10 s recovery while the clip's limbs kept moving. It now spans the **whole** move (`SpinSeconds = TotalSeconds`).
