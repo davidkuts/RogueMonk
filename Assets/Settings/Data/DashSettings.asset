@@ -40,7 +40,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   exitSpeedFraction: 1
   iFrameFraction: 0.85
-  perfectDodgeGraceSeconds: 0.09
+  perfectDodgeGraceSeconds: 0.2
   maxCharges: 2
   rechargeSeconds: 1.5
   bufferSeconds: 0.15

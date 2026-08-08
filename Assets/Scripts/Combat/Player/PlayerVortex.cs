@@ -40,6 +40,7 @@ namespace Game.Combat
 
         readonly Collider[] overlapResults = new Collider[32];
         readonly List<IDamageable> caught = new List<IDamageable>();
+        readonly HashSet<IDamageable> pulledThisSpin = new HashSet<IDamageable>();
         readonly Dictionary<IDamageable, float> pullImmuneUntil = new Dictionary<IDamageable, float>();
 
         VortexAbility ability;
@@ -127,6 +128,7 @@ namespace Game.Combat
             ability.TryConsume();
             spin.Reset();
             caught.Clear();
+            pulledThisSpin.Clear();
             spinning = true;
             attacks.SuppressDefaultHitbox = true;
 
@@ -171,7 +173,20 @@ namespace Game.Combat
                 float overshoot = Mathf.Max(0f, distance - vortex.InnerRingMeters);
                 float impulse = Mathf.Min(overshoot * vortex.PullImpulsePerMeter, vortex.MaxPullImpulse);
 
-                if (pullImmuneUntil.TryGetValue(target, out float until) && now < until)
+                // Recently dragged in, so this spin neither moves it nor interrupts it again. With
+                // no cooldown on the ability this window is the only thing standing between
+                // "spammable" and "permanent stun-lock", which is exactly what it was reserved for.
+                // The ticks still land: it is standing in a vortex.
+                bool pullImmune = pullImmuneUntil.TryGetValue(target, out float until) && now < until;
+                if (pullImmune)
+                    impulse = 0f;
+
+                // One impulse per target per spin, not one per tick. Three stacked impulses
+                // overshot the ring completely and body-blocked against the player's own capsule
+                // (measured: everything ended up at 0.777 m, which is just the two capsule radii
+                // touching). A single impulse sized to the overshoot lands them *on* the ring,
+                // which is the whole point of having one.
+                if (!pulledThisSpin.Add(target))
                     impulse = 0f;
 
                 Vector3 direction = distance > 0.001f ? toTarget / distance : Vector3.forward;
@@ -180,7 +195,7 @@ namespace Game.Combat
                 context.Knockback = -impulse; // negative: inward
                 attacks.Resolver.Resolve(ref context);
 
-                if (!caught.Contains(target))
+                if (!pullImmune && !caught.Contains(target))
                     caught.Add(target);
             }
         }

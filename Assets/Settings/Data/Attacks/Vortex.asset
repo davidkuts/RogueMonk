@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e27432015c62fb743955008e3f0a5939, type: 3}
   m_Name: Vortex
   m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexDefinition
-  windupSeconds: 0.12
-  activeSeconds: 0.45
-  recoverySeconds: 0.25
+  windupSeconds: 0.1
+  activeSeconds: 0.35
+  recoverySeconds: 0.18
   radiusMeters: 4
   innerRingMeters: 1.5
   pullImpulsePerMeter: 8
   maxPullImpulse: 24
   pullImmunitySeconds: 1
   tickCount: 3
-  tickDamage: 3
-  tickPoiseDamage: 8
+  tickDamage: 1.5
+  tickPoiseDamage: 4
   damageType: 0
   tickHitstopSeconds: 0.02
   arrivalStaggerSeconds: 0.4
-  cooldownSeconds: 10
-  perHitRefundSeconds: 0.4
+  cooldownSeconds: 0
+  perHitRefundSeconds: 0
   moveSpeedMultiplier: 0
   telegraphColor: {r: 0.3, g: 0.9, b: 1, a: 1}

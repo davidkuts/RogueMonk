@@ -107,11 +107,29 @@ namespace Game.Combat.Tests
         [Test]
         public void AZeroCooldownIsAlwaysReady()
         {
+            // The shipped tuning: the vortex is spammable, and the pull-immunity window rather
+            // than the cooldown is what stops it becoming a stun-lock.
             var ability = new VortexAbility(0f, 0.4f);
 
             Assert.IsTrue(ability.TryConsume());
             Assert.IsTrue(ability.IsReady);
             Assert.AreEqual(1f, ability.ReadyFraction, 0.0001f);
+        }
+
+        [Test]
+        public void AZeroCooldownNeverAnnouncesItselfReady()
+        {
+            // Nothing to announce when it was never away. A ready-tick on every cast would be
+            // noise, and BecameReady is what the audio cue hangs off.
+            var ability = new VortexAbility(0f, 0.4f);
+            int readyEvents = 0;
+            ability.BecameReady += () => readyEvents++;
+
+            ability.TryConsume();
+            ability.Tick(0.5f);
+            ability.RegisterLandedHit();
+
+            Assert.AreEqual(0, readyEvents);
         }
     }
 

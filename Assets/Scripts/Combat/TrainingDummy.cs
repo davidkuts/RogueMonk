@@ -102,9 +102,11 @@ namespace Game.Combat
 
             if (deltaTime > 0f)
             {
-                knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, knockbackDamping * deltaTime);
-
+                // Move first, then decay exponentially — see EnemyActor.ApplyKnockback. A Lerp
+                // factor clamps at 1, so a long frame used to annihilate the impulse before it
+                // displaced anything.
                 Vector3 position = transform.position + knockbackVelocity * deltaTime;
+                knockbackVelocity *= Mathf.Exp(-knockbackDamping * deltaTime);
                 if (knockbackVelocity.sqrMagnitude < 0.01f)
                     position = Vector3.MoveTowards(position, spawnPosition, returnSpeed * deltaTime);
 

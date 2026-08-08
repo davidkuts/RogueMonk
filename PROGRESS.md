@@ -3,7 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **M13 (the Vortex) is built and verified; everything through M12.1 was already done and pushed.** **429 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the spin.
+- **M13 + M13.1 built and verified.** **430 EditMode tests passing**, `Builds/Win64/RogueMonk.exe` rebuilt. Awaiting the human's feel-check on the retuned spin and the doubled dodge grace.
+- **Next, already agreed with the human:** perfect-dodging a **projectile is far too easy** now that the grace is 0.20 s. Melee and projectiles need different treatment — the M11.2 reasoning still holds, but the fix has over-corrected in the projectile direction. Likely shape: grace that depends on the threat type rather than one global number.
+- **Locked by the human 2026-08-08:** the **dash blue is the chromatic hue** for the whole Second Hand kit. Confirmed as correct on sight; do not re-open it.
 - ⚠️ **`Right Hook.fbx` has no animation data in it — re-download it from Mixamo.** It is a skeleton-only export (0 takes, 0 clips), so the Riposte slot was a dead reference and has been playing the Kick clip. The slot is now explicitly empty and warns at startup. Everything else about the Riposte works.
 - **The theme is no longer blocking.** `THEME.md` is in the repo and DESIGN.md now carries a **Theme (locked 2026-08-08)** section holding the part that binds engineering, plus the **Vortex** ability and its animation/VFX decisions. The next milestone is unblocked.
 - **Active milestone: none.** Deliberate stopping point — one human call is outstanding first (below).
@@ -39,6 +41,7 @@
 | 11.2 | Perfect-dodge grace window | ✅ done (pending feel-check) |
 | 12 | Runs and boons: multi-level runs, 6 elemental boons, real status effects | ✅ done (pending feel-check) |
 | 13 | The Vortex (the Undertow): radial pull on ○/E, damage ticks, arrival stagger, hit-fed cooldown | ✅ done (pending feel-check) |
+| 13.1 | Playtest pass: grace doubled, vortex spammable + slowed spin + chromatic smear, knockback long-frame fix | ✅ done (pending feel-check) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -49,6 +52,18 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-08 — M13.1: playtest pass — grace doubled, vortex spammable, spin slowed
+- Human playtest of M13. Five changes, all from their notes.
+- **Perfect-dodge grace 0.09 → 0.20 s** ("really hard to trigger against a melee minion"). Total protection **0.243 → 0.353 s**, so the window in which a dash can start and still nullify a 0.10 s melee swing is roughly half a second wide now. **Still open, human deferred it: projectiles are far too easy to perfect-dodge** — the asymmetry M11.2 identified has now over-corrected in the projectile direction, and the next pass should look at gating grace by threat type rather than trimming it back.
+- **The vortex is spammable**: cooldown 10 → **0**, per-hit refund → 0, tick damage 3 → **1.5** (total 4.5, under half a punch), tick poise 8 → **4**. The recharge machinery is intact and re-armed by putting a number back in the asset.
+  - **The pull-immunity window is now the governor, not the cooldown.** A target just dragged in cannot be pulled *or* staggered again for 1 s — it still takes the ticks, because it is standing in a vortex. Without that, spam is a permanent stun-lock. Verified: a second cast fired immediately left distance unchanged at 1.424 m, dealt its 4.5, and applied **no** stagger.
+- **The spin was too long and far too fast.** Diagnosis by sampling `RootQ.y`: Hurricane Kick is **~4 full revolutions in 1.833 s**, and speed-fitting that into a 0.82 s attack ran it at **~4.9 rev/s** — a blur, not a spin. Trimmed the clip to frames **6–20**, one clean revolution (0.467 s), and shortened the move to 100/350/180 ms. Speed-to-fit is now **0.74×**, i.e. the clip plays *slower* than authored: **one revolution over 0.63 s (1.59 rev/s)**.
+- **Chromatic effect added, and it reuses the dash smear deliberately.** Human confirmed the dash blue is exactly right and to keep it. The spin emits the same `DashAfterimage` ghosts in the same hue — and because each ghost is a snapshot of the *body*, the swirl direction is the spin direction by construction, which is the one thing DESIGN insists on for this move and would otherwise need hand-syncing. Verified emitting at `RGBA(0.29, 0.85, 0.92)`.
+- ⚠️ **Real bug found and fixed: a long frame could silently eat any knockback.** `ApplyKnockback` damped with `Vector3.Lerp(v, 0, damping * dt)` *before* moving, and `Lerp` clamps its factor at 1 — so any frame longer than `1/damping` (0.125 s) zeroed the velocity and then moved by zero. Measured: velocity `-20 → 0` with the body not moving at all. Now **moves first, then decays by `Exp(-damping · dt)`** — exact at any frame length and within 1% of the old feel at 60 fps (0.875 vs 0.867 per frame). This affected **every** knockback since M4, not just the pull; the vortex only made it reproducible. Same fix applied to `TrainingDummy`.
+- **Pull tuning, and the rule behind it**: an impulse travels `impulse ÷ damping`, so `impulsePerMeter` must equal the enemy's `knockbackDamping` (both 8) for a target to arrive exactly on the ring. Also **one impulse per target per spin, not one per tick** — three stacked impulses each re-read a distance the target had not finished travelling, overshot the ring entirely, and body-blocked against the player's capsule at 0.777 m (= 0.4 + 0.42 radii). Fixed: measured arrival at **1.424 m** against a 1.5 m ring.
+- **Verified**: 430/430 EditMode tests. Live, with the harness artefact controlled (below): pull 4.000 → **1.424 m**, damage exactly 4.5, spam-cast leaves distance and stagger untouched while still ticking.
+- **Harness lesson, and it invalidated three earlier measurements before I caught it**: `execute_code` blocks the main thread, so the *next* frame runs at `Time.maximumDeltaTime` (0.333 s) and takes one enormous integration step — knockback travel measured **2.72× too far**. Setting `Time.maximumDeltaTime = 0.02` for the duration of a test fixes it; a calibration shot then matched theory at **1.029 m vs 1.000 m predicted**. Restore it afterwards. Also hit the paused-clock trap a third time (idle player dies → death screen pauses `GameClock` → nothing time-based advances while direct calls still work).
 
 ### 2026-08-08 — M13: the Vortex is real, and the Riposte clip is not
 - Human added two Mixamo FBXs and asked to fix the Riposte (which "sinks into the floor") and hook the spin up to ○.

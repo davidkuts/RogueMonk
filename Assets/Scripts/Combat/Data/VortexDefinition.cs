@@ -30,7 +30,7 @@ namespace Game.Combat
         float radiusMeters = 4f;
         [SerializeField, Tooltip("Where the pull delivers them: inside kick range, outside body-block jank.")]
         float innerRingMeters = 1.5f;
-        [SerializeField, Tooltip("Inward impulse per metre of overshoot beyond the inner ring. Applied as negative knockback through the existing impulse system, so a target already on the ring is left alone.")]
+        [SerializeField, Tooltip("Inward impulse per metre of overshoot beyond the inner ring, applied once per target per spin as negative knockback. Match it to the enemy's knockback damping (8): an impulse decays to a travel distance of impulse/damping, so impulse = overshoot x damping lands them exactly on the ring. A target already on the ring is left alone.")]
         float pullImpulsePerMeter = 8f;
         [SerializeField, Tooltip("Ceiling on that impulse, so a target caught at the rim is not slingshotted through the player.")]
         float maxPullImpulse = 24f;

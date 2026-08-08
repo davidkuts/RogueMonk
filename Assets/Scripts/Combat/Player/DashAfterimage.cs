@@ -33,13 +33,23 @@ namespace Game.Combat
         [SerializeField, Tooltip("Extra brightness on a perfect dodge, so a refunded charge is unmistakable.")]
         Color perfectDodgeColor = new Color(1f, 0.86f, 0.35f, 0.85f);
 
+        [Header("Vortex")]
+        [SerializeField, Tooltip("Optional. The spin smears in the same dash hue, because it is the same wrist unit doing it — the Second Hand's whole kit reads as one colour family.")]
+        PlayerVortex vortex;
+        [SerializeField, Tooltip("Gap between ghosts during a spin. Tighter than the dash: a spin has to leave a continuous ring rather than a row of separate bodies.")]
+        float vortexGhostInterval = 0.035f;
+        [SerializeField, Tooltip("Ghost lifetime multiplier during a spin. Longer, so the earliest ghosts are still up when the body comes back round and the smear closes into a circle.")]
+        float vortexGhostLifetimeScale = 1.6f;
+
         readonly List<Ghost> ghosts = new List<Ghost>();
         readonly List<Mesh> bakedMeshes = new List<Mesh>();
 
         MaterialPropertyBlock block;
         bool wasDashing;
+        bool wasSpinning;
         float spawnInterval;
         float spawnTimer;
+        float currentGhostLifetime;
         bool perfectDodgeThisDash;
 
         static readonly int GhostColorId = Shader.PropertyToID("_GhostColor");
@@ -56,11 +66,14 @@ namespace Game.Combat
         {
             if (motor == null)
                 motor = GetComponent<PlayerMotor>();
+            if (vortex == null)
+                vortex = GetComponent<PlayerVortex>();
 
             if (sources == null || sources.Length == 0)
                 sources = GetComponentsInChildren<Renderer>();
 
             block = new MaterialPropertyBlock();
+            currentGhostLifetime = ghostLifetime;
             enabled = motor != null && ghostMaterial != null && sources.Length > 0;
         }
 
@@ -82,13 +95,25 @@ namespace Game.Combat
             else if (!dashing && wasDashing)
                 perfectDodgeThisDash = false;
 
+            // The spin borrows the dash's own smear rather than getting an effect of its own. That
+            // is not laziness: the ghosts are snapshots of the body, so the direction the smear
+            // swirls is the direction the body turns, and the two can never disagree — which is the
+            // one thing DESIGN.md insists on for this move. The dash outranks it, because a
+            // dash-cancel out of the spin should read as a dash.
+            bool spinning = !dashing && vortex != null && vortex.IsSpinning;
+            if (spinning && !wasSpinning)
+                BeginSpin();
+
             if (dashing)
             {
                 // A perfect dodge refunds the charge mid-dash; recolour the remaining ghosts so
                 // the reward is visible in the same beat it happens.
                 if (!perfectDodgeThisDash && motor.Dash.Charges.Available > 0 && motor.Dash.IsInvulnerable)
                     perfectDodgeThisDash = false;
+            }
 
+            if (dashing || spinning)
+            {
                 spawnTimer -= Time.deltaTime;
                 if (spawnTimer <= 0f)
                 {
@@ -98,6 +123,7 @@ namespace Game.Combat
             }
 
             wasDashing = dashing;
+            wasSpinning = spinning;
             FadeGhosts();
         }
 
@@ -109,6 +135,14 @@ namespace Game.Combat
             perfectDodgeThisDash = false;
             spawnInterval = ghostCount > 0 ? 0.18f / ghostCount : 0.03f;
             spawnTimer = 0f;
+            currentGhostLifetime = ghostLifetime;
+        }
+
+        void BeginSpin()
+        {
+            spawnInterval = Mathf.Max(0.01f, vortexGhostInterval);
+            spawnTimer = 0f;
+            currentGhostLifetime = ghostLifetime * Mathf.Max(0.1f, vortexGhostLifetimeScale);
         }
 
         void SpawnGhost()
@@ -151,8 +185,8 @@ namespace Game.Combat
             {
                 Root = root,
                 Renderers = renderers.ToArray(),
-                Remaining = ghostLifetime,
-                Lifetime = ghostLifetime,
+                Remaining = currentGhostLifetime,
+                Lifetime = currentGhostLifetime,
             });
         }
 

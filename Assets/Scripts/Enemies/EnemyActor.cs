@@ -346,6 +346,21 @@ namespace Game.Enemies
                 $"{Statuses.Remaining(StatusEffect.Burning):0.0}s left");
         }
 
+        /// <summary>
+        /// Integrates the knockback impulse, then decays it.
+        ///
+        /// <para>Move first, damp second, and damp exponentially. The previous order — damp with
+        /// <c>Vector3.Lerp(v, 0, damping * deltaTime)</c>, then move — had a hole: <c>Lerp</c>
+        /// clamps its factor at 1, so any frame longer than <c>1 / damping</c> (0.125 s here)
+        /// zeroed the velocity and *then* moved by zero. The whole impulse vanished without
+        /// displacing the body at all. A hitch would silently eat a knockback, and the vortex's
+        /// pull — three impulses that a single long frame can legitimately deliver at once — made
+        /// it reproducible rather than rare.</para>
+        ///
+        /// <para><c>Exp(-damping * dt)</c> is the same curve sampled exactly instead of
+        /// approximated, so it is stable at any frame length and matches the old feel at 60 fps
+        /// (0.875 against 0.867 per frame).</para>
+        /// </summary>
         void ApplyKnockback(float deltaTime)
         {
             if (knockbackVelocity.sqrMagnitude < 0.0001f)
@@ -354,12 +369,14 @@ namespace Game.Enemies
                 return;
             }
 
-            knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, knockbackDamping * deltaTime);
+            Vector3 step = knockbackVelocity * deltaTime;
 
             if (controller != null && controller.enabled)
-                controller.Move(knockbackVelocity * deltaTime);
+                controller.Move(step);
             else
-                transform.position += knockbackVelocity * deltaTime;
+                transform.position += step;
+
+            knockbackVelocity *= Mathf.Exp(-knockbackDamping * deltaTime);
         }
 
         void ApplyColor()
