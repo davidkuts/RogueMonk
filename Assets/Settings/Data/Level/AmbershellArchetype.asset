@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: AmbershellArchetype
   m_EditorClassIdentifier: Game.Level::Game.Level.EnemyArchetypeDefinition
   prefab: {fileID: 7212784579539804977, guid: b62b56d7134e6eb42bdab3896d2c055d, type: 3}
-  selectionWeight: 0.8
+  selectionWeight: 0
   cost: 3.5
   allowsSharedSpawnPoints: 0

@@ -57,11 +57,16 @@ namespace Game.Level.Tests
                     Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.True,
                         $"seed {seed} level {level}: {reason}");
 
+                    // 7 standard rooms + the boss, plus whatever escalation adds on later levels.
+                    int expectedRooms = 8 + UnityEngine.Mathf.FloorToInt(settings.RoomGrowthPerLevel * level);
+                    Assert.That(plan.RoomCount, Is.EqualTo(expectedRooms),
+                        $"seed {seed} level {level}: expected {expectedRooms} rooms");
+
                     int standardRooms = plan.RoomCount - 1;
+                    var eliteCounts = new Dictionary<string, int>();
+
                     foreach (RoomPlan room in plan.Rooms)
                     {
-                        int elitesInRoom = 0;
-
                         foreach (WavePlan wave in room.Waves)
                         {
                             Assert.That(
@@ -69,17 +74,25 @@ namespace Game.Level.Tests
                                 $"seed {seed} level {level} room {room.Index}: Scrapfeathers must never be a wave's only type");
 
                             int elitesInWave = wave.Spawns.Count(s => EliteIds.Contains(s.ArchetypeId));
-                            elitesInRoom += elitesInWave;
 
                             // Human call 2026-08-09: an elite fights ALONE — its wave holds
                             // nothing else. The riposte-gated duel wants no bystanders.
                             if (elitesInWave > 0)
                                 Assert.That(wave.Spawns.Count, Is.EqualTo(1),
                                     $"seed {seed} level {level} room {room.Index}: an elite's wave must hold only the elite");
-                        }
 
-                        Assert.That(elitesInRoom, Is.LessThanOrEqualTo(1),
-                            $"seed {seed} level {level} room {room.Index}: never two elites in a Biome 1 room");
+                            // The first room is never an elite (human call 2026-08-09).
+                            if (room.Index == 0)
+                                Assert.That(elitesInWave, Is.EqualTo(0),
+                                    $"seed {seed} level {level}: the first room must never hold an elite");
+
+                            foreach (SpawnAssignment spawn in wave.Spawns)
+                            {
+                                if (EliteIds.Contains(spawn.ArchetypeId))
+                                    eliteCounts[spawn.ArchetypeId] =
+                                        eliteCounts.TryGetValue(spawn.ArchetypeId, out int c) ? c + 1 : 1;
+                            }
+                        }
 
                         // Door rules: 1-4 doors with distinct 1-8 labels, exactly one "9" door
                         // when the boss is next, none leaving the boss room itself.
@@ -103,6 +116,13 @@ namespace Game.Level.Tests
                                 $"seed {seed} level {level} room {room.Index}: ordinary door labels stay in 1-8");
                         }
                     }
+
+                    // Each elite appears at most ONCE per biome (human call 2026-08-09) —
+                    // structurally guaranteed because each elite lives in exactly one room slot
+                    // and has zero budget weight, and pinned here in case that ever changes.
+                    foreach (KeyValuePair<string, int> elite in eliteCounts)
+                        Assert.That(elite.Value, Is.LessThanOrEqualTo(1),
+                            $"seed {seed} level {level}: '{elite.Key}' appears {elite.Value} times, max is once per biome");
 
                     // The boss room is the Tyrant, solo, on the designated point.
                     RoomPlan boss = plan.FinalRoom;

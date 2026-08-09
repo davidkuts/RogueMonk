@@ -53,6 +53,13 @@ namespace Game.Enemies
         Vector3 knockbackVelocity;
         float flashRemaining;
 
+        /// <summary>
+        /// True once <see cref="EnemyDefinition"/>'s damage gate has been broken by its key
+        /// attack. Never resets: the guard is a lesson taught once per body, not a shield that
+        /// regrows mid-fight.
+        /// </summary>
+        bool damageGateBroken;
+
         float burnTickRemaining;
         float deathRemaining;
         float deathTotal;
@@ -212,13 +219,18 @@ namespace Game.Enemies
             // on the attacker's resolver, so there is no target-side stage for it to sit in.
             HitZone zone = context.Zone;
 
-            // The damage gate: an enemy that declares onlyDamagedBy takes health damage from
-            // exactly that attack and nothing else. Poise, knockback and every piece of hit
-            // feedback still land, so the fight stays interactive — only the health bar waits
-            // for the earned counter.
-            bool guarded = definition.OnlyDamagedBy != null &&
-                (context.Attack == null || context.Attack.Id != definition.OnlyDamagedBy.Id);
+            // The damage gate: an enemy that declares onlyDamagedBy refuses all health damage
+            // until that attack lands ONCE — the first hit breaks the guard for good, and from
+            // then on ordinary attacks damage it normally (human call 2026-08-09; previously
+            // every point of damage had to come from the counter). Poise, knockback and every
+            // piece of hit feedback still land while guarded, so the fight stays interactive —
+            // only the health bar waits for the earned counter.
+            bool gateUp = definition.OnlyDamagedBy != null && !damageGateBroken;
+            bool gateKey = gateUp && context.Attack != null && context.Attack.Id == definition.OnlyDamagedBy.Id;
+            if (gateKey)
+                damageGateBroken = true;
 
+            bool guarded = gateUp && !gateKey;
             float applied = guarded ? 0f : Health.TakeDamage(context.Damage * zone.DamageMultiplier);
 
             // Poise only matters to something still standing. Applying it after a lethal hit
@@ -255,7 +267,8 @@ namespace Game.Enemies
             GameLog.Info(LogCategory.Enemy,
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
                 $"poise {Poise.Poise:0.##}/{definition.PoiseMax:0.##} -> {poiseResult}" +
-                (guarded ? $"  GUARDED - only '{definition.OnlyDamagedBy.Id}' damages this enemy" : string.Empty) +
+                (guarded ? $"  GUARDED - only '{definition.OnlyDamagedBy.Id}' can break the guard" : string.Empty) +
+                (gateKey ? "  GUARD BROKEN - ordinary attacks now damage this enemy" : string.Empty) +
                 (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty) +
                 (zone.IsNeutral ? string.Empty : $"  zone '{zone.Id}' x{zone.DamageMultiplier:0.00}"));
         }
@@ -420,11 +433,12 @@ namespace Game.Enemies
         /// </summary>
         void TickBurn(float deltaTime)
         {
-            // A damage-gated enemy does not burn: the gate promises that only the earned counter
-            // moves the health bar, and a boon's DoT trickling past it would quietly break that
-            // promise (burn bypasses the hit resolver, so the ApplyHit gate never sees it).
+            // A guarded enemy does not burn: the gate promises that nothing moves the health bar
+            // before the counter lands, and a boon's DoT trickling past it would quietly break
+            // that promise (burn bypasses the hit resolver, so the ApplyHit gate never sees it).
+            // Once the guard is broken, burning works like on anyone else.
             if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive
-                || definition.OnlyDamagedBy != null)
+                || (definition.OnlyDamagedBy != null && !damageGateBroken))
             {
                 burnTickRemaining = 0f;
                 return;

@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: TwiceStruckArchetype
   m_EditorClassIdentifier: Game.Level::Game.Level.EnemyArchetypeDefinition
   prefab: {fileID: 368868541844086673, guid: e56cf4bf1e66ee745b4387d1654ddb5b, type: 3}
-  selectionWeight: 0.6
+  selectionWeight: 0
   cost: 4
   allowsSharedSpawnPoints: 0

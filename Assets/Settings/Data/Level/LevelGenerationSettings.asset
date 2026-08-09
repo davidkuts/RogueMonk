@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb58dc4eb3914024cb23456eac1846d8, type: 3}
   m_Name: LevelGenerationSettings
   m_EditorClassIdentifier: Game.Level::Game.Level.LevelGenerationSettings
-  minStandardRooms: 5
-  maxStandardRooms: 5
+  minStandardRooms: 7
+  maxStandardRooms: 7
   minWavesPerRoom: 1
   maxWavesPerRoom: 2
   bossArchetype: {fileID: 11400000, guid: 669644f6dd024fd5804011d3450b2057, type: 2}
@@ -36,8 +36,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
   - {fileID: 11400000, guid: 669644f6dd024fd5804011d3450b2057, type: 2}
   roomScripts:
-  - note: 'Room 1 - vocabulary: the Swiftjaw pack is the baseline every composition
-      builds on'
+  - note: 'Room 1 - vocabulary: the Swiftjaw pack. NEVER an elite (human call 2026-08-09)'
     variants:
     - note: Pairs first, then the bigger pack
       waves:
@@ -101,8 +100,15 @@ MonoBehaviour:
           count: 2
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
           count: 2
-  - note: 'Room 4 - sentence: full mixed compositions'
+  - note: 'Room 4 - the Ambershell slot: the ONLY room that can hold the Ambershell,
+      so it appears at most once per biome. Half the runs get the duel, half a sentence
+      mix'
     variants:
+    - note: Ambershell duel, alone - riposte breaks the guard
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
+          count: 1
     - note: Close distance under fire
       waves:
       - entries:
@@ -117,6 +123,8 @@ MonoBehaviour:
           count: 1
         - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
           count: 4
+  - note: 'Room 5 - sentence: full mixed compositions'
+    variants:
     - note: Charge lanes through a carpet
       waves:
       - entries:
@@ -129,32 +137,7 @@ MonoBehaviour:
           count: 3
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
           count: 1
-  - note: 'Room 5 - elite room: the elite fights ALONE (human call 2026-08-09) - a riposte-gated
-      duel wants no bystanders'
-    variants:
-    - note: Ambershell duel
-      waves:
-      - entries:
-        - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
-          count: 1
-    - note: Twice-Struck echo duel
-      waves:
-      - entries:
-        - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
-          count: 1
-  - note: 'Room 6 - overtime: only exists on escalated later levels'
-    variants:
-    - note: Chargers then the echo
-      waves:
-      - entries:
-        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
-          count: 2
-        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
-          count: 5
-      - entries:
-        - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
-          count: 1
-    - note: Artillery then the shell
+    - note: Artillery line, then a carpet with a horn
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -162,5 +145,80 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
           count: 2
       - entries:
-        - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
           count: 1
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+  - note: 'Room 6 - the Twice-Struck slot: the ONLY room that can hold the Twice-Struck,
+      so it appears at most once per biome, and never the same elite twice'
+    variants:
+    - note: Twice-Struck echo duel, alone - riposte breaks the guard
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
+          count: 1
+    - note: Chargers through the carpet, then artillery
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+  - note: 'Room 7 - pre-boss crescendo: the biggest ordinary fights, deliberately
+      not an elite'
+    variants:
+    - note: Everything under fire
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+    - note: The pack returns, grown up
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 3
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+  - note: 'Room 8 - overtime: only exists on escalated later levels, no elites'
+    variants:
+    - note: Chargers, then artillery
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 5
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+    - note: The pack, then a carpet
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 3
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
