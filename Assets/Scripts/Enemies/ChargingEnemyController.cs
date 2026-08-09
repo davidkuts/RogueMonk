@@ -35,6 +35,7 @@ namespace Game.Enemies
         protected float wallSlamSpeedFraction = 0.35f;
 
         Vector3 positionBeforeMove;
+        Vector3 lockedChargeDirection;
         LayerMask baseExcludeLayers;
         bool capturedBaseExcludes;
         bool slammedThisCharge;
@@ -67,6 +68,15 @@ namespace Game.Enemies
             if (CurrentMove != null && CurrentMove.Id == chargeMoveId)
             {
                 slammedThisCharge = false;
+
+                // The line, captured once. Progress is measured against this rather than against
+                // facing, so a body being deflected by a wall cannot quietly redefine "forward".
+                lockedChargeDirection = transform.forward;
+                lockedChargeDirection.y = 0f;
+                lockedChargeDirection = lockedChargeDirection.sqrMagnitude > 0.0001f
+                    ? lockedChargeDirection.normalized
+                    : Vector3.forward;
+
                 GameLog.Info(LogCategory.Enemy,
                     $"{Definition.Id} commits to a charge - line locked for {attack.ActiveSeconds:0.00}s of travel");
             }
@@ -104,11 +114,16 @@ namespace Game.Enemies
         /// <summary>
         /// Ends the charge against a wall.
         ///
-        /// <para>Detected by <em>displacement</em> rather than by <c>collisionFlags</c>. A
-        /// CharacterController reports a side collision for any graze — including brushing another
-        /// enemy, which must never end a charge, since ploughing through the room is the point.
-        /// Measuring how far the body actually moved asks the only question that matters: did it
-        /// stop?</para>
+        /// <para>Measured as <em>progress along the locked line</em>, not as total displacement.
+        /// That distinction is the whole fix: a <c>CharacterController</c> meeting a wall at a
+        /// shallow angle <em>slides</em> along it, so total movement stays high and a displacement
+        /// test never fires — the charger just scrapes down the wall looking confused, which is
+        /// exactly what a playtest reported. Projecting onto the committed direction collapses to
+        /// near zero the moment it stops going the way it promised, whatever angle it hit at.</para>
+        ///
+        /// <para>Also deliberately not <c>collisionFlags</c>: a controller reports a side collision
+        /// for any graze, including brushing another enemy, and ploughing through the room is the
+        /// point of the move.</para>
         /// </summary>
         void CheckWallSlam()
         {
@@ -119,18 +134,22 @@ namespace Game.Enemies
             if (expected <= 0.0001f)
                 return;
 
-            float actual = Vector3.Distance(
-                new Vector3(positionBeforeMove.x, 0f, positionBeforeMove.z),
-                new Vector3(transform.position.x, 0f, transform.position.z));
+            Vector3 travelled = transform.position - positionBeforeMove;
+            travelled.y = 0f;
 
-            if (actual >= expected * wallSlamSpeedFraction)
+            float progress = Vector3.Dot(travelled, lockedChargeDirection);
+
+            if (progress >= expected * wallSlamSpeedFraction)
                 return;
 
             // Confirm something solid is genuinely ahead before crediting a slam, so a body wedged
             // on a slope or shoved by a knockback does not trigger it for free.
-            if (!Physics.Raycast(
-                    transform.position, transform.forward, Controller.radius + 0.45f,
-                    wallLayers, QueryTriggerInteraction.Ignore))
+            //
+            // A SPHERE cast, along the locked line: a thin ray from the centre misses a wall the
+            // body is already shouldered against at an angle, which is the case that matters most.
+            if (!Physics.SphereCast(
+                    transform.position, Controller.radius * 0.9f, lockedChargeDirection,
+                    out RaycastHit _, 0.6f, wallLayers, QueryTriggerInteraction.Ignore))
             {
                 return;
             }

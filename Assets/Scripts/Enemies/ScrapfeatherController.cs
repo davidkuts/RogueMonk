@@ -46,6 +46,9 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Gap between nibbles from THIS bird. Twelve birds on one cooldown would delete the player instantly.")]
         float nibbleCooldownSeconds = 1.1f;
 
+        [SerializeField, Tooltip("How long a bird must stay in contact before it can bite. Passing through, or dashing past, must never cost health — there is no guaranteed damage in this game.")]
+        float contactDwellSeconds = 0.35f;
+
         [Header("Flocking")]
         [SerializeField] float separation = 1.6f;
         [SerializeField] float cohesion = 0.5f;
@@ -56,6 +59,9 @@ namespace Game.Enemies
 
         [SerializeField, Tooltip("How fast the heading turns toward the steering direction. Low values make the carpet drift rather than snap.")]
         float steerResponse = 6f;
+
+        [SerializeField, Tooltip("Environment layers to steer around.")]
+        LayerMask obstacleLayers = 1;
 
         [SerializeField] float gravity = -25f;
         [SerializeField] float groundedStickSpeed = 2f;
@@ -79,6 +85,7 @@ namespace Game.Enemies
         Vector3 planarVelocity;
         float verticalSpeed;
         float nibbleCooldown;
+        float contactDwell;
 
         public static int FlockSize => Roster.Count;
 
@@ -119,11 +126,12 @@ namespace Game.Enemies
             if (!actor.IsStaggered)
             {
                 Steer(deltaTime);
-                TryNibble();
+                TryNibble(deltaTime);
             }
             else
             {
                 planarVelocity = Vector3.zero;
+                contactDwell = 0f;
             }
 
             verticalSpeed = controller.isGrounded ? -groundedStickSpeed : verticalSpeed + gravity * deltaTime;
@@ -187,22 +195,40 @@ namespace Game.Enemies
 
             // Eased rather than snapped, so the carpet flows instead of twitching. Twelve bodies
             // all snapping to a new heading on the same frame reads as a glitch, not a flock.
+            // Steered around obstacles like everything else: a carpet of birds funnelling into a
+            // crate instead of around it is the same clumsiness a raptor showed, twelve times over.
+            desired = ObstacleAvoidance.Deflect(
+                transform.position, desired, controller.radius, 1.4f, obstacleLayers, 0.85f);
+
             planarVelocity = Vector3.Lerp(
                 planarVelocity, desired * speed, 1f - Mathf.Exp(-steerResponse * deltaTime));
         }
 
         /// <summary>
-        /// Chip damage on contact. No telegraph, because there is no attack to telegraph — the
-        /// threat is standing where they are, which is exactly what makes them a space problem
-        /// rather than a damage problem.
+        /// Chip damage on sustained contact. No telegraph, because there is no attack to telegraph —
+        /// the threat is standing where they are, which is what makes them a space problem rather
+        /// than a damage problem.
+        ///
+        /// <para><b>It requires a dwell, and that is a rule rather than a tuning value.</b> Touching
+        /// a bird for a single frame — brushing past one, or landing a dash beside it — used to cost
+        /// health unavoidably, and there is no guaranteed damage in this game: skill has to be
+        /// rewarded, so a player who reads the swarm and moves through it cleanly must be able to
+        /// take nothing. Standing in the swarm still costs, which is the whole point of the
+        /// archetype; passing through it no longer does.</para>
         /// </summary>
-        void TryNibble()
+        void TryNibble(float deltaTime)
         {
-            if (nibble == null || nibbleCooldown > 0f)
+            if (nibble == null)
+            {
+                contactDwell = 0f;
                 return;
+            }
 
             int count = Physics.OverlapSphereNonAlloc(
                 transform.position, contactRadius, contactResults, hittableLayers, QueryTriggerInteraction.Collide);
+
+            IDamageable touching = null;
+            Collider touchingCollider = null;
 
             for (int i = 0; i < count; i++)
             {
@@ -214,14 +240,31 @@ namespace Game.Enemies
                 if (damageable == null || !damageable.IsAlive)
                     continue;
 
-                Vector3 direction = collider.transform.position - transform.position;
-                HitContext context = HitContext.FromAttack(
-                    nibble, damageable, direction, transform.position, HitZones.Resolve(collider));
+                touching = damageable;
+                touchingCollider = collider;
+                break;
+            }
 
-                resolver.Resolve(ref context);
-                nibbleCooldown = nibbleCooldownSeconds;
+            if (touching == null)
+            {
+                // Contact broken. Reset rather than decay, so a player weaving in and out never
+                // accumulates a bite across separate passes.
+                contactDwell = 0f;
                 return;
             }
+
+            contactDwell += deltaTime;
+
+            if (nibbleCooldown > 0f || contactDwell < contactDwellSeconds)
+                return;
+
+            Vector3 direction = touchingCollider.transform.position - transform.position;
+            HitContext context = HitContext.FromAttack(
+                nibble, touching, direction, transform.position, HitZones.Resolve(touchingCollider));
+
+            resolver.Resolve(ref context);
+            nibbleCooldown = nibbleCooldownSeconds;
+            contactDwell = 0f;
         }
 
         void OnDestroy()

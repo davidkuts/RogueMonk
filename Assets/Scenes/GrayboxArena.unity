@@ -600,6 +600,10 @@ MonoBehaviour:
   clearRoomKey: 25
   useLeftTrigger: 1
   triggerThreshold: 0.6
+  enemyLabKey: 102
+  enemyLabScene: EnemyLab
+  mainSceneKey: 103
+  mainScene: GrayboxArena
 --- !u!114 &209475370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7122,7 +7126,7 @@ MonoBehaviour:
   hittableLayers:
     serializedVersion: 2
     m_Bits: 256
-  hitboxHeightOffset: 0.9
+  hitboxHeightOffset: 0.35
   aimSteerDeadzone: 0.25
   impulseSource: {fileID: 1949805136}
   impulseScale: 1

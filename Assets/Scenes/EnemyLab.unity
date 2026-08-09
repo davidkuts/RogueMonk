@@ -325,6 +325,11 @@ MonoBehaviour:
   mixedWaveArchetypes: 020000000200000003000000
   player: {fileID: 1949805134}
   spawnRadius: 7
+  arenaHalfExtent: 8.5
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  spawnClearance: 1
   enemyParent: {fileID: 142119643}
   clearKey: 65
   mixedWaveKey: 50
@@ -688,6 +693,10 @@ MonoBehaviour:
   clearRoomKey: 25
   useLeftTrigger: 1
   triggerThreshold: 0.6
+  enemyLabKey: 102
+  enemyLabScene: EnemyLab
+  mainSceneKey: 103
+  mainScene: GrayboxArena
 --- !u!114 &209475370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6172,7 +6181,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1751057235
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7210,7 +7219,7 @@ MonoBehaviour:
   hittableLayers:
     serializedVersion: 2
     m_Bits: 256
-  hitboxHeightOffset: 0.9
+  hitboxHeightOffset: 0.35
   aimSteerDeadzone: 0.25
   impulseSource: {fileID: 1949805136}
   impulseScale: 1

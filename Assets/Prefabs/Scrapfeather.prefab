@@ -408,6 +408,7 @@ GameObject:
   - component: {fileID: 9089347626303322143}
   - component: {fileID: 5807246230326084023}
   - component: {fileID: 5323029113700917858}
+  - component: {fileID: 3447315803238689970}
   m_Layer: 8
   m_Name: Scrapfeather
   m_TagString: Untagged
@@ -513,6 +514,7 @@ MonoBehaviour:
     m_Bits: 512
   contactRadius: 0.7
   nibbleCooldownSeconds: 1.1
+  contactDwellSeconds: 0.35
   separation: 1.6
   cohesion: 0.5
   alignment: 0.35
@@ -520,5 +522,28 @@ MonoBehaviour:
   neighbourRadius: 3
   separationRadius: 1
   steerResponse: 6
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1
   gravity: -25
   groundedStickSpeed: 2
+--- !u!114 &3447315803238689970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435890271187948631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef7cd441b2d8f2d449125d6c4db60c59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyHealthBar
+  actor: {fileID: 9089347626303322143}
+  height: 0.45
+  width: 0.42
+  thickness: 0.07
+  hideWhenFull: 1
+  fillColor: {r: 0.8, g: 0.25, b: 0.25, a: 1}
+  backColor: {r: 0.08, g: 0.08, b: 0.09, a: 1}
+  followSpeed: 9

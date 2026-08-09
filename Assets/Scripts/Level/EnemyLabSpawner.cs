@@ -55,6 +55,15 @@ namespace Game.Level
         [SerializeField] Transform player;
         [SerializeField, Tooltip("Enemies appear on a ring at this radius, far enough that their spawn grace is not the only thing protecting the player.")]
         float spawnRadius = 7f;
+
+        [SerializeField, Tooltip("Half-width of the playable floor. A spawn is pulled inside this before it is used, so standing near a wall cannot put an enemy through it.")]
+        float arenaHalfExtent = 9f;
+
+        [SerializeField, Tooltip("Environment layers a spawn must not land inside. Checked after clamping, and the spawn walks toward the centre until it is clear.")]
+        LayerMask obstacleLayers = 1;
+
+        [SerializeField, Tooltip("Clearance a spawn needs. Roughly the widest body in the roster.")]
+        float spawnClearance = 1.0f;
         [SerializeField, Tooltip("Parent for spawned bodies, so Clear can drop them all at once.")]
         Transform enemyParent;
 
@@ -76,6 +85,12 @@ namespace Game.Level
 
         IRandomSource random;
         int spawnCounter;
+
+        /// <summary>Raised when a boss enters the lab, so the HUD can put its bar up.</summary>
+        public event Action<IBossEncounter> BossSpawned;
+
+        /// <summary>Raised when the arena is cleared, so the HUD can take the bar away.</summary>
+        public event Action BossCleared;
 
         /// <summary>Live bodies, for the on-screen readout.</summary>
         public int AliveCount
@@ -176,6 +191,8 @@ namespace Game.Level
             spawned.Clear();
             AttackTokenBroker.Current?.Pool.ReleaseAll();
 
+            BossCleared?.Invoke();
+
             GameLog.Warn(LogCategory.Level, "DEBUG lab: cleared");
         }
 
@@ -189,7 +206,7 @@ namespace Game.Level
             spawnCounter++;
 
             Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * spawnRadius;
-            Vector3 position = new Vector3(center.x + offset.x, center.y, center.z + offset.z);
+            Vector3 position = ResolveSpawnPosition(new Vector3(center.x + offset.x, center.y, center.z + offset.z), center);
 
             GameObject instance = Instantiate(prefab, position, Quaternion.LookRotation(-offset.normalized, Vector3.up), enemyParent);
 
@@ -217,9 +234,53 @@ namespace Game.Level
                 var tyrant = instance.GetComponent<TyrantPhaseDirector>();
                 if (tyrant != null)
                     tyrant.BindSeedJunk(new XorShiftRandom(((XorShiftRandom)random).NextUInt()));
+
+                // Announced rather than driven directly: Game.Level cannot reference Game.UI (UI
+                // depends on Level, and reversing it would be a cycle), so the bar listens for this
+                // exactly as it listens to the LevelDirector in a real run.
+                BossSpawned?.Invoke(new BossEncounter(actor, boss));
             }
 
             spawned.Add(actor);
+        }
+
+        /// <summary>
+        /// Pulls a spawn point inside the room and out of the scenery.
+        ///
+        /// <para>The ring is drawn around the <em>player</em>, so standing near a wall used to put
+        /// half of it outside the arena — enemies appeared inside geometry, or fell through it.
+        /// Clamping to the floor handles the walls; walking the point back toward the room's centre
+        /// handles the crates, which the ring has no idea are there.</para>
+        /// </summary>
+        Vector3 ResolveSpawnPosition(Vector3 wanted, Vector3 center)
+        {
+            wanted.x = Mathf.Clamp(wanted.x, -arenaHalfExtent, arenaHalfExtent);
+            wanted.z = Mathf.Clamp(wanted.z, -arenaHalfExtent, arenaHalfExtent);
+
+            if (obstacleLayers.value == 0 || spawnClearance <= 0f)
+                return wanted;
+
+            // Step inward until the body would fit. Toward the arena centre rather than toward the
+            // player, so clearing an obstacle never drops an enemy in the player's lap.
+            Vector3 inward = Vector3.zero - wanted;
+            inward.y = 0f;
+            inward = inward.sqrMagnitude > 0.0001f ? inward.normalized : Vector3.forward;
+
+            for (int step = 0; step < 8; step++)
+            {
+                Vector3 probe = wanted + inward * (step * spawnClearance);
+                probe.x = Mathf.Clamp(probe.x, -arenaHalfExtent, arenaHalfExtent);
+                probe.z = Mathf.Clamp(probe.z, -arenaHalfExtent, arenaHalfExtent);
+
+                if (!Physics.CheckSphere(probe + Vector3.up * spawnClearance, spawnClearance,
+                        obstacleLayers, QueryTriggerInteraction.Ignore))
+                {
+                    return probe;
+                }
+            }
+
+            GameLog.Warn(LogCategory.Level, "lab: found no clear spawn point - placing at the arena centre");
+            return new Vector3(0f, wanted.y, 0f);
         }
 
         void Prune()

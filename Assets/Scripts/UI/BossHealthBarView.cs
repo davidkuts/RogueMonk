@@ -38,6 +38,7 @@ namespace Game.UI
 
         BossBarModel model;
         IBossEncounter encounter;
+        EnemyLabSpawner lab;
         float flashRemaining;
 
         void Awake()
@@ -47,17 +48,25 @@ namespace Game.UI
             if (director == null)
                 director = FindAnyObjectByType<LevelDirector>();
 
-            if (director == null)
+            // A missing director is not an error any more: the enemy lab has no level generation at
+            // all, and a boss spawned there drives this bar through ShowFor instead. Disabling the
+            // component here would have made the Tyrant the only boss in the game without a bar.
+            if (director != null)
             {
-                Debug.LogError($"{nameof(BossHealthBarView)} on '{name}' found no {nameof(LevelDirector)}.", this);
-                enabled = false;
-                return;
+                // Bound to the director, not the room runner: the director outlives every room, so
+                // the bar survives the teardown between rooms without re-subscribing.
+                director.BossEncounterStarted += OnBossStarted;
+                director.BossEncounterEnded += OnBossEnded;
             }
 
-            // Bound to the director, not the room runner: the director outlives every room, so the
-            // bar survives the teardown between rooms without re-subscribing.
-            director.BossEncounterStarted += OnBossStarted;
-            director.BossEncounterEnded += OnBossEnded;
+            // The enemy lab has no level generation at all, so a boss spawned there announces
+            // itself instead. Subscribing to both means the bar behaves identically either way.
+            lab = FindAnyObjectByType<EnemyLabSpawner>(FindObjectsInactive.Include);
+            if (lab != null)
+            {
+                lab.BossSpawned += OnBossStarted;
+                lab.BossCleared += OnBossEnded;
+            }
 
             Show(false);
         }
@@ -69,7 +78,27 @@ namespace Game.UI
                 director.BossEncounterStarted -= OnBossStarted;
                 director.BossEncounterEnded -= OnBossEnded;
             }
+
+            if (lab != null)
+            {
+                lab.BossSpawned -= OnBossStarted;
+                lab.BossCleared -= OnBossEnded;
+            }
         }
+
+        /// <summary>
+        /// Puts the bar up for an encounter that did not come from level generation — a boss
+        /// spawned straight into the enemy lab. Same path the director drives, so the bar behaves
+        /// identically either way.
+        /// </summary>
+        public void ShowFor(IBossEncounter started)
+        {
+            if (started != null)
+                OnBossStarted(started);
+        }
+
+        /// <summary>Takes the bar down again, for a lab arena being cleared.</summary>
+        public void Hide() => OnBossEnded();
 
         void OnBossStarted(IBossEncounter started)
         {

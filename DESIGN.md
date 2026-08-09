@@ -168,6 +168,7 @@ VortexDefinition {           // or extend AttackDefinition with a nullable pull 
 - A spawn point too close to the player is **relocated at runtime**. The generated plan remains the authority on what spawns and how many, so a seed still reproduces the same fight.
 
 ### Player health
+- **NO GUARANTEED DAMAGE** (locked by the human 2026-08-09, after the first Biome 1 playtest). Every source of damage must be avoidable by a sufficiently skilled player. The more accurately someone reads a threat, the less they should be hit — a player who dashes past a swarm cleanly, or reads a telegraph and steps out of it, takes **nothing**. Contact damage therefore requires a *dwell* rather than firing on the first frame of overlap: brushing a body must not cost health. The one permitted exception is damage the player **chooses** to take for a reward (the Hades chaos-gate pattern), which is opt-in and clearly signposted. This is why Scrapfeather nibbles need sustained contact, and it is a rule to test any new damage source against.
 - HP number, **no healing at all** during the run
 - Consequences: generous HP pool (~10–15 mistakes to die across a level); **mandatory ~0.5 s post-hit invulnerability** with character flash
 

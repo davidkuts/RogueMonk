@@ -19,9 +19,10 @@ MonoBehaviour:
   comboWindowSeconds: 0.4
   hitbox:
     Kind: 0
-    LocalOffset: {x: 0, y: 0, z: 0.9}
-    Radius: 0.9
+    LocalOffset: {x: 0, y: 0, z: 0.95}
+    Radius: 1.05
     Size: {x: 1, y: 1, z: 1}
+    ArcDegrees: 360
   damage: 10
   damageType: 0
   poiseDamage: 10
@@ -31,3 +32,5 @@ MonoBehaviour:
   autoAimRangeMeters: 3
   aimSnapSpeedDegPerSec: 540
   moveSpeedMultiplier: 0.55
+  telegraphChannel: 0
+  telegraphColor: {r: 1, g: 0.25, b: 0.2, a: 1}

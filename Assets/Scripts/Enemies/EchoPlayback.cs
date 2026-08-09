@@ -42,6 +42,12 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Height the echo's hitbox is measured from. Match the real body's.")]
         float hitboxHeightOffset = 0.9f;
 
+        [SerializeField, Tooltip("Ground footprint the echo draws during ITS wind-up. Without one the replay hits with no warning at all, which is both unfair and unreadable.")]
+        TelegraphDecal decal;
+
+        [SerializeField, Tooltip("How brightly the ghost pulses while its own wind-up runs. The echo has to announce itself as loudly as the body did.")]
+        [Range(1f, 4f)] float telegraphBoost = 2.2f;
+
         struct PendingEcho
         {
             public IAttackDefinition Attack;
@@ -89,6 +95,31 @@ namespace Game.Enemies
 
             if (ghost != null)
                 Destroy(ghost.gameObject);
+        }
+
+        /// <summary>
+        /// Brightens the ghost while its wind-up runs, then settles it back.
+        ///
+        /// <para>A constant translucent copy is scenery; one that flares as it commits is a threat.
+        /// This is the other half of why the elite read as decorative — nothing about the ghost
+        /// changed when it was about to hit you.</para>
+        /// </summary>
+        void ApplyGhostTint(float intensity)
+        {
+            if (ghost == null)
+                return;
+
+            Color tint = TelegraphPalette.Resolve(palette, TelegraphChannel.Echo, new Color(0.78f, 0.95f, 0.98f));
+            tint *= intensity;
+            tint.a = Mathf.Clamp01(ghostOpacity * Mathf.Max(1f, intensity));
+
+            var block = new MaterialPropertyBlock();
+            foreach (Renderer renderer in ghost.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.GetPropertyBlock(block);
+                block.SetColor("_BaseColor", tint);
+                renderer.SetPropertyBlock(block);
+            }
         }
 
         /// <summary>
@@ -191,6 +222,44 @@ namespace Game.Enemies
                 BeginReplay(pending[0]);
                 pending.RemoveAt(0);
             }
+
+            UpdateEchoTelegraph();
+        }
+
+        /// <summary>
+        /// Draws the echo's own wind-up on the floor.
+        ///
+        /// <para>Added after a playtest where the whole elite read as "a duplicate of the mob with
+        /// a blue tint" and nothing more. The reason was structural rather than cosmetic: the ghost
+        /// replayed the <em>hitbox</em> but not the <em>telegraph</em>, so a real attack announced
+        /// itself and its echo did not — the replay simply hit, from a translucent shape, with no
+        /// tell. That breaks DESIGN.md's rule that every attack is telegraphed, and it hid the one
+        /// thing this enemy exists to teach.</para>
+        ///
+        /// <para>Now the echo paints the same footprint the body painted, in the echo hue, so the
+        /// mechanic states itself: <em>that attack is happening again, there</em>.</para>
+        /// </summary>
+        void UpdateEchoTelegraph()
+        {
+            if (decal == null)
+                return;
+
+            bool winding = echoAttacks.Phase == AttackPhase.Windup && ghost != null;
+            if (!winding || !(echoAttacks.Current is AttackDefinition asset))
+            {
+                decal.Hide();
+                return;
+            }
+
+            Color tint = TelegraphPalette.Resolve(palette, TelegraphChannel.Echo, new Color(0.78f, 0.95f, 0.98f));
+
+            decal.Show(
+                asset.Hitbox,
+                ghost.position + Vector3.up * hitboxHeightOffset,
+                ghost.forward,
+                tint,
+                echoAttacks.WindupProgress,
+                ghost.position.y);
         }
 
         void BeginReplay(in PendingEcho echo)
@@ -219,6 +288,14 @@ namespace Game.Enemies
 
             ghost.position += ghostVelocity * deltaTime;
 
+            // Flares across its wind-up and peaks on the strike, matching how every other telegraph
+            // in the game ramps.
+            float intensity = echoAttacks.Phase == AttackPhase.Windup
+                ? Mathf.Lerp(1f, telegraphBoost, echoAttacks.WindupProgress)
+                : echoAttacks.Phase == AttackPhase.Active ? telegraphBoost : 1f;
+
+            ApplyGhostTint(intensity);
+
             if (echoAttacks.Phase == AttackPhase.Active)
                 QueryEchoHitbox();
         }
@@ -239,6 +316,10 @@ namespace Game.Enemies
         void OnEchoEnded(IAttackDefinition attack)
         {
             ghostVelocity = Vector3.zero;
+
+            if (decal != null)
+                decal.Hide();
+
             if (ghost != null)
                 ghost.gameObject.SetActive(false);
         }

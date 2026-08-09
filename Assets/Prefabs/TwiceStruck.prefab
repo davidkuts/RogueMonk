@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 5106385243347617521}
   - component: {fileID: 8857212966221729893}
   - component: {fileID: 5576782167069891846}
+  - component: {fileID: 2949830532422486811}
   m_Layer: 8
   m_Name: TwiceStruck
   m_TagString: Untagged
@@ -36,6 +37,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6874875848595228398}
+  - {fileID: 4236650715437933136}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &1763461123402159173
@@ -136,6 +138,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   hitboxHeightOffset: 0.8
+  decal: {fileID: 4279726949447008976}
+  telegraphBoost: 2.2
 --- !u!114 &5576782167069891846
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,10 +161,35 @@ MonoBehaviour:
   projectileBlockingLayers:
     serializedVersion: 2
     m_Bits: 1
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  avoidanceProbeDistance: 2.2
+  avoidanceStrength: 0.85
   gravity: -25
   groundedStickSpeed: 2
   telegraph: {fileID: 5106385243347617521}
   echo: {fileID: 8857212966221729893}
+--- !u!114 &2949830532422486811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368868541844086673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef7cd441b2d8f2d449125d6c4db60c59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyHealthBar
+  actor: {fileID: 6099263629987628807}
+  height: 1.45
+  width: 0.95
+  thickness: 0.11
+  hideWhenFull: 1
+  fillColor: {r: 0.8, g: 0.25, b: 0.25, a: 1}
+  backColor: {r: 0.08, g: 0.08, b: 0.09, a: 1}
+  followSpeed: 9
 --- !u!1 &921344482579156006
 GameObject:
   m_ObjectHideFlags: 0
@@ -829,3 +858,76 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1001 &1573334896999952188
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6587796450930742562}
+    m_Modifications:
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4213939287525171679, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+      propertyPath: m_Name
+      value: EchoDecal
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+--- !u!4 &4236650715437933136 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3395151863853436268, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+  m_PrefabInstance: {fileID: 1573334896999952188}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4279726949447008976 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3364539925920542188, guid: 3b64778d25a9a4a4ba9ad10898bf615c, type: 3}
+  m_PrefabInstance: {fileID: 1573334896999952188}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c01bf15ce71ca5438d9d7ecbba58853, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.TelegraphDecal

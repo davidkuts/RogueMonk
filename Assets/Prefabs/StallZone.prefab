@@ -135,8 +135,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff42a961bc02b224c9ab795e8f25cf2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.StallZone
-  radius: 1.5
-  durationSeconds: 2
+  radius: 2.6
+  durationSeconds: 2.6
   speedMultiplier: 0.45
   decal: {fileID: 1920863157392789954}
   groundOffset: 0.02

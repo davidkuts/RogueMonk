@@ -156,7 +156,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.SkyDropVisual
   prop: {fileID: 7348345435871258031}
   dropHeight: 14
-  fallSeconds: 0.9
+  fallSeconds: 0.85
   lingerSeconds: 1.2
   materialiseFraction: 0.25
 --- !u!1 &5803089798746987677

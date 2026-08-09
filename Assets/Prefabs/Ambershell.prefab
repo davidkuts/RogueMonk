@@ -788,6 +788,7 @@ GameObject:
   - component: {fileID: 4007614955643909447}
   - component: {fileID: 4463649991369197306}
   - component: {fileID: 5853885858894295489}
+  - component: {fileID: -5003966512442153876}
   m_Layer: 8
   m_Name: Ambershell
   m_TagString: Untagged
@@ -911,6 +912,11 @@ MonoBehaviour:
   projectileBlockingLayers:
     serializedVersion: 2
     m_Bits: 1
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  avoidanceProbeDistance: 2.2
+  avoidanceStrength: 0.85
   gravity: -25
   groundedStickSpeed: 2
   telegraph: {fileID: 4007614955643909447}
@@ -940,6 +946,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1969f09253d895540abb181c64feee95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Combat::Game.Combat.ZonedBody
+--- !u!114 &-5003966512442153876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7212784579539804977}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef7cd441b2d8f2d449125d6c4db60c59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.EnemyHealthBar
+  actor: {fileID: 3536993368040917189}
+  height: 0.95
+  width: 0.95
+  thickness: 0.11
+  hideWhenFull: 1
+  fillColor: {r: 0.8, g: 0.25, b: 0.25, a: 1}
+  backColor: {r: 0.08, g: 0.08, b: 0.09, a: 1}
+  followSpeed: 9
 --- !u!1 &8456897243738204198
 GameObject:
   m_ObjectHideFlags: 0

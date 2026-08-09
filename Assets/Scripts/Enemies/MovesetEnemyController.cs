@@ -44,6 +44,16 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Layers that stop a projectile dead without being damaged (walls). Only read by moves that throw something.")]
         protected LayerMask projectileBlockingLayers;
 
+        [Header("Obstacle avoidance")]
+        [SerializeField, Tooltip("Environment layers to steer around. NavMesh is the eventual routing answer (DESIGN.md bakes one per room); this is the local layer that stops a body grinding along a crate.")]
+        protected LayerMask obstacleLayers = 1;
+
+        [SerializeField, Tooltip("How far ahead to look. Roughly a second of travel. 0 disables avoidance entirely.")]
+        protected float avoidanceProbeDistance = 2.2f;
+
+        [SerializeField, Range(0f, 1f), Tooltip("How hard it turns along an obstacle it is about to hit.")]
+        protected float avoidanceStrength = 0.85f;
+
         [SerializeField] protected float gravity = -25f;
         [SerializeField] protected float groundedStickSpeed = 2f;
 
@@ -308,7 +318,24 @@ namespace Game.Enemies
             // player is meant to read.
             FaceTowards(direction, deltaTime);
 
-            return direction * (definition.MoveSpeed * fraction * actor.StatusMoveSpeedMultiplier);
+            return Avoid(direction * (definition.MoveSpeed * fraction * actor.StatusMoveSpeedMultiplier));
+        }
+
+        /// <summary>
+        /// Steers a walking velocity around obstacles.
+        ///
+        /// <para>Applied to ordinary movement only, never to a committed attack. A charge that
+        /// swerved would stop being line-locked, and being able to bait it into geometry is the
+        /// entire answer to it.</para>
+        /// </summary>
+        protected Vector3 Avoid(Vector3 velocity)
+        {
+            if (avoidanceProbeDistance <= 0f)
+                return velocity;
+
+            return ObstacleAvoidance.Deflect(
+                transform.position, velocity, Controller != null ? Controller.radius : 0.4f,
+                avoidanceProbeDistance, obstacleLayers, avoidanceStrength);
         }
 
         /// <summary>
@@ -335,8 +362,12 @@ namespace Game.Enemies
             // spiralling.
             float radialError = Mathf.Clamp(distance - definition.CircleRadius, -1f, 1f);
             Vector3 heading = (tangent + direction * radialError).normalized;
+            Vector3 velocity = heading * (definition.MoveSpeed * definition.CircleSpeedFraction * actor.StatusMoveSpeedMultiplier);
 
-            return heading * (definition.MoveSpeed * definition.CircleSpeedFraction * actor.StatusMoveSpeedMultiplier);
+            // Circling is where avoidance matters most: the orbit is a fixed geometric path that
+            // takes no notice of the room, so without this a raptor working the player's flank
+            // walks straight into whatever crate happens to be on the circle.
+            return Avoid(velocity);
         }
 
         /// <summary>

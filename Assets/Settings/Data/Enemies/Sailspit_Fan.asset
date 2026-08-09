@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
-  m_Name: Sailspit
+  m_Name: Sailspit_Fan
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
   maxHealth: 30
   tier: 0
@@ -47,18 +47,18 @@ MonoBehaviour:
     projectileCount: 1
     projectileSpreadDegrees: 0
     projectileSpeedOverride: 7
-  - id: SpineShot
+  - id: SpineFan
     links:
     - {fileID: 11400000, guid: 360dafd0836a18a42b5b826ccf4341a3, type: 2}
     linkDelaySeconds: 0
     minRange: 4.5
     maxRange: 10
     selectionWeight: 0.9
-    moveCooldownSeconds: 3
+    moveCooldownSeconds: 4.5
     lungeDistance: 0
     projectilePrefab: {fileID: 3792520230636661157, guid: 9d10f2335773a3a42a1ba650e045b72f, type: 3}
-    projectileCount: 1
-    projectileSpreadDegrees: 0
+    projectileCount: 5
+    projectileSpreadDegrees: 40
     projectileSpeedOverride: 0
   repeatWeightMultiplier: 0.4
   tokenKind: 1
