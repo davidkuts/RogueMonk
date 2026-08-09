@@ -1,0 +1,132 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54445851b55d61342b982951072b4482, type: 3}
+  m_Name: Boss_Tyrant
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BossDefinition
+  maxHealth: 900
+  tier: 2
+  poiseMax: 0
+  poiseRegenDelay: 1.5
+  poiseRegenRate: 15
+  armorMax: 0
+  staggerDurationSeconds: 0
+  moveSpeed: 3.2
+  aggroRange: 40
+  attackRange: 4.5
+  attackCooldownSeconds: 1.1
+  spawnGraceSeconds: 1.5
+  lungeDistance: 2.2
+  attack: {fileID: 11400000, guid: 46885da5549331d4fa86f0d7a64aee5f, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 9
+    ProjectileSpeed: 9
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.35
+    KiteSpeedFraction: 0.7
+  displayName: The Tyrant
+  moves:
+  - id: LungeBite
+    links:
+    - {fileID: 11400000, guid: 46885da5549331d4fa86f0d7a64aee5f, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 0
+    maxRange: 5.5
+    selectionWeight: 1.4
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 1.6
+    lungeDistance: 2.2
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    hazardArcDegrees: 360
+    isRetaliation: 0
+  - id: TailArc
+    links:
+    - {fileID: 11400000, guid: 155dd58d202e76243bae80224b9148f3, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 0
+    maxRange: 4.8
+    selectionWeight: 1
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 3.4
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    hazardArcDegrees: 360
+    isRetaliation: 1
+  - id: ArenaCharge
+    links:
+    - {fileID: 11400000, guid: 8cf4c9a41c0f274499fd5dfc64fdf7b2, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 6
+    maxRange: 26
+    selectionWeight: 1.2
+    unlockedAtPhase: 0
+    moveCooldownSeconds: 5
+    lungeDistance: 16
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    hazardArcDegrees: 360
+    isRetaliation: 0
+  - id: PhaseRoar
+    links:
+    - {fileID: 11400000, guid: 94b874663d873c0418cc92a07951b6d3, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 0
+    maxRange: 40
+    selectionWeight: 0
+    unlockedAtPhase: 1
+    moveCooldownSeconds: 99
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 0
+    hazardScatterRadius: 0
+    hazardArcDegrees: 360
+    isRetaliation: 0
+  - id: JunkRain
+    links:
+    - {fileID: 11400000, guid: f04ebb95f091a934a8257c82c56b12b6, type: 2}
+    linkDelaySeconds: 0.3
+    minRange: 0
+    maxRange: 40
+    selectionWeight: 1.1
+    unlockedAtPhase: 1
+    moveCooldownSeconds: 7
+    lungeDistance: 0
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileLeadFraction: 0
+    hazardCount: 5
+    hazardScatterRadius: 6.5
+    hazardArcDegrees: 360
+    isRetaliation: 0
+  phases:
+  - healthFractionThreshold: 0.66
+    cooldownMultiplier: 0.85
+  - healthFractionThreshold: 0.33
+    cooldownMultiplier: 0.65
+  phaseTransitionSeconds: 1.6
+  repeatWeightMultiplier: 0.35
+  retaliationHitThreshold: 4
+  retaliationHitThresholdMax: 7
+  retaliationWindowSeconds: 2.5

@@ -3,7 +3,11 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **M14 Phase 0 (Biome 1 enemy framework) is built and verified. 466 EditMode tests passing** (was 430; +36). `EnemyLab.unity` runs empty and clean. **Awaiting the human's go before Phase 1 (the seven enemies).**
+- **M14 is content-complete in capsule phase: the framework plus all seven Biome 1 enemies. 488 EditMode tests passing** (was 430; +58). Zero console errors. **Nothing here has been feel-checked by a human yet — that is the next thing that should happen.**
+- **`EnemyLab.unity` is the test bench.** Keys **1–7** spawn Swiftjaw / Sailspit / Cerashorn / Scrapfeather / Ambershell / Twice-Struck / Tyrant, **0** spawns the mixed wave, **Backspace** clears. Seeded (12345) so a fight replays.
+- ⚠️ **No build has been made for any of this.** CLAUDE.md says playtesting happens in a standalone build; `Builds/Win64/RogueMonk.exe` is still the M13.3 build and does **not** contain the roster. **Rebuild before playtesting.**
+- ⚠️ **None of the seven are registered in `LevelGenerationSettings`**, so a real run still fights the old grunt/skirmisher/Stone Warden. That is deliberate — wave composition is an ENEMIES_BIOME1.md §5 decision that wants the whole roster present, and registering them piecemeal would have shifted every existing seed mid-milestone. **This is the obvious next task.**
+- **Two things need a human call before they can be tuned** (both detailed in their session entries): the **global melee token cap starves the Cerashorn** in a mixed wave, and the **Twice-Struck's echo delay equals the player's post-hit i-frame window**, so a landed hit usually eats its own echo.
 - **The amber collision is RESOLVED.** `ENEMIES_BIOME1.md` §1 made amber a semantic channel (solidified time). Three hue calls taken by the human 2026-08-09: **projectile telegraph → magenta**, **Sailspit identity → muted plum** (saturated violet stays the gap-closer), **Twice-Struck echo → pale bone-cyan** (the dash blue was not re-opened). All three are in DESIGN.md and in `TelegraphPalette.asset`.
 - ⚠️ **`ENEMIES_BIOME1.md` was missing from the repo at session start** and was pasted in mid-session. It is now at the repo root but is **untracked until this commit** — it is the spec for the entire milestone, so it must never go missing again.
 - **M13 through M13.3 built and verified**, `Builds/Win64/RogueMonk.exe` rebuilt. Still awaiting the human's feel-check on the spin (full circle across the whole move, foot-traced smear, short visible pull) and the doubled dodge grace. **The build has NOT been rebuilt for Phase 0** — it adds no playable content yet, so there is nothing to feel-check.
@@ -50,7 +54,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 6 of 7 — **only the Tyrant left** |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | ✅ **7 of 7 — roster complete (capsule phase)** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +65,18 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 7 of 7: THE TYRANT — the Biome 1 roster is complete
+- **It is a boss, so it reuses `BossBrain` unchanged.** The 100/66/33 phase ladder is exactly `IBossPhase`, the junk-rain is an ordinary hazard move unlocked at phase 1, and the tail arc is an ordinary retaliation. **No phase machinery was written** — that was the call made back in Phase 0 and it held.
+- **`TyrantPhaseDirector` is a sidecar, not a subclass.** `BossController` is sealed, signed off, and also drives the Stone Warden; none of the Tyrant's bespoke systems need to be inside it. It subscribes to the brain's `PhaseChanged` and manipulates the body from outside — which also means both bespoke systems can be switched off in a playtest by disabling one component.
+- **Phase 2 hardens named zones at runtime, and only some of them.** Hardening the whole body would just be a damage-reduction buff; hardening the flanks and skull specifically means **the soft ground moved** and the player has to find it again mid-fight. **Verified: flanks and skull go to x0.30 while torso and tail stay x1.00.**
+- **The junk-rain obeys the no-ceilings rule structurally, not by convention.** It reuses the shipped `FloorHazard` path — so the debris is ground-telegraphed with the real hitbox and *cannot* land anywhere the circle did not promise — and the hazard prefab carries a `SkyDropVisual` that materialises the prop **14 m up**, scales it in, and drops it so it lands exactly as the circle fills. **Verified: 5/5 zones placed, prop spawns at local y=14 with 0 colliders.** The junk phases into existence rather than shaking loose from rock, which §4 notes is also the better lore.
+- **Phase 3's stutter alternates deterministically rather than rolling.** A boss whose timing corrupts *randomly* is unlearnable, which would fail the read-and-react promise the whole game rests on — and alternating costs no RNG draw, so it cannot perturb the boss's seeded move stream. The frame-hold is implemented by switching the controller off for 0.16 s, so the wind-up **genuinely holds** rather than being faked. **Verified alternating: `frame-hold 0.16s` → `warp 3.0m forward` → repeat.** A warp that would end inside geometry is refused.
+- **The junk-ring slam is a scripted window because the Tyrant is Immune** — `EnemyActor.ApplyStagger` refuses Immune outright, and rightly so. Same idea as the phase break: a punish window earned with **positioning** instead of poise, which is what stops an un-interruptible boss reading as unresponsive. Detected by displacement, like every charge in this biome.
+- ⚠️ **Found and fixed: the lab spawner never bound bosses.** `RoomRunner` binds a boss its seeded stream; `EnemyLabSpawner` only bound moveset enemies, so the Tyrant spawned with **no brain at all** and simply stood there — which looks exactly like a broken boss rather than an unbound one.
+- **Verified live**: bound with 5 moves / 3 phases, Immune tier, 900 HP; all moves land for authored damage (charge 24, bite 22); phase transitions at 66% and 33% both fire; **136–147 fps**; zero console errors.
+- **488/488 EditMode tests.**
+- Known issues / TODO next: **the seed-junk draw is wired but no props are authored** (`SeedJunkIndex` returns −1), so that piece of §4 is plumbing without art. Phase 3's stutter has **no visual** — the brief said to stub it and that the timing corruption is what matters, so that is deliberate. The junk-ring slam is verified by construction rather than by a staged collision; the arena's junk ring is currently just the graybox wall. The Tyrant is **not registered in `LevelGenerationSettings`** and does not yet replace the Stone Warden — that is a wave-composition decision (§5) for the whole roster at once.
 
 ### 2026-08-09 — M14.1 enemy 6 of 7: TWICE-STRUCK (the echo elite)
 - **Built as generic delayed playback, as the brief asked.** `EchoPlayback` records an attack at the moment it commits — attack, position, rotation, lunge — and replays it 0.5 s later on a ghost with its **own real hitbox**. The controller is tiny: record on commit, cancel on stagger. Everything else is the mechanism and the data.

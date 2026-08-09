@@ -263,6 +263,12 @@ namespace Game.Level
 
             boss.Bind(run.DeriveStream());
 
+            // Cosmetic, but it draws from the run's stream so a quoted seed reproduces the fight
+            // right down to what the boss is wearing.
+            var tyrant = instance.GetComponent<TyrantPhaseDirector>();
+            if (tyrant != null)
+                tyrant.BindSeedJunk(run.DeriveStream());
+
             var encounter = new BossEncounter(actor, boss);
             actor.DeathSequenceStarted += () => BossDefeated?.Invoke();
             BossSpawned?.Invoke(encounter);

@@ -319,6 +319,9 @@ MonoBehaviour:
   - Label: Twice-Struck
     Prefab: {fileID: 368868541844086673, guid: e56cf4bf1e66ee745b4387d1654ddb5b, type: 3}
     CountPerPress: 1
+  - Label: The Tyrant
+    Prefab: {fileID: 1265441236269280034, guid: c6d8951d7ada28c43988fc70f3f5cfb0, type: 3}
+    CountPerPress: 1
   mixedWaveArchetypes: 020000000200000003000000
   player: {fileID: 1949805134}
   spawnRadius: 7

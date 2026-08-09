@@ -201,11 +201,23 @@ namespace Game.Level
                 return;
             }
 
-            // Same contract the real spawner honours: a multi-move enemy draws a variable number
-            // of times, so it gets its own derived stream rather than sharing the lab's.
+            // Same contract the real spawner honours: anything whose draw count depends on how the
+            // fight goes gets its own derived stream rather than sharing the lab's.
             var moveset = instance.GetComponent<MovesetEnemyController>();
             if (moveset != null)
                 moveset.Bind(new XorShiftRandom(((XorShiftRandom)random).NextUInt()));
+
+            // A boss that is never bound has no brain at all and simply stands there — which looks
+            // exactly like a broken boss rather than an unbound one, so it is worth doing here too.
+            var boss = instance.GetComponent<BossController>();
+            if (boss != null)
+            {
+                boss.Bind(new XorShiftRandom(((XorShiftRandom)random).NextUInt()));
+
+                var tyrant = instance.GetComponent<TyrantPhaseDirector>();
+                if (tyrant != null)
+                    tyrant.BindSeedJunk(new XorShiftRandom(((XorShiftRandom)random).NextUInt()));
+            }
 
             spawned.Add(actor);
         }

@@ -82,6 +82,32 @@ namespace Game.Combat
             CrackedChanged?.Invoke(true);
         }
 
+        /// <summary>
+        /// Turns this zone's plating on or off at runtime.
+        ///
+        /// <para>For the Tyrant, whose flanks and skull <em>become</em> armoured partway through the
+        /// fight — ENEMIES_BIOME1.md § 4 Phase 2, "the player must re-learn where to hit". A zone
+        /// authored soft and hardened later is the same object throughout, so the hit pipeline, the
+        /// tint and the pull-resistance rule all follow automatically.</para>
+        /// </summary>
+        public void SetArmored(bool value, float reduction = -1f)
+        {
+            armored = value;
+
+            if (reduction >= 0f)
+                damageReduction = Mathf.Clamp01(reduction);
+
+            // Hardening cancels any crack: the plate is new, not repaired.
+            if (value)
+                crackedRemaining = 0f;
+
+            blocksStagger = value;
+            CrackedChanged?.Invoke(IsCracked);
+
+            GameLog.Info(LogCategory.Enemy,
+                $"zone '{zoneId}' {(value ? "HARDENED" : "softened")} - x{Describe().DamageMultiplier:0.00}");
+        }
+
         /// <summary>Ends the crack window early. Used when a body is reset or pooled.</summary>
         public void ReHarden()
         {
