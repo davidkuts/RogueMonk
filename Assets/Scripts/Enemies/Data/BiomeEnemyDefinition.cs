@@ -97,16 +97,29 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How many of THIS archetype may attack at once, on top of the global cap. ENEMIES_BIOME1.md caps Swiftjaw at 2 whatever the pack size. 0 means no per-archetype limit.")]
         int concurrentAttackerCap;
 
+        [SerializeField, Tooltip("Random delay before this body's FIRST attack, on top of the spawn grace. Keeps a pack spawned in one frame from running identical timers forever. 0 disables it.")]
+        float initialCooldownJitterSeconds;
+
         [Header("Steering")]
         [SerializeField, Tooltip("Turn rate while chasing. Facing locks when a wind-up starts, so this never lets a telegraph track the player.")]
         float turnSpeedDegPerSec = 540f;
+
+        [Header("Circling")]
+        [SerializeField, Range(0f, 1f), Tooltip("Speed used while in range but not allowed to attack — waiting on a token or a cooldown. 0 makes it stand still, which reads as broken on a pack animal.")]
+        float circleSpeedFraction;
+
+        [SerializeField, Tooltip("Distance it tries to hold while circling. Wants to sit outside its own attack range, so closing is a decision rather than a drift.")]
+        float circleRadius = 3.2f;
 
         IReadOnlyList<IEnemyMove> cachedMoves;
 
         public float RepeatWeightMultiplier => repeatWeightMultiplier;
         public AttackTokenKind TokenKind => tokenKind;
         public int ConcurrentAttackerCap => concurrentAttackerCap;
+        public float InitialCooldownJitterSeconds => initialCooldownJitterSeconds;
         public float TurnSpeedDegPerSec => turnSpeedDegPerSec;
+        public float CircleSpeedFraction => circleSpeedFraction;
+        public float CircleRadius => circleRadius;
 
         public IReadOnlyList<IEnemyMove> Moves
         {

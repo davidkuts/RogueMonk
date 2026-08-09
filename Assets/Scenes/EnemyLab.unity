@@ -300,8 +300,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed7ffbee16ff3714fa7789f29fbd0d16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Level::Game.Level.EnemyLabSpawner
-  archetypes: []
-  mixedWaveArchetypes: 
+  archetypes:
+  - Label: Swiftjaw
+    Prefab: {fileID: 8832819485846617629, guid: dc6948ead521a3f4e8cda7b67da883e0, type: 3}
+    CountPerPress: 2
+  mixedWaveArchetypes: 00000000
   player: {fileID: 1949805134}
   spawnRadius: 7
   enemyParent: {fileID: 142119643}

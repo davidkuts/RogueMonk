@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | ⬜ not started |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 1 of 7 — **Swiftjaw done** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 1 of 7: SWIFTJAW (raptor pack)
+- **Zero new enemy code.** Swiftjaw is 3 `AttackDefinition`s + 1 `BiomeEnemyDefinition` + 1 `CapsuleRecipe` + 1 prefab, running on the Phase 0 base with no subclass. That was the bet Phase 0 made and it paid: "new enemies = SOs + minimal code" held for the first one.
+- **Two things it needed that the base lacked, and both are general, so both went in the base as data.** A pack animal that stands still while it waits for the attack token reads as switched off — `circleSpeedFraction`/`circleRadius` make a waiting or recharging body orbit at a held radius while still facing the player (turning to face its direction of travel would show the player its flank, and the silhouette is the read). And **`initialCooldownJitterSeconds`**, because the token cap decides *who goes first*, not that a pair stays out of phase: two raptors spawned in the same frame otherwise run identical timers forever and the player faces one doubled threat on a metronome instead of the offset pair §2.1 asks for.
+- **The moveset uses two telegraph channels, which is the palette earning its keep.** *Pounce bite* is a gap-closer, so it draws **violet**; the *snap combo* is a melee arc, so **red**. Verified live: the pounce's wind-up resolved to `RGBA(0.65, 0.35, 1.00)` through the `GapCloser` channel with the body flash matching. The **second snap swipe has the longer wind-up** (0.50 s against 0.40 s) — the rhythm trap §2.1 specifies, so a player who learned the first swipe's beat dodges early into the second.
+- **Timings sit inside DESIGN's 400–500 ms melee band** rather than fighting it. §2.1's "quick swipes" and DESIGN's floor are compatible: 0.40 / 0.50 satisfies both, and the pounce's 0.40 s crouch is the spec's number exactly.
+- **Tuning, calibrated against the real player kit** (max speed 6, punch 10, kick 20): hp **24** = three punches, poise **18** = breaks on the second punch. Move speed **5.0** — fast enough to read as a rusher, slow enough that disengaging stays a real option; trash that outruns the player removes the choice.
+- **Verified live in `EnemyLab`, six spawned at once**: exactly **2 attacking, tokens 2/2**, 2 Waiting, 2 circling — the §2.1 pack cap holding against a pack of six. Bearings measured moving between samples (12°→57°, −21°→−72°), so the waiters genuinely orbit. Telegraph decal drawing the **real** hitbox: scale 3.20 = 2 × radius 1.6, arc 120°, fill 0.92 at wind-up progress 0.92. Through the real resolver: punch 1 → 14 hp, punch 2 → 4 hp and **staggered**, punch 3 → dead and despawned cleanly. All three attacks landed on the player for their authored damage (8 / 6 / 8). **Token released on death and on Clear — 0/2 after, no leak.** 131 fps with five live, **zero console errors**.
+- **469/469 EditMode tests** (+3: jitter delays the first attack, two streams do not share a clock, zero jitter is byte-identical to the old behaviour).
+- Known issues / TODO next: **no `EnemyArchetypeDefinition` yet and Swiftjaw is not registered in `LevelGenerationSettings`** — deliberate, because wave composition is a §5 decision that wants the whole roster present, and registering now would shift every existing seed mid-milestone. ⚠️ **Latent:** `MovesetEnemyController`'s fallback RNG seed is derived from the archetype id, so several hand-placed bodies in a scene with no `RunContext` would be identical clones (same jitter, same circle direction). Both real spawn paths bind a derived stream, so this only bites a hand-authored scene. Circling is controller-side and therefore verified live rather than by EditMode test.
 
 ### 2026-08-09 — M14 Phase 0: the framework the whole Cretaceous roster sits on
 - **The session opened blocked.** `ENEMIES_BIOME1.md` — the spec for every enemy, the reserved palette and the no-ceilings rule — **was not in the repo and never had been** (`git log --all` on the path returned nothing). `ASSETS_BIOME1.md` had arrived alone and opens by calling itself a companion to it. Stopped and asked rather than inventing seven enemies' worth of numbers; the human pasted it in.

@@ -267,6 +267,54 @@ namespace Game.Enemies.Tests
         }
 
         [Test]
+        public void TheInitialCooldownJitterDelaysTheFirstAttack()
+        {
+            var move = new FakeEnemyMove { MaxRange = 3f };
+            var definition = new FakeEnemyDefinition { AggroRange = 12f, SpawnGraceSeconds = 0f };
+
+            var brain = new EnemyMovesetBrain(
+                definition, new IEnemyMove[] { move }, new XorShiftRandom(31u), 0.45f, initialCooldownJitter: 2f);
+
+            Assert.Greater(brain.CooldownRemaining, 0f, "a jittered body must not be ready on its first frame");
+            Assert.LessOrEqual(brain.CooldownRemaining, 2f, "the jitter must stay inside its stated bound");
+
+            brain.Tick(Step, 2f, hasTarget: true, isAttacking: false, isStaggered: false, attackPermitted: true);
+            Assert.IsFalse(brain.WantsToAttack);
+        }
+
+        [Test]
+        public void TwoBodiesOnDifferentStreamsDoNotShareAnAttackClock()
+        {
+            var definition = new FakeEnemyDefinition { AggroRange = 12f };
+
+            // The point of the jitter. Two Swiftjaws spawned in the same frame otherwise run
+            // identical timers forever — they commit together and recover together, and the player
+            // faces one doubled threat on a metronome instead of the offset pair the design asks
+            // for. The attack token decides who goes first; it does not keep them out of phase.
+            var a = new EnemyMovesetBrain(
+                definition, new IEnemyMove[] { new FakeEnemyMove() }, new XorShiftRandom(101u), 0.45f, 2f);
+            var b = new EnemyMovesetBrain(
+                definition, new IEnemyMove[] { new FakeEnemyMove() }, new XorShiftRandom(202u), 0.45f, 2f);
+
+            Assert.AreNotEqual(a.CooldownRemaining, b.CooldownRemaining);
+        }
+
+        [Test]
+        public void ZeroJitterLeavesTheBrainReadyImmediately()
+        {
+            var definition = new FakeEnemyDefinition { AggroRange = 12f, SpawnGraceSeconds = 0f };
+            var brain = new EnemyMovesetBrain(
+                definition, new IEnemyMove[] { new FakeEnemyMove { MaxRange = 3f } }, new XorShiftRandom(5u), 0.45f, 0f);
+
+            // Default, so every enemy authored without a jitter behaves exactly as before — and,
+            // importantly, consumes no draw, keeping their streams byte-identical.
+            Assert.AreEqual(0f, brain.CooldownRemaining);
+
+            brain.Tick(Step, 2f, hasTarget: true, isAttacking: false, isStaggered: false, attackPermitted: true);
+            Assert.IsTrue(brain.WantsToAttack);
+        }
+
+        [Test]
         public void TheSameSeedReplaysTheSameSequenceOfMoves()
         {
             string[] Run(uint seed)

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
+  m_Name: Swiftjaw
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
+  maxHealth: 24
+  tier: 0
+  poiseMax: 18
+  poiseRegenDelay: 1.5
+  poiseRegenRate: 12
+  armorMax: 0
+  staggerDurationSeconds: 1
+  moveSpeed: 5
+  aggroRange: 14
+  attackRange: 2.2
+  attackCooldownSeconds: 1.3
+  spawnGraceSeconds: 1.2
+  lungeDistance: 0
+  attack: {fileID: 11400000, guid: bbbfc7d03421bf040b964b3aa732d716, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 9
+    ProjectileSpeed: 9
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.35
+    KiteSpeedFraction: 0.7
+  moves:
+  - id: PounceBite
+    links:
+    - {fileID: 11400000, guid: 45c9413e6d543e84eba73dee43b3c062, type: 2}
+    linkDelaySeconds: 0
+    minRange: 3
+    maxRange: 6.5
+    selectionWeight: 1
+    moveCooldownSeconds: 3.5
+    lungeDistance: 4.2
+  - id: SnapCombo
+    links:
+    - {fileID: 11400000, guid: bbbfc7d03421bf040b964b3aa732d716, type: 2}
+    - {fileID: 11400000, guid: c97e6371642f19844a55a6cbd015a973, type: 2}
+    linkDelaySeconds: 0.12
+    minRange: 0
+    maxRange: 2.2
+    selectionWeight: 1.3
+    moveCooldownSeconds: 1.6
+    lungeDistance: 0.35
+  repeatWeightMultiplier: 0.45
+  tokenKind: 0
+  concurrentAttackerCap: 2
+  initialCooldownJitterSeconds: 1.2
+  turnSpeedDegPerSec: 720
+  circleSpeedFraction: 0.75
+  circleRadius: 3.2

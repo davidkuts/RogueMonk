@@ -58,6 +58,7 @@ namespace Game.Enemies
         IRandomSource random;
         Vector3 lungeVelocity;
         float verticalSpeed;
+        float circleDirection = 1f;
         bool holdsToken;
 
         public EnemyMovesetBrain Brain { get; private set; }
@@ -151,8 +152,13 @@ namespace Game.Enemies
                 Brain.MoveChosen -= OnMoveChosen;
 
             Brain = new EnemyMovesetBrain(
-                definition, definition.Moves, random, definition.RepeatWeightMultiplier);
+                definition, definition.Moves, random,
+                definition.RepeatWeightMultiplier, definition.InitialCooldownJitterSeconds);
             Brain.MoveChosen += OnMoveChosen;
+
+            // Which way round this body circles, drawn once from its own stream. Two raptors that
+            // both picked clockwise still separate, because they start at different bearings.
+            circleDirection = random.NextBool() ? 1f : -1f;
         }
 
         protected virtual void OnDestroy()
@@ -274,6 +280,15 @@ namespace Game.Enemies
 
             lungeVelocity = Vector3.zero;
 
+            // In range, off cooldown-free: waiting on a token or on its own recharge. A pack
+            // animal that stands still here reads as switched off, and the circling is most of
+            // what makes a flanker threatening — it is the reason you cannot watch both of them.
+            if (hasTarget && definition.CircleSpeedFraction > 0f &&
+                (Brain.State == EnemyState.Waiting || Brain.State == EnemyState.Cooldown))
+            {
+                return ResolveCircling(deltaTime);
+            }
+
             float fraction = Brain.MoveSpeedFraction;
             if (!hasTarget || Mathf.Approximately(fraction, 0f))
                 return Vector3.zero;
@@ -291,6 +306,34 @@ namespace Game.Enemies
             FaceTowards(direction, deltaTime);
 
             return direction * (definition.MoveSpeed * fraction * actor.StatusMoveSpeedMultiplier);
+        }
+
+        /// <summary>
+        /// Orbits the target: a tangential component to circle with, plus a radial one that holds
+        /// the ring. Facing stays on the target throughout — a raptor that turned to face the way
+        /// it was running would show the player its flank, and the silhouette is the read.
+        /// </summary>
+        Vector3 ResolveCircling(float deltaTime)
+        {
+            Vector3 toTarget = target.position - transform.position;
+            toTarget.y = 0f;
+
+            float distance = toTarget.magnitude;
+            if (distance <= 0.0001f)
+                return Vector3.zero;
+
+            Vector3 direction = toTarget / distance;
+            FaceTowards(direction, deltaTime);
+
+            Vector3 tangent = Vector3.Cross(Vector3.up, direction) * circleDirection;
+
+            // Clamped, so a raptor twenty metres out sprints in at full speed rather than orbiting
+            // a ring it has not reached; and one already on the ring circles cleanly instead of
+            // spiralling.
+            float radialError = Mathf.Clamp(distance - definition.CircleRadius, -1f, 1f);
+            Vector3 heading = (tangent + direction * radialError).normalized;
+
+            return heading * (definition.MoveSpeed * definition.CircleSpeedFraction * actor.StatusMoveSpeedMultiplier);
         }
 
         /// <summary>

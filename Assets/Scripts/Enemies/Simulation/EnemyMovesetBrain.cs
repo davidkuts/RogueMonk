@@ -40,11 +40,26 @@ namespace Game.Enemies
         int linkIndex = -1;
         bool dead;
 
+        /// <param name="initialCooldownJitter">
+        /// Upper bound on a random delay applied before this enemy's first attack, on top of the
+        /// spawn grace.
+        ///
+        /// <para>This is what makes a pack read as a pack. ENEMIES_BIOME1.md § 2.1 wants Swiftjaws
+        /// hunting in offset pairs — one attacking while the other circles — and without a jitter
+        /// two raptors spawned in the same frame run identical timers forever: they commit
+        /// together, recover together, and the player faces one doubled threat on a metronome
+        /// instead of two alternating ones. The attack-token cap alone does not fix it; it only
+        /// decides who goes first, not that they stay out of phase.</para>
+        ///
+        /// <para>Drawn once, at construction, from this enemy's own derived stream — a fixed point,
+        /// so it stays deterministic.</para>
+        /// </param>
         public EnemyMovesetBrain(
             IEnemyDefinition definition,
             IReadOnlyList<IEnemyMove> moves,
             IRandomSource random,
-            float repeatWeightMultiplier = 0.45f)
+            float repeatWeightMultiplier = 0.45f,
+            float initialCooldownJitter = 0f)
         {
             this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
             this.random = random ?? throw new ArgumentNullException(nameof(random));
@@ -54,6 +69,9 @@ namespace Game.Enemies
             moveCooldowns = new float[this.moves.Count];
             weights = new float[this.moves.Count];
             graceRemaining = Mathf.Max(0f, definition.SpawnGraceSeconds);
+
+            if (initialCooldownJitter > 0f)
+                globalCooldownRemaining = this.random.NextFloat(0f, initialCooldownJitter);
         }
 
         public EnemyState State { get; private set; } = EnemyState.Idle;
