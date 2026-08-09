@@ -13,16 +13,16 @@ MonoBehaviour:
   m_Name: SwiftjawPounce
   m_EditorClassIdentifier: Game.Combat::Game.Combat.AttackDefinition
   windupSeconds: 0.4
-  activeSeconds: 0.12
+  activeSeconds: 0.2
   recoverySeconds: 0.45
   cancellableOnRecovery: 0
   comboWindowSeconds: 0
   hitbox:
     Kind: 2
     LocalOffset: {x: 0, y: 0, z: 0}
-    Radius: 1.7
+    Radius: 2.3
     Size: {x: 1, y: 1, z: 1}
-    ArcDegrees: 100
+    ArcDegrees: 140
   damage: 8
   damageType: 0
   poiseDamage: 0

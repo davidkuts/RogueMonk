@@ -142,6 +142,9 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Turn rate while chasing. Facing locks when a wind-up starts, so this never lets a telegraph track the player.")]
         float turnSpeedDegPerSec = 540f;
 
+        [SerializeField, Tooltip("Distance this enemy WANTS to fight at. 0 keeps the default, which is to close to its shortest-reach move. Set it to a ranged move's band and the enemy holds there, only using its close-range moves when the player forces the issue.")]
+        float preferredRange;
+
         [Header("Circling")]
         [SerializeField, Range(0f, 1f), Tooltip("Speed used while in range but not allowed to attack — waiting on a token or a cooldown. 0 makes it stand still, which reads as broken on a pack animal.")]
         float circleSpeedFraction;
@@ -156,6 +159,7 @@ namespace Game.Enemies
         public int ConcurrentAttackerCap => concurrentAttackerCap;
         public float InitialCooldownJitterSeconds => initialCooldownJitterSeconds;
         public float TurnSpeedDegPerSec => turnSpeedDegPerSec;
+        public float PreferredRange => preferredRange;
         public float CircleSpeedFraction => circleSpeedFraction;
         public float CircleRadius => circleRadius;
 

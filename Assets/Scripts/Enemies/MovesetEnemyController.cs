@@ -166,7 +166,8 @@ namespace Game.Enemies
 
             Brain = new EnemyMovesetBrain(
                 definition, definition.Moves, random,
-                definition.RepeatWeightMultiplier, definition.InitialCooldownJitterSeconds);
+                definition.RepeatWeightMultiplier, definition.InitialCooldownJitterSeconds,
+                definition.PreferredRange);
             Brain.MoveChosen += OnMoveChosen;
 
             // Which way round this body circles, drawn once from its own stream. Two raptors that

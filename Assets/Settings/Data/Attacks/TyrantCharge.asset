@@ -21,7 +21,7 @@ MonoBehaviour:
     Kind: 1
     LocalOffset: {x: 0, y: 0, z: 1.8}
     Radius: 2
-    Size: {x: 3, y: 2.4, z: 4}
+    Size: {x: 3.8, y: 2.4, z: 4.6}
     ArcDegrees: 360
   damage: 24
   damageType: 0

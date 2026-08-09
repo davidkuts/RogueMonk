@@ -49,6 +49,7 @@ MonoBehaviour:
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
     hazardCount: 0
+    useFixedHazardPattern: 0
     hazardScatterRadius: 0
     hazardArcDegrees: 360
     isRetaliation: 0
@@ -66,6 +67,7 @@ MonoBehaviour:
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
     hazardCount: 0
+    useFixedHazardPattern: 0
     hazardScatterRadius: 0
     hazardArcDegrees: 360
     isRetaliation: 1
@@ -83,6 +85,7 @@ MonoBehaviour:
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
     hazardCount: 0
+    useFixedHazardPattern: 0
     hazardScatterRadius: 0
     hazardArcDegrees: 360
     isRetaliation: 0
@@ -100,6 +103,7 @@ MonoBehaviour:
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
     hazardCount: 0
+    useFixedHazardPattern: 0
     hazardScatterRadius: 0
     hazardArcDegrees: 360
     isRetaliation: 0
@@ -111,13 +115,14 @@ MonoBehaviour:
     maxRange: 40
     selectionWeight: 1.1
     unlockedAtPhase: 1
-    moveCooldownSeconds: 7
+    moveCooldownSeconds: 6
     lungeDistance: 0
     projectileCount: 0
     projectileSpreadDegrees: 0
     projectileLeadFraction: 0
-    hazardCount: 5
-    hazardScatterRadius: 6.5
+    hazardCount: 7
+    useFixedHazardPattern: 1
+    hazardScatterRadius: 3.2
     hazardArcDegrees: 360
     isRetaliation: 0
   phases:

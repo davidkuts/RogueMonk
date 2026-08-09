@@ -92,6 +92,7 @@ namespace Game.Enemies.Tests
         public float ProjectileSpreadDegrees { get; set; } = 24f;
         public float ProjectileLeadFraction { get; set; }
         public int HazardCount { get; set; }
+        public bool UseFixedHazardPattern { get; set; }
         public float HazardScatterRadius { get; set; } = 3.5f;
         public float HazardArcDegrees { get; set; } = 360f;
         public bool IsRetaliation { get; set; }

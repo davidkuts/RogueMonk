@@ -32,6 +32,7 @@ namespace Game.Enemies
         readonly float[] moveCooldowns;
         readonly float[] weights;
         readonly float repeatWeightMultiplier;
+        readonly float preferredRange;
 
         float globalCooldownRemaining;
         float linkDelayRemaining;
@@ -60,8 +61,10 @@ namespace Game.Enemies
             IReadOnlyList<IEnemyMove> moves,
             IRandomSource random,
             float repeatWeightMultiplier = 0.45f,
-            float initialCooldownJitter = 0f)
+            float initialCooldownJitter = 0f,
+            float preferredRange = 0f)
         {
+            this.preferredRange = preferredRange;
             this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
             this.random = random ?? throw new ArgumentNullException(nameof(random));
             this.moves = moves ?? Array.Empty<IEnemyMove>();
@@ -393,6 +396,25 @@ namespace Game.Enemies
         /// </summary>
         float RepositionFraction(float distance)
         {
+            // An enemy with a preferred range holds it rather than closing to its shortest move.
+            //
+            // Without this a Swiftjaw walks into snapping distance and stays there, so the pounce —
+            // the move that makes it interesting, and the one the player is meant to read and dodge
+            // — almost never happens. Holding at pounce range makes the melee combo what it should
+            // be: the answer to the player closing in, not the thing it does by default.
+            if (preferredRange > 0f)
+            {
+                const float deadZone = 0.6f;
+
+                if (distance > preferredRange + deadZone)
+                    return 1f;
+
+                if (distance < preferredRange - deadZone)
+                    return -Mathf.Clamp01(definition.Ranged.KiteSpeedFraction);
+
+                return 0f;
+            }
+
             IEnemyMove target = null;
 
             for (int i = 0; i < moves.Count; i++)

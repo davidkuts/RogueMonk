@@ -30,8 +30,11 @@ namespace Game.Enemies
         [SerializeField] float width = 0.9f;
         [SerializeField] float thickness = 0.11f;
 
-        [SerializeField, Tooltip("Hide the bar while the enemy is untouched, so a fresh room is not covered in them.")]
-        bool hideWhenFull = true;
+        [SerializeField, Tooltip("Hide the bar while the enemy is untouched. Off by default: a bar you can only see after you have already hit something cannot tell you what you are about to fight.")]
+        bool hideWhenFull;
+
+        [SerializeField, Tooltip("Material for the bar quads. MUST be a URP material — a primitive's default material is built-in Standard, which URP cannot render and draws as magenta.")]
+        Material barMaterial;
 
         [SerializeField, Tooltip("Fill colour. Deliberately desaturated: saturated hues are reserved for telegraphs (DESIGN.md).")]
         Color fillColor = new Color(0.80f, 0.25f, 0.25f, 1f);
@@ -91,6 +94,12 @@ namespace Game.Enemies
             var renderer = quad.GetComponent<MeshRenderer>();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+
+            // GameObject.CreatePrimitive assigns the built-in Standard material, which URP cannot
+            // render — it draws as flat magenta. Assigning a real URP material is not decoration
+            // here; without it the bar is unreadable and its fill cannot be told from its backing.
+            if (barMaterial != null)
+                renderer.sharedMaterial = barMaterial;
 
             var pb = new MaterialPropertyBlock();
             pb.SetColor(ColorId, color);

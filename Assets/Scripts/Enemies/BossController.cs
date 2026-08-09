@@ -35,6 +35,9 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Telegraphed floor hazard dropped by hazard moves.")]
         FloorHazard hazardPrefab;
 
+        [SerializeField, Range(30f, 180f), Tooltip("Width of the deliberate hole in a fixed hazard pattern. Must be wide enough to stand in — this is the escape the pattern promises.")]
+        float fixedPatternGapDegrees = 70f;
+
         [SerializeField] float hitboxHeightOffset = 1.1f;
         [SerializeField, Tooltip("Turn rate while repositioning. Facing locks the moment a move commits.")]
         float turnSpeedDegPerSec = 360f;
@@ -312,22 +315,41 @@ namespace Game.Enemies
                 ? Mathf.Atan2(-toBoss.x, -toBoss.z) * Mathf.Rad2Deg
                 : 0f;
 
+            // A fixed pattern is a promise: the covered ground is a ring at a known radius with one
+            // deliberate gap, so the nearest safe spot is always a known distance away and a dash
+            // always reaches it. A random scatter cannot make that promise — sometimes it leaves
+            // the player standing in clear ground and sometimes it boxes them in, and a hazard the
+            // player cannot reliably answer is guaranteed damage, which DESIGN.md now forbids.
+            float gapDegrees = fixedPatternGapDegrees;
+
             for (int i = 0; i < count; i++)
             {
-                // Jitter is smaller on an arc than on a ring — too much and the deliberate gap
-                // stops being a gap, which is the whole point of the move.
                 float angle;
-                if (fullRing)
+                float radius;
+
+                if (move.UseFixedHazardPattern)
                 {
+                    // Evenly spaced around a ring, leaving one gap wide enough to stand in. No
+                    // jitter at all: the pattern has to be learnable, because learning it is how
+                    // the player earns the escape.
+                    float usable = 360f - gapDegrees;
+                    float step = count > 1 ? usable / (count - 1) : 0f;
+                    angle = awayDegrees + gapDegrees * 0.5f + step * i;
+                    radius = scatter;
+                }
+                else if (fullRing)
+                {
+                    // Jitter is smaller on an arc than on a ring — too much and the deliberate gap
+                    // stops being a gap, which is the whole point of the move.
                     angle = (360f / count) * i + random.NextFloat(-25f, 25f);
+                    radius = random.NextFloat(scatter * 0.25f, scatter);
                 }
                 else
                 {
                     float spread = count == 1 ? 0f : (i / (float)(count - 1)) - 0.5f;
                     angle = awayDegrees + spread * arc + random.NextFloat(-8f, 8f);
+                    radius = random.NextFloat(scatter * 0.25f, scatter);
                 }
-
-                float radius = random.NextFloat(scatter * 0.25f, scatter);
 
                 Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * radius;
                 Vector3 spot = new Vector3(target.position.x + offset.x, target.position.y, target.position.z + offset.z);

@@ -33,6 +33,17 @@ namespace Game.Enemies
         /// </summary>
         float ProjectileLeadFraction { get; }
 
+        /// <summary>
+        /// Places hazards in a fixed, learnable ring with one deliberate gap instead of scattering
+        /// them randomly.
+        ///
+        /// <para>A random scatter cannot promise the player an escape: sometimes it leaves them in
+        /// clear ground and sometimes it boxes them in, and a hazard with no reliable answer is
+        /// guaranteed damage. A fixed pattern puts safety a known distance away — inside one dash —
+        /// so the answer is always available to a player who reacts.</para>
+        /// </summary>
+        bool UseFixedHazardPattern { get; }
+
         /// <summary>Telegraphed floor hazards dropped when the active window opens. 0 for none.</summary>
         int HazardCount { get; }
 

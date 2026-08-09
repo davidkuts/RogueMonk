@@ -43,6 +43,8 @@ namespace Game.Enemies
         float projectileLeadFraction;
         [SerializeField, Tooltip("Telegraphed floor hazards dropped when this move goes active. 0 for none.")]
         int hazardCount;
+        [SerializeField, Tooltip("Place hazards in a fixed, learnable ring with one gap rather than scattering them. Guarantees the player a reachable escape, which a random scatter cannot.")]
+        bool useFixedHazardPattern;
         [SerializeField, Tooltip("Radius around the target that hazards scatter within.")]
         float hazardScatterRadius = 3.5f;
         [SerializeField, Range(30f, 360f), Tooltip("Arc the hazards cover. 360 surrounds the target. Less leaves a gap, and the gap points back at the boss — so the safe ground is next to the boss, which sets up whatever it throws next.")]
@@ -66,6 +68,7 @@ namespace Game.Enemies
         public float ProjectileSpreadDegrees => projectileSpreadDegrees;
         public float ProjectileLeadFraction => projectileLeadFraction;
         public int HazardCount => hazardCount;
+        public bool UseFixedHazardPattern => useFixedHazardPattern;
         public float HazardScatterRadius => hazardScatterRadius;
         public float HazardArcDegrees => hazardArcDegrees;
         public bool IsRetaliation => isRetaliation;
