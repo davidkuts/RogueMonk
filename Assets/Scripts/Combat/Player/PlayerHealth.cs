@@ -122,6 +122,17 @@ namespace Game.Combat
             invulnerabilityRemaining = Mathf.Max(0f, postHitInvulnerabilitySeconds);
             flashRemaining = invulnerabilityRemaining;
 
+            // Heavy hits land like they look: a brief loss of control and a throw. Only attacks
+            // that ask for it — the value is 0 on everything ordinary, so a nibble stays a nibble.
+            if (motor != null && context.Attack is AttackDefinition asset &&
+                (asset.HitStaggerSeconds > 0f || asset.PlayerKnockback > 0f))
+            {
+                motor.ApplyHitStagger(asset.HitStaggerSeconds, context.Direction * asset.PlayerKnockback);
+
+                GameLog.Warn(LogCategory.Combat,
+                    $"HEAVY HIT  {asset.Id}  control lost {asset.HitStaggerSeconds:0.00}s, thrown {asset.PlayerKnockback:0.#}m/s");
+            }
+
             GameLog.Warn(LogCategory.Combat,
                 $"PLAYER HIT  {context.Attack.Id}  -{applied:0.##} hp  ({CurrentHealth:0.##}/{maxHealth:0.##})  " +
                 $"i-frames {invulnerabilityRemaining:0.00}s");

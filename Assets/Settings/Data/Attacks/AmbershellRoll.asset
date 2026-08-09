@@ -19,15 +19,17 @@ MonoBehaviour:
   comboWindowSeconds: 0
   hitbox:
     Kind: 1
-    LocalOffset: {x: 0, y: 0, z: 1.2}
+    LocalOffset: {x: 0, y: 0, z: 0.35000002}
     Radius: 1.5
-    Size: {x: 2.2, y: 1.6, z: 3}
+    Size: {x: 1.8, y: 1.6, z: 1}
     ArcDegrees: 360
   damage: 18
   damageType: 0
   poiseDamage: 0
   knockback: 8
-  hitstopSeconds: 0.1
+  hitstopSeconds: 0.16
+  hitStaggerSeconds: 0.55
+  playerKnockback: 7
   autoAimConeDegrees: 0
   autoAimRangeMeters: 0
   aimSnapSpeedDegPerSec: 0

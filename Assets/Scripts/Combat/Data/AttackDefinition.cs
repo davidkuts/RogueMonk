@@ -36,6 +36,12 @@ namespace Game.Combat
         [SerializeField, Tooltip("Freeze on connect. ~0.06 light, ~0.10 heavy.")]
         float hitstopSeconds = 0.06f;
 
+        [SerializeField, Tooltip("Seconds of control taken from the PLAYER when this lands. 0 for everything ordinary — reserved for hits that must land like they look. Keep it near the 0.5s post-hit i-frame window so helplessness and invulnerability end together.")]
+        float hitStaggerSeconds;
+
+        [SerializeField, Tooltip("How hard the player is thrown when this lands, in m/s. Independent of Knockback, which moves enemies.")]
+        float playerKnockback;
+
         [Header("Auto-aim")]
         [SerializeField, Range(0f, 360f), Tooltip("Full cone width around facing that can attract aim.")]
         float autoAimConeDegrees = 45f;
@@ -91,6 +97,18 @@ namespace Game.Combat
         /// <em>louder</em> rather than longer, so a 0.45 s wind-up can still be read at a glance.</para>
         /// </summary>
         public float TelegraphEmphasis => telegraphEmphasis;
+
+        /// <summary>
+        /// Seconds of control this takes from the player. 0 for every ordinary attack.
+        ///
+        /// <para>Not part of <see cref="IAttackDefinition"/>: it is a reaction the player's adapter
+        /// applies, not a value the hit pipeline resolves, and putting it on the interface would
+        /// oblige every test fake to carry a number that only one archetype uses.</para>
+        /// </summary>
+        public float HitStaggerSeconds => hitStaggerSeconds;
+
+        /// <summary>How hard the player is thrown when this lands, in m/s.</summary>
+        public float PlayerKnockback => playerKnockback;
 
         /// <summary>Convenience for the presenters: the colour this attack should actually flash.</summary>
         public Color ResolveTelegraphColor(TelegraphPalette palette)

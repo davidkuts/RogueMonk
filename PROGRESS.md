@@ -68,6 +68,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Known issues / TODO next: ...
 -->
 
+### 2026-08-09 — M14.6: the charge collides where it looks like it collides, and heavy hits land like they look
+- ⚠️ **Measured: the roll's hitbox registered 1.85 m before the bodies touched.** Its box reached **2.70 m** from the enemy's centre while the two capsules only meet at **1.25 m** (shell 0.85 + player 0.4). That gap is exactly the clunkiness the human described — it stopped short and "hit" from thin air, which is worse while the player is also moving. The box is now sized to the **shell rather than to a reach**: front edge at 0.85 m, so registration and contact both land at **1.25 m**.
+  - **The principle worth keeping:** a charge's hitbox is a *body*, not a swing. Reach-shaped boxes are right for attacks that extend a limb and wrong for anything whose fiction is "I ran into you".
+- **New heavy-hit reaction on the player, and it is data.** `AttackDefinition` gained `hitStaggerSeconds` and `playerKnockback`; `PlayerMotor.ApplyHitStagger` takes control away and throws the player, integrated with the same move-then-decay-exponentially fix `EnemyActor` needed (Lerp-then-move clamps at 1, so a long frame silently eats the whole impulse). **Both default to 0**, so every ordinary attack is untouched and a nibble stays a nibble.
+  - **0.55 s of control loss, deliberately not the full second suggested.** The player's mandatory post-hit invulnerability is **0.5 s**, so a stagger of roughly that length ends as the i-frames do — helplessness and untouchability overlap, and the stagger never becomes the reason a *second* enemy lands a free hit. Stacking helplessness on top of vulnerability is how a heavy hit turns into a death sentence in a crowded room. It is one field if a full second is wanted.
+  - **A stagger blocks *starting* a dash but never cancels one already running** — those i-frames were earned before the hit landed.
+  - **Verified live:** `HEAVY HIT AmbershellRoll control lost 0.55s, thrown 7m/s`, player pushed 0.9 m back, 0.16 s hitstop (the heaviest in the game).
+- **488/488 EditMode tests.** Rebuilt.
+
 ### 2026-08-09 — M14.5: retreats stop being cat-and-mouse, and a landed charge stops being a punishment
 - **Backpedalling is half speed roster-wide** (`KiteSpeedFraction` 0.70 → 0.50). Fast enough to read as "it is retreating", slow enough that the player always closes: Swiftjaw backs at **2.5 m/s**, Sailspit at **1.7**, against the player's **6.0**. Cat and mouse is only fun for the mouse.
 - ⚠️ **Landing the charge was worse for Ambershell than missing it.** It ploughed through the player, carried on into a wall, and self-stunned — so a *successful* charge still handed the player a punish window. The Minotaur it is modelled on stops on you. New `stopChargeOnTargetHit`: connecting ends the run where it connected, and the enemy takes only the ordinary post-attack cooldown that every attack already owes. **Verified: stopped at z=2.45 against a player at z=−0.5 — did not reach the wall, did not stagger, plating intact, log reads `charge connected - stopping on target`.**
