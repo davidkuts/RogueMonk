@@ -1,8 +1,42 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Game.Level
 {
+    /// <summary>One authored spawn line: an archetype and how many of it.</summary>
+    [Serializable]
+    public sealed class ScriptedWaveEntry
+    {
+        public EnemyArchetypeDefinition archetype;
+        [Min(1)] public int count = 1;
+    }
+
+    /// <summary>One authored wave. The next wave starts once this one is dead.</summary>
+    [Serializable]
+    public sealed class ScriptedWave
+    {
+        public List<ScriptedWaveEntry> entries = new List<ScriptedWaveEntry>();
+    }
+
+    /// <summary>One fight a scripted room can host. The generator draws one variant per run.</summary>
+    [Serializable]
+    public sealed class ScriptedRoomVariant
+    {
+        [Tooltip("Author note only — which §5 lesson this composition teaches.")]
+        public string note;
+        public List<ScriptedWave> waves = new List<ScriptedWave>();
+    }
+
+    /// <summary>Authored composition for one standard-room slot, positional by list index.</summary>
+    [Serializable]
+    public sealed class ScriptedRoom
+    {
+        [Tooltip("Author note only — e.g. 'vocabulary room' or 'elite room'.")]
+        public string note;
+        public List<ScriptedRoomVariant> variants = new List<ScriptedRoomVariant>();
+    }
+
     /// <summary>All level-generation tuning, in data as CLAUDE.md requires.</summary>
     [CreateAssetMenu(menuName = "Monk/Level Generation Settings", fileName = "LevelGenerationSettings")]
     public sealed class LevelGenerationSettings : ScriptableObject, ILevelGenerationSettings
@@ -44,8 +78,13 @@ namespace Game.Level
         [SerializeField] List<RoomTemplateDefinition> templates = new List<RoomTemplateDefinition>();
         [SerializeField] List<EnemyArchetypeDefinition> archetypes = new List<EnemyArchetypeDefinition>();
 
+        [Header("Scripted rooms (ENEMIES_BIOME1.md §5)")]
+        [SerializeField, Tooltip("Authored wave composition per standard-room slot, in order. Rooms beyond this list (or slots with no variants) fall back to the budget-weighted generator.")]
+        List<ScriptedRoom> roomScripts = new List<ScriptedRoom>();
+
         readonly List<IRoomTemplate> templateView = new List<IRoomTemplate>();
         readonly List<IEnemyArchetype> archetypeView = new List<IEnemyArchetype>();
+        readonly List<IRoomScript> roomScriptView = new List<IRoomScript>();
 
         public int LevelsPerRun => Mathf.Max(1, levelsPerRun);
         public float BudgetGrowthPerLevel => budgetGrowthPerLevel;
@@ -99,6 +138,74 @@ namespace Game.Level
 
                 return archetypeView;
             }
+        }
+
+        public IReadOnlyList<IRoomScript> RoomScripts
+        {
+            get
+            {
+                roomScriptView.Clear();
+                for (int i = 0; i < roomScripts.Count; i++)
+                    roomScriptView.Add(new RoomScriptView(roomScripts[i]));
+
+                return roomScriptView;
+            }
+        }
+
+        /// <summary>
+        /// Adapts the serialized script data to the engine-free view the generator consumes,
+        /// resolving archetype object references to ids. Entries with no archetype and waves
+        /// with no entries are skipped rather than passed on as holes.
+        /// </summary>
+        sealed class RoomScriptView : IRoomScript
+        {
+            readonly List<IRoomScriptVariant> variants = new List<IRoomScriptVariant>();
+
+            public RoomScriptView(ScriptedRoom room)
+            {
+                if (room == null || room.variants == null)
+                    return;
+
+                for (int v = 0; v < room.variants.Count; v++)
+                {
+                    var variant = new RoomScriptVariantView(room.variants[v]);
+                    if (variant.Waves.Count > 0)
+                        variants.Add(variant);
+                }
+            }
+
+            public IReadOnlyList<IRoomScriptVariant> Variants => variants;
+        }
+
+        sealed class RoomScriptVariantView : IRoomScriptVariant
+        {
+            readonly List<IReadOnlyList<ScriptedSpawn>> waves = new List<IReadOnlyList<ScriptedSpawn>>();
+
+            public RoomScriptVariantView(ScriptedRoomVariant variant)
+            {
+                if (variant == null || variant.waves == null)
+                    return;
+
+                for (int w = 0; w < variant.waves.Count; w++)
+                {
+                    ScriptedWave wave = variant.waves[w];
+                    if (wave == null || wave.entries == null)
+                        continue;
+
+                    var spawns = new List<ScriptedSpawn>();
+                    for (int e = 0; e < wave.entries.Count; e++)
+                    {
+                        ScriptedWaveEntry entry = wave.entries[e];
+                        if (entry != null && entry.archetype != null && entry.count > 0)
+                            spawns.Add(new ScriptedSpawn(entry.archetype.Id, entry.count));
+                    }
+
+                    if (spawns.Count > 0)
+                        waves.Add(spawns);
+                }
+            }
+
+            public IReadOnlyList<IReadOnlyList<ScriptedSpawn>> Waves => waves;
         }
 
         public RoomTemplateDefinition FindTemplate(string id)

@@ -148,8 +148,13 @@ namespace Game.Level
             {
                 IRoomTemplate template = PickTemplate(random, previous, RoomRole.Standard);
                 previous = template;
-                rooms.Add(new RoomPlan(
-                    template.Id, index, BuildWaves(random, template, index, levelBudgetBonus), RoomRole.Standard));
+
+                IRoomScript script = FindRoomScript(index);
+                List<WavePlan> waves = script != null
+                    ? BuildScriptedWaves(random, template, script)
+                    : BuildWaves(random, template, index, levelBudgetBonus);
+
+                rooms.Add(new RoomPlan(template.Id, index, waves, RoomRole.Standard));
             }
 
             IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
@@ -226,6 +231,89 @@ namespace Game.Level
                 waves.Add(BuildWave(random, template, budget));
 
             return waves;
+        }
+
+        /// <summary>The authored script covering a standard-room slot, or null for the budget path.</summary>
+        IRoomScript FindRoomScript(int roomIndex)
+        {
+            IReadOnlyList<IRoomScript> scripts = settings.RoomScripts;
+            if (scripts == null || roomIndex >= scripts.Count)
+                return null;
+
+            IRoomScript script = scripts[roomIndex];
+            return script != null && script.Variants != null && script.Variants.Count > 0 ? script : null;
+        }
+
+        /// <summary>
+        /// Expands one authored room script: a seeded draw picks the variant, then every wave is
+        /// resolved onto the template's spawn points. This is how ENEMIES_BIOME1.md §5's
+        /// composition rules (vocabulary → sentence → elite) are honoured literally rather than
+        /// hoped for from a budget roll.
+        /// </summary>
+        List<WavePlan> BuildScriptedWaves(IRandomSource random, IRoomTemplate template, IRoomScript script)
+        {
+            IReadOnlyList<IRoomScriptVariant> variants = script.Variants;
+            IRoomScriptVariant variant = variants[variants.Count == 1 ? 0 : random.NextInt(0, variants.Count)];
+
+            var waves = new List<WavePlan>(variant.Waves.Count);
+            for (int w = 0; w < variant.Waves.Count; w++)
+                waves.Add(BuildScriptedWave(random, template, variant.Waves[w]));
+
+            return waves;
+        }
+
+        WavePlan BuildScriptedWave(IRandomSource random, IRoomTemplate template, IReadOnlyList<ScriptedSpawn> entries)
+        {
+            spawnPointScratch.Clear();
+            for (int i = 0; i < template.SpawnPointCount; i++)
+                spawnPointScratch.Add(i);
+            random.Shuffle(spawnPointScratch);
+
+            var spawns = new List<SpawnAssignment>();
+
+            // Exclusive archetypes claim unique points first. Anything the template cannot seat
+            // is dropped rather than doubled up: two Cerashorns fused inside each other is worse
+            // than one missing, and the authored waves are sized to the smallest template anyway.
+            int next = 0;
+            for (int e = 0; e < entries.Count; e++)
+            {
+                ScriptedSpawn entry = entries[e];
+                if (ArchetypeAllowsSharedSpawnPoints(entry.ArchetypeId))
+                    continue;
+
+                for (int c = 0; c < entry.Count && next < spawnPointScratch.Count; c++)
+                    spawns.Add(new SpawnAssignment(entry.ArchetypeId, spawnPointScratch[next++]));
+            }
+
+            // Swarm archetypes cycle through the remaining (then all) points — a swarm's size is
+            // authored, not capped by the room. The runner fans out same-point spawns on placement.
+            int cursor = next;
+            for (int e = 0; e < entries.Count; e++)
+            {
+                ScriptedSpawn entry = entries[e];
+                if (!ArchetypeAllowsSharedSpawnPoints(entry.ArchetypeId))
+                    continue;
+
+                for (int c = 0; c < entry.Count; c++)
+                {
+                    spawns.Add(new SpawnAssignment(entry.ArchetypeId, spawnPointScratch[cursor % spawnPointScratch.Count]));
+                    cursor++;
+                }
+            }
+
+            return new WavePlan(spawns);
+        }
+
+        bool ArchetypeAllowsSharedSpawnPoints(string archetypeId)
+        {
+            IReadOnlyList<IEnemyArchetype> archetypes = settings.Archetypes;
+            for (int i = 0; i < archetypes.Count; i++)
+            {
+                if (archetypes[i] != null && archetypes[i].Id == archetypeId)
+                    return archetypes[i].AllowsSharedSpawnPoints;
+            }
+
+            return false;
         }
 
         List<WavePlan> BuildWaves(IRandomSource random, IRoomTemplate template, int roomIndex, float levelBudgetBonus)

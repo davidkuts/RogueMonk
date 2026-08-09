@@ -16,6 +16,21 @@ namespace Game.Level.Tests
         public string Id { get; set; } = "grunt";
         public float SelectionWeight { get; set; } = 1f;
         public float Cost { get; set; } = 1f;
+        public bool AllowsSharedSpawnPoints { get; set; }
+    }
+
+    internal sealed class FakeRoomScriptVariant : IRoomScriptVariant
+    {
+        public List<IReadOnlyList<ScriptedSpawn>> Waves { get; set; } = new List<IReadOnlyList<ScriptedSpawn>>();
+
+        IReadOnlyList<IReadOnlyList<ScriptedSpawn>> IRoomScriptVariant.Waves => Waves;
+    }
+
+    internal sealed class FakeRoomScript : IRoomScript
+    {
+        public List<IRoomScriptVariant> Variants { get; set; } = new List<IRoomScriptVariant>();
+
+        IReadOnlyList<IRoomScriptVariant> IRoomScript.Variants => Variants;
     }
 
     internal sealed class FakeGenerationSettings : ILevelGenerationSettings
@@ -58,5 +73,7 @@ namespace Game.Level.Tests
             // where the generator places it by name — never rolled into an ordinary room.
             new FakeArchetype { Id = "warden", Cost = 0f, SelectionWeight = 0f },
         };
+
+        public IReadOnlyList<IRoomScript> RoomScripts { get; set; }
     }
 }

@@ -10,10 +10,13 @@ namespace Game.Level
         [SerializeField] float selectionWeight = 1f;
         [SerializeField, Tooltip("Budget cost. A wave of tough enemies is smaller than a wave of weak ones.")]
         float cost = 1f;
+        [SerializeField, Tooltip("Swarm archetypes only (Scrapfeathers): members of one wave may share a spawn point, so a swarm's size is authored rather than capped by the room's point count. The runner fans out same-point spawns on placement.")]
+        bool allowsSharedSpawnPoints;
 
         public string Id => name;
         public GameObject Prefab => prefab;
         public float SelectionWeight => selectionWeight;
         public float Cost => cost;
+        public bool AllowsSharedSpawnPoints => allowsSharedSpawnPoints;
     }
 }

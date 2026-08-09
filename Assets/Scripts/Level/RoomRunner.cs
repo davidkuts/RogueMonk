@@ -23,6 +23,9 @@ namespace Game.Level
 
         readonly List<EnemyActor> alive = new List<EnemyActor>();
 
+        /// <summary>How many enemies of the current wave already stand on each spawn point.</summary>
+        readonly Dictionary<int, int> spawnPointUse = new Dictionary<int, int>();
+
         int waveIndex = -1;
         bool aborted;
 
@@ -101,6 +104,7 @@ namespace Game.Level
             GameLog.Info(LogCategory.Level,
                 $"wave {waveIndex + 1}/{plan.Waves.Count} in room {plan.Index + 1}: {wave.Count} enemies");
 
+            spawnPointUse.Clear();
             for (int i = 0; i < wave.Spawns.Count; i++)
                 Spawn(ReplaceUnfairSpawnPoint(wave.Spawns[i], wave));
 
@@ -195,8 +199,22 @@ namespace Game.Level
             }
 
             Transform point = room.GetSpawnPoint(assignment.SpawnPointIndex);
+
+            // Swarm waves may seat several enemies on one point (the plan allows it only for
+            // archetypes that opted in). Fan the extras out on a small deterministic ring so
+            // bodies never materialise fused; no RNG, so a seed still reproduces the layout.
+            spawnPointUse.TryGetValue(assignment.SpawnPointIndex, out int alreadyOnPoint);
+            spawnPointUse[assignment.SpawnPointIndex] = alreadyOnPoint + 1;
+
+            Vector3 position = point.position;
+            if (alreadyOnPoint > 0)
+            {
+                float angle = alreadyOnPoint * 137.5f * Mathf.Deg2Rad;
+                position += new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.7f;
+            }
+
             GameObject instance = UnityEngine.Object.Instantiate(
-                archetype.Prefab, point.position, point.rotation, enemyParent);
+                archetype.Prefab, position, point.rotation, enemyParent);
 
             var actor = instance.GetComponent<EnemyActor>();
             if (actor == null)

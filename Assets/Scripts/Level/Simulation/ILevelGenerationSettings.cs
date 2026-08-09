@@ -27,6 +27,13 @@ namespace Game.Level
 
         /// <summary>Budget cost, so a wave of tough enemies is smaller than a wave of weak ones.</summary>
         float Cost { get; }
+
+        /// <summary>
+        /// True for swarm archetypes (Scrapfeathers) whose members may share one spawn point.
+        /// A swarm's size is a design decision, not a function of how many points a room
+        /// happens to have; everything else keeps the one-enemy-one-point guarantee.
+        /// </summary>
+        bool AllowsSharedSpawnPoints { get; }
     }
 
     /// <summary>Tuning for level generation. All values are data (CLAUDE.md hard rule 2).</summary>
@@ -95,5 +102,12 @@ namespace Game.Level
 
         IReadOnlyList<IRoomTemplate> Templates { get; }
         IReadOnlyList<IEnemyArchetype> Archetypes { get; }
+
+        /// <summary>
+        /// Authored wave composition per standard-room slot (ENEMIES_BIOME1.md §5), positional.
+        /// May be null or shorter than the room count; any uncovered slot falls back to the
+        /// budget-weighted generator.
+        /// </summary>
+        IReadOnlyList<IRoomScript> RoomScripts { get; }
     }
 }

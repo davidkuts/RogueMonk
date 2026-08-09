@@ -16,7 +16,7 @@ MonoBehaviour:
   maxStandardRooms: 5
   minWavesPerRoom: 1
   maxWavesPerRoom: 2
-  bossArchetype: {fileID: 11400000, guid: 1c8b47d0e2f9a3546bd18f0273ae5c92, type: 2}
+  bossArchetype: {fileID: 11400000, guid: 669644f6dd024fd5804011d3450b2057, type: 2}
   bossRoomWaves: 1
   bossBudgetBonus: 2
   baseWaveBudget: 2
@@ -28,6 +28,146 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2cdae5b08f645b04f8cede285642d6e5, type: 2}
   - {fileID: 11400000, guid: e8d484adc8dd2b348b0383f046b378b0, type: 2}
   archetypes:
-  - {fileID: 11400000, guid: a0199c985bb6c26409fbe0f9966414ff, type: 2}
-  - {fileID: 11400000, guid: aba30316163c4ca4e82fca49456093c1, type: 2}
-  - {fileID: 11400000, guid: 1c8b47d0e2f9a3546bd18f0273ae5c92, type: 2}
+  - {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+  - {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+  - {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+  - {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+  - {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
+  - {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
+  - {fileID: 11400000, guid: 669644f6dd024fd5804011d3450b2057, type: 2}
+  roomScripts:
+  - note: 'Room 1 - vocabulary: the Swiftjaw pack is the baseline every composition
+      builds on'
+    variants:
+    - note: Pairs first, then the bigger pack
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 3
+  - note: 'Room 2 - vocabulary: one new verb + Swiftjaws'
+    variants:
+    - note: Sailspit intro - close distance under fire, gently
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+    - note: Cerashorn intro - bait the charge
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 3
+  - note: 'Room 3 - sentence: the Scrapfeather swarm debuts, never alone'
+    variants:
+    - note: Your dodge lanes are owned
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+    - note: Artillery behind a carpet
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 6
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+  - note: 'Room 4 - sentence: full mixed compositions'
+    variants:
+    - note: Close distance under fire
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 4
+    - note: Charge lanes through a carpet
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 5
+      - entries:
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 3
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+  - note: 'Room 5 - elite room: one elite + light escort, never two elites in Biome 1'
+    variants:
+    - note: Ambershell positioning tax
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+    - note: Twice-Struck echo duel with artillery pressure
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 1
+  - note: 'Room 6 - overtime: only exists on escalated later levels'
+    variants:
+    - note: Chargers then the echo
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 5
+      - entries:
+        - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+    - note: Artillery then the shell
+      waves:
+      - entries:
+        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
+          count: 2
+        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
+          count: 2
+      - entries:
+        - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
+          count: 1
+        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
+          count: 4

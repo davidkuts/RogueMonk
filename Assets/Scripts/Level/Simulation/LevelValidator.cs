@@ -10,7 +10,9 @@ namespace Game.Level
     /// Solvable means: the level has rooms; every room has at least one wave; every wave has
     /// at least one enemy (an empty wave clears itself and would skip the fight); every spawn
     /// names a real archetype; and no wave assigns two enemies to the same spawn point or a
-    /// spawn point the template does not have.
+    /// spawn point the template does not have. Swarm archetypes that declare
+    /// <see cref="IEnemyArchetype.AllowsSharedSpawnPoints"/> are exempt from the unique-point
+    /// rule only — a swarm's size is authored, not capped by the room's point count.
     /// </summary>
     public static class LevelValidator
     {
@@ -96,7 +98,8 @@ namespace Game.Level
                     {
                         SpawnAssignment spawn = wave.Spawns[s];
 
-                        if (archetypeIds != null && !archetypeIds.Contains(spawn.ArchetypeId))
+                        IEnemyArchetype archetype = null;
+                        if (archetypeIds != null && !archetypeIds.TryGetValue(spawn.ArchetypeId, out archetype))
                         {
                             reason = $"room {r} wave {w} references unknown archetype '{spawn.ArchetypeId}'";
                             return false;
@@ -110,7 +113,8 @@ namespace Game.Level
                             return false;
                         }
 
-                        if (!usedSpawnPoints.Add(spawn.SpawnPointIndex))
+                        bool sharedAllowed = archetype != null && archetype.AllowsSharedSpawnPoints;
+                        if (!usedSpawnPoints.Add(spawn.SpawnPointIndex) && !sharedAllowed)
                         {
                             reason = $"room {r} wave {w} spawns two enemies on spawn point {spawn.SpawnPointIndex}";
                             return false;
@@ -159,17 +163,17 @@ namespace Game.Level
             return lookup;
         }
 
-        static HashSet<string> BuildArchetypeLookup(ILevelGenerationSettings settings)
+        static Dictionary<string, IEnemyArchetype> BuildArchetypeLookup(ILevelGenerationSettings settings)
         {
             if (settings == null || settings.Archetypes == null)
                 return null;
 
-            var lookup = new HashSet<string>();
+            var lookup = new Dictionary<string, IEnemyArchetype>();
             for (int i = 0; i < settings.Archetypes.Count; i++)
             {
                 IEnemyArchetype archetype = settings.Archetypes[i];
                 if (archetype != null)
-                    lookup.Add(archetype.Id);
+                    lookup[archetype.Id] = archetype;
             }
 
             return lookup;

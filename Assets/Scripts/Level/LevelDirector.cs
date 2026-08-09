@@ -30,6 +30,9 @@ namespace Game.Level
         [SerializeField, Tooltip("Vertical size of the confiner volume. Must comfortably contain the camera's height or it will be clamped and stop following.")]
         float confinerHeight = 30f;
 
+        static readonly int[] standardExitLabels = { 1, 2 };
+        static readonly int[] bossExitLabels = { 9 };
+
         PlayerAttackController playerAttacks;
         PlayerHealth playerHealth;
         PlayerBoons playerBoons;
@@ -299,6 +302,15 @@ namespace Game.Level
             currentRoom.name = $"Room_{roomIndex + 1}_{roomPlan.TemplateId}{(roomPlan.IsBossRoom ? "_BOSS" : string.Empty)}";
             currentRoom.ExitReached += OnExitReached;
             currentRoom.ApplyRole(roomPlan.Role);
+
+            // Two doors when the next room is an ordinary choice, one lone door when the boss
+            // is next (elites are Standard rooms and do not count), none for the final room —
+            // clearing it ends the level with no door involved. The numbers over the doors are
+            // placeholder reward markings for now.
+            bool finalRoom = roomIndex >= Plan.RoomCount - 1;
+            bool bossNext = !finalRoom && Plan.Rooms[roomIndex + 1].IsBossRoom;
+            if (!finalRoom)
+                currentRoom.ConfigureExits(bossNext ? 1 : 2, bossNext ? bossExitLabels : standardExitLabels);
 
             RoomEntered?.Invoke(roomPlan);
 

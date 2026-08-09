@@ -50,6 +50,19 @@ namespace Game.Level
         /// <summary>Raised when the player touches the exit trigger of a cleared room.</summary>
         public event Action ExitReached;
 
+        [Header("Exits")]
+        [SerializeField, Tooltip("How far off-centre each doorway sits when the room offers two exits, as a fraction of the room's width. Clamped so the doors always fit the smallest room.")]
+        float exitSpacingFraction = 0.22f;
+
+        sealed class BuiltExit
+        {
+            public GameObject Blocker;
+            public Collider Trigger;
+        }
+
+        readonly List<BuiltExit> builtExits = new List<BuiltExit>();
+        bool doorOpen;
+
         [Header("Boss signalling")]
         [SerializeField, Tooltip("Tint applied to the room's geometry when it hosts the boss, so the space itself reads as different before anything attacks. Deliberately a cold desaturated slate: the boss's melee telegraph is red, and a red room would swallow it (CLAUDE.md rule 7 reserves saturated hues for gameplay information).")]
         Color bossTint = new Color(0.20f, 0.21f, 0.27f);
@@ -111,11 +124,85 @@ namespace Game.Level
 
         public void SetDoorOpen(bool open)
         {
+            doorOpen = open;
+
+            if (builtExits.Count > 0)
+            {
+                for (int i = 0; i < builtExits.Count; i++)
+                {
+                    if (builtExits[i].Blocker != null)
+                        builtExits[i].Blocker.SetActive(!open);
+
+                    if (builtExits[i].Trigger != null)
+                        builtExits[i].Trigger.enabled = open;
+                }
+
+                return;
+            }
+
             if (doorBlocker != null)
                 doorBlocker.SetActive(!open);
 
             if (exitTrigger != null)
                 exitTrigger.enabled = open;
+        }
+
+        /// <summary>
+        /// Replaces the room's single authored door with <paramref name="count"/> doorways along
+        /// the exit wall, each with a visible frame and a floating number naming the reward
+        /// behind it (placeholder digits for now). The director calls this on entry: two exits
+        /// for an ordinary next room, one when the boss is next, zero for the final room —
+        /// which keeps the authored prefab untouched and the choice a per-run fact.
+        ///
+        /// <para>Both doors lead to the same generated next room today; the choice is the
+        /// signposting groundwork for per-exit rewards.</para>
+        /// </summary>
+        public void ConfigureExits(int count, IReadOnlyList<int> labels)
+        {
+            if (count <= 0 || doorBlocker == null || exitTrigger == null)
+                return;
+
+            Transform blockerT = doorBlocker.transform;
+            Transform triggerT = exitTrigger.transform;
+
+            float spacing = 4f;
+            if (TryGetPlayArea(out Bounds play))
+                spacing = Mathf.Clamp(play.size.x * exitSpacingFraction, 3f, 6f);
+
+            Material markerMaterial = null;
+            var blockerRenderer = doorBlocker.GetComponent<MeshRenderer>();
+            if (blockerRenderer != null)
+                markerMaterial = blockerRenderer.sharedMaterial;
+
+            for (int i = 0; i < count; i++)
+            {
+                float offset = count == 1 ? 0f : (i == 0 ? -spacing : spacing);
+                Vector3 shift = blockerT.right * offset;
+
+                GameObject blocker = Instantiate(doorBlocker, blockerT.position + shift, blockerT.rotation, blockerT.parent);
+                blocker.name = $"DoorBlocker_Exit{i + 1}";
+                blocker.SetActive(true);
+
+                GameObject triggerGo = Instantiate(exitTrigger.gameObject, triggerT.position + shift, triggerT.rotation, triggerT.parent);
+                triggerGo.name = $"ExitTrigger_Exit{i + 1}";
+                triggerGo.SetActive(true);
+                var trigger = triggerGo.GetComponent<Collider>();
+
+                int label = labels != null && i < labels.Count ? labels[i] : i + 1;
+                ExitMarkerView.Build(
+                    transform, blockerT.position + shift, transform.position.y,
+                    blockerT.localScale.x, label, markerMaterial);
+
+                builtExits.Add(new BuiltExit { Blocker = blocker, Trigger = trigger });
+            }
+
+            // The authored door becomes a dormant template; the built exits are the room's
+            // doors from here on.
+            doorBlocker.SetActive(false);
+            exitTrigger.enabled = false;
+            exitTrigger.gameObject.SetActive(false);
+
+            SetDoorOpen(doorOpen);
         }
 
         /// <summary>Called by the trigger's forwarder when the player steps into a cleared exit.</summary>
