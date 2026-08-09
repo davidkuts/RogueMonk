@@ -22,6 +22,7 @@ MonoBehaviour:
     LocalOffset: {x: 0, y: 0, z: 0}
     Radius: 2.2
     Size: {x: 1, y: 1, z: 1}
+    ArcDegrees: 360
   damage: 16
   damageType: 0
   poiseDamage: 0
@@ -31,4 +32,5 @@ MonoBehaviour:
   autoAimRangeMeters: 0
   aimSnapSpeedDegPerSec: 0
   moveSpeedMultiplier: 0
+  telegraphChannel: 4
   telegraphColor: {r: 0.85, g: 1, b: 0.25, a: 1}

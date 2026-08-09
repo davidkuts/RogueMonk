@@ -16,6 +16,15 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Layers that stop the projectile without being damaged (walls).")]
         LayerMask blockingLayers;
 
+        [SerializeField, Tooltip("Optional. Spawned wherever this projectile stops — hit, wall or expiry. Sailspit's glob leaves a stall zone this way.")]
+        GameObject impactPrefab;
+
+        [SerializeField, Tooltip("Optional. Peak height of a purely VISUAL lob. The hitbox stays planar, so what the player dodges is exactly what they see crossing the ground.")]
+        float visualArcHeight;
+
+        [SerializeField, Tooltip("Which child to lift along the arc. Left empty, the whole object is lifted, which also moves the hitbox — set this on anything with a real arc.")]
+        Transform visualRoot;
+
         readonly Collider[] overlapResults = new Collider[8];
 
         ProjectileMotion motion;
@@ -23,6 +32,7 @@ namespace Game.Enemies
         IAttackDefinition payload;
         Transform owner;
         float radius;
+        float arcRange;
 
         /// <summary>
         /// Arms the projectile. The resolver is the <em>shooter's</em>, so a projectile hit
@@ -36,7 +46,8 @@ namespace Game.Enemies
             Transform shooter,
             RangedProfile profile,
             LayerMask targetLayers,
-            LayerMask blockers)
+            LayerMask blockers,
+            float expectedRange = 0f)
         {
             payload = attack;
             resolver = hitResolver;
@@ -44,6 +55,13 @@ namespace Game.Enemies
             radius = Mathf.Max(0.05f, profile.ProjectileRadius);
             hittableLayers = targetLayers;
             blockingLayers = blockers;
+
+            // How far this shot is expected to travel, so a lob peaks over the middle of its own
+            // flight rather than over the middle of its theoretical maximum range. 0 falls back to
+            // the full range, which is what a straight bolt wants anyway.
+            arcRange = expectedRange > 0.1f
+                ? expectedRange
+                : Mathf.Max(0.1f, profile.ProjectileSpeed * profile.ProjectileLifetime);
 
             motion = new ProjectileMotion(origin, direction, profile.ProjectileSpeed, profile.ProjectileLifetime);
             transform.position = origin;
@@ -63,12 +81,31 @@ namespace Game.Enemies
                 return;
 
             transform.position = motion.Position;
+            ApplyVisualArc();
 
             if (motion.Expired)
             {
                 GameLog.Debug(LogCategory.Enemy, $"projectile expired after {motion.DistanceTravelled:0.##}m");
                 Despawn();
             }
+        }
+
+        /// <summary>
+        /// Lifts the visual along a parabola without touching the simulated position.
+        ///
+        /// <para>ENEMIES_BIOME1.md § 2.3 wants Sailspit's glob to arc, and the arc is worth having:
+        /// it reads as a lobbed blob of amber rather than a bolt, which is most of what separates
+        /// Sailspit's two moves at a glance. But the hitbox stays exactly where
+        /// <c>ProjectileMotion</c> puts it — planar, swept, already proven — so what the player
+        /// dodges is the shadow crossing the ground, not a shape the physics never agreed to.</para>
+        /// </summary>
+        void ApplyVisualArc()
+        {
+            if (visualArcHeight <= 0f || visualRoot == null)
+                return;
+
+            float t = Mathf.Clamp01(motion.DistanceTravelled / arcRange);
+            visualRoot.localPosition = new Vector3(0f, visualArcHeight * Mathf.Sin(t * Mathf.PI), 0f);
         }
 
         /// <summary>Returns true if the projectile was consumed this frame.</summary>
@@ -108,6 +145,23 @@ namespace Game.Enemies
             return false;
         }
 
-        void Despawn() => Destroy(gameObject);
+        /// <summary>
+        /// Drops whatever this projectile leaves behind, then removes it.
+        ///
+        /// <para>Spawned on <em>every</em> stop — target, wall or expiry — because a glob that only
+        /// left its stall zone on a direct hit would make the area-denial move a reward for
+        /// accuracy, when the whole point is that missing still costs the player ground.</para>
+        /// </summary>
+        void Despawn()
+        {
+            if (impactPrefab != null)
+            {
+                // On the floor, not at flight height: what it leaves is a patch of ground.
+                Vector3 at = motion != null ? motion.Position : transform.position;
+                Instantiate(impactPrefab, at, Quaternion.identity);
+            }
+
+            Destroy(gameObject);
+        }
     }
 }

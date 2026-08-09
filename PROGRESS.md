@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 1 of 7 — **Swiftjaw done** |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 2 of 7 — **Swiftjaw, Sailspit done** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,19 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 2 of 7: SAILSPIT (artillery, area denial)
+- **Three new mechanics, all general rather than Sailspit-shaped**: projectiles fired from a moveset move, stall zones, and fan telegraphs. Still no enemy subclass — the roster is two for two on "SOs plus minimal code".
+- **The stall zone's whole design is one distinction: it slows movement, never attacks.** §2.3 says it must "never feel like a stun", and a zone that also slowed attacks would be a soft stun-lock with two more things closing in. `PlayerMotor` gained an external speed multiplier that composes with — rather than replaces — whatever the current action imposes.
+  - ⚠️ **Overlapping zones must not stack, and that rule needed its own home.** Three 0.45 puddles multiply to **0.09**, which is a hard lock. The rule (slowest wins) now lives in an engine-free **`SpeedFieldAccumulator`** so it is testable without a scene, double-buffered because zones report from their own `Update` and Unity does not order Updates — a last-one-wins or half-filled read would make the slow flicker with component order. Six tests, including that a default-constructed struct is *not* "frozen solid" (every field zero) and that leaving a zone actually restores full speed.
+- **Amber is used correctly here, and it is the interesting case.** §2.3 has the throat glow amber, which looks like it collides with §1's "amber = hardened time" — until you notice what the glob *delivers* is a patch of ground that blocks movement. Amber promises exactly that. So the **glob telegraphs amber** and the **spine fan telegraphs magenta**: one is hardened time arriving, the other is a pure damage threat you dodge *between*. §2.3 names no colour for the fan, so that is filling a gap rather than overriding one.
+- ⚠️ **The palette decision came due and was paid.** The shipped skirmisher's bolt was literally called `ProjectileAmber` — under the new grammar an amber bolt reads as "hardened time incoming", which is wrong. Created `ProjectileMagenta`, retinted `EnemyProjectile` and `BossVolley`, and **declared telegraph channels on all nine shipped enemy/boss attacks**. Both the raw colour *and* the channel were set, because `MeleeEnemyController`/`RangedEnemyController`/`BossController` predate the palette and still read the raw colour — a channel alone would have silently changed nothing. Amber found its correct home on Sailspit's glob.
+- **The fan's gaps are the answer, so the telegraph draws the spines, not the cone.** One wide wedge would say "there is no way through", which would be a lie. Ranged moves telegraph a **box lane per projectile** — and the attack's `Hitbox` field is free to describe that lane, because `Projectile` takes its collision radius from the `RangedProfile` and never reads `Hitbox` at all.
+- **Per-move projectile speed** (`projectileSpeedOverride`), because a lobbed glob (7 m/s) and a flicked spine (11 m/s) should not travel alike. The **arc is visual only** — a child transform lifted along a parabola while the simulated hitbox stays planar, so what the player dodges is the shadow crossing the ground, not a shape physics never agreed to.
+- **Skittishness is a number, not a behaviour.** The brain steers to the band of its shortest-reach move, so setting SpineFan's `MinRange` to 4.5 *is* the backpedal. Verified: teleported the player to **2.00 m**, and it retreated to exactly **4.50 m** and stopped.
+- **Verified live**: both moves fire and alternate (`AmberGlob 1 shot @7m/s`, `SpineFan 5 shots over 40° @11m/s`); both land on the player for authored damage (6 / 7); glob leaves a stall zone that drops the player's multiplier to **0.45**; 93 fps; **zero console errors**.
+- **475/475 EditMode tests** (+6).
+- Known issues / TODO next: `RangedProfile`'s radius and lifetime are still **per-enemy**, so glob and spine share a hitbox size — only speed is per-move. Stall zones affect **the player only**; whether a Cerashorn charging through one should be slowed is not specified and is deferred. The old three controllers still read raw telegraph colours rather than the palette — assets now carry both, so converting them later is safe but not yet done.
 
 ### 2026-08-09 — M14.1 enemy 1 of 7: SWIFTJAW (raptor pack)
 - **Zero new enemy code.** Swiftjaw is 3 `AttackDefinition`s + 1 `BiomeEnemyDefinition` + 1 `CapsuleRecipe` + 1 prefab, running on the Phase 0 base with no subclass. That was the bet Phase 0 made and it paid: "new enemies = SOs + minimal code" held for the first one.

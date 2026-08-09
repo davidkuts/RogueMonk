@@ -31,6 +31,13 @@ namespace Game.Core.Player
         /// <summary>Whatever the controller excluded before the dash started, so it can be restored exactly.</summary>
         LayerMask baseExcludeLayers;
 
+        /// <summary>
+        /// Slowing fields the player is standing in — stall zones, and whatever later biomes add.
+        /// The rule (slowest wins, never the product) lives in the accumulator so it is testable
+        /// without a scene.
+        /// </summary>
+        SpeedFieldAccumulator speedFields;
+
         /// <summary>The walking simulation — read by the camera rig and, later, combat.</summary>
         public PlayerLocomotion Locomotion { get; private set; }
 
@@ -43,6 +50,24 @@ namespace Game.Core.Player
         /// actually stop the hit, or a "perfect dodge" would be credited for a blow that landed.
         /// </summary>
         public bool IsInvulnerable => Dash != null && Dash.IsProtected;
+
+        /// <summary>Slowest field the player is standing in this frame. 1 when standing on clean ground.</summary>
+        public float ExternalSpeedMultiplier => speedFields.Current;
+
+        /// <summary>
+        /// Reports that the player is standing in something that slows them — a Sailspit stall
+        /// zone, and whatever later biomes add.
+        ///
+        /// <para><b>Zones do not stack.</b> The slowest one wins rather than the product, which is
+        /// why this takes a minimum instead of multiplying. Two overlapping puddles multiplying to
+        /// a quarter speed would make a pair of Sailspits an accidental hard lock, and
+        /// ENEMIES_BIOME1.md § 2.3 is explicit that overlapping zones must not stack their slow.</para>
+        ///
+        /// <para>It slows <em>movement only</em>. Attacks, the dash and the vortex all read their
+        /// own timings from frame data and never touch this — a stall zone shapes the arena, it
+        /// does not stun.</para>
+        /// </summary>
+        public void ApplyExternalSpeedMultiplier(float multiplier) => speedFields.Report(multiplier);
 
         void Awake()
         {
@@ -90,6 +115,10 @@ namespace Game.Core.Player
             float speedMultiplier = actions != null ? actions.MoveSpeedMultiplier : 1f;
             bool allowTurning = actions == null || actions.AllowsTurning;
 
+            // Ground that slows, on top of whatever the current action imposes. Kept separate
+            // from the action multiplier so the two compose without either owning the other.
+            speedMultiplier *= speedFields.Current;
+
             // Dash.Tick always runs — it owns charge recharge whether or not a dash is live.
             bool wasDashing = Dash.IsDashing;
             Vector3 dashStep = Dash.Tick(deltaTime);
@@ -123,6 +152,13 @@ namespace Game.Core.Player
 
             transform.rotation = Quaternion.LookRotation(Locomotion.Facing, Vector3.up);
         }
+
+        /// <summary>
+        /// Closes the frame's slowing-field accumulator. Runs after every Update, so a zone that
+        /// reported itself this frame is honoured next frame and a zone the player has left stops
+        /// applying immediately rather than sticking.
+        /// </summary>
+        void LateUpdate() => speedFields.EndFrame();
 
         /// <summary>Dash goes where the stick points, or straight ahead when the stick is neutral.</summary>
         Vector3 ResolveDashDirection(Vector2 moveAxis)

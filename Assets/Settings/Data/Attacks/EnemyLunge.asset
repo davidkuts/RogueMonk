@@ -32,4 +32,5 @@ MonoBehaviour:
   autoAimRangeMeters: 0
   aimSnapSpeedDegPerSec: 0
   moveSpeedMultiplier: 0
+  telegraphChannel: 1
   telegraphColor: {r: 1, g: 0.24, b: 0.18, a: 1}

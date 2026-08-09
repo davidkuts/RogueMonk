@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
+  m_Name: Sailspit
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
+  maxHealth: 30
+  tier: 0
+  poiseMax: 20
+  poiseRegenDelay: 1.5
+  poiseRegenRate: 12
+  armorMax: 0
+  staggerDurationSeconds: 1.1
+  moveSpeed: 3.4
+  aggroRange: 16
+  attackRange: 10
+  attackCooldownSeconds: 1.8
+  spawnGraceSeconds: 1.2
+  lungeDistance: 0
+  attack: {fileID: 11400000, guid: 6ac193174d00fad4f824db8784461277, type: 2}
+  ranged:
+    PreferredMinRange: 4.5
+    PreferredMaxRange: 10
+    ProjectileSpeed: 11
+    ProjectileLifetime: 2.5
+    ProjectileRadius: 0.32
+    KiteSpeedFraction: 0.7
+  moves:
+  - id: AmberGlob
+    links:
+    - {fileID: 11400000, guid: 6ac193174d00fad4f824db8784461277, type: 2}
+    linkDelaySeconds: 0
+    minRange: 4
+    maxRange: 12
+    selectionWeight: 1
+    moveCooldownSeconds: 3
+    lungeDistance: 0
+    projectilePrefab: {fileID: 2943593166892457266, guid: 34d2ef88eb914ca43bb436eaa8d3220c, type: 3}
+    projectileCount: 1
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 7
+  - id: SpineFan
+    links:
+    - {fileID: 11400000, guid: 360dafd0836a18a42b5b826ccf4341a3, type: 2}
+    linkDelaySeconds: 0
+    minRange: 4.5
+    maxRange: 10
+    selectionWeight: 0.9
+    moveCooldownSeconds: 4
+    lungeDistance: 0
+    projectilePrefab: {fileID: 3792520230636661157, guid: 9d10f2335773a3a42a1ba650e045b72f, type: 3}
+    projectileCount: 5
+    projectileSpreadDegrees: 40
+    projectileSpeedOverride: 0
+  repeatWeightMultiplier: 0.4
+  tokenKind: 1
+  concurrentAttackerCap: 2
+  initialCooldownJitterSeconds: 1
+  turnSpeedDegPerSec: 420
+  circleSpeedFraction: 0
+  circleRadius: 6

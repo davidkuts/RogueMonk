@@ -35,6 +35,19 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How far the attacker travels across each link's active frames. 0 roots it.")]
         float lungeDistance;
 
+        [Header("Projectiles (0 count = a melee move)")]
+        [SerializeField, Tooltip("What this move throws. Per-move rather than per-enemy, because Sailspit's glob and its spines are different objects with different payloads.")]
+        Projectile projectilePrefab;
+
+        [SerializeField, Tooltip("How many go out when the active window opens. 1 is a single shot; 3-5 is a fan whose GAPS are the dash lanes.")]
+        int projectileCount;
+
+        [SerializeField, Tooltip("Total fan width, centred on facing. Ignored for a single shot.")]
+        float projectileSpreadDegrees = 36f;
+
+        [SerializeField, Tooltip("Overrides the enemy's RangedProfile speed for this move only. 0 uses the profile. A lobbed glob and a flicked spine should not travel at the same speed.")]
+        float projectileSpeedOverride;
+
         IReadOnlyList<IAttackDefinition> cachedLinks;
 
         public string Id => id;
@@ -44,6 +57,31 @@ namespace Game.Enemies
         public float SelectionWeight => selectionWeight;
         public float MoveCooldownSeconds => moveCooldownSeconds;
         public float LungeDistance => lungeDistance;
+
+        /// <summary>Null for a melee move. Deliberately off <see cref="IEnemyMove"/>: the brain
+        /// decides <em>which</em> move, and how one is delivered is the adapter's business.</summary>
+        public Projectile ProjectilePrefab => projectilePrefab;
+
+        public int ProjectileCount => projectileCount;
+
+        public float ProjectileSpreadDegrees => projectileSpreadDegrees;
+
+        /// <summary>True when this move throws something rather than swinging.</summary>
+        public bool IsRanged => projectilePrefab != null && projectileCount > 0;
+
+        /// <summary>
+        /// This move's <see cref="RangedProfile"/>, with the per-move speed folded in. The rest of
+        /// the profile — radius, lifetime, preferred bands — stays the enemy's, since those are
+        /// properties of the creature rather than of one attack.
+        /// </summary>
+        public RangedProfile ResolveProfile(RangedProfile enemyProfile)
+        {
+            if (projectileSpeedOverride <= 0f)
+                return enemyProfile;
+
+            enemyProfile.ProjectileSpeed = projectileSpeedOverride;
+            return enemyProfile;
+        }
 
         public IReadOnlyList<IAttackDefinition> Links
         {

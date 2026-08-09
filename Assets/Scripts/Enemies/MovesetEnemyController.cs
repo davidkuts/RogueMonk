@@ -41,6 +41,9 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Height the hitbox is measured from. Matches the telegraph so the decal cannot promise a different volume than the query.")]
         protected float hitboxHeightOffset = 0.9f;
 
+        [SerializeField, Tooltip("Layers that stop a projectile dead without being damaged (walls). Only read by moves that throw something.")]
+        protected LayerMask projectileBlockingLayers;
+
         [SerializeField] protected float gravity = -25f;
         [SerializeField] protected float groundedStickSpeed = 2f;
 
@@ -352,6 +355,22 @@ namespace Game.Enemies
                 return;
             }
 
+            // A fan draws one footprint per spine, because the gaps between them are the answer.
+            // One wide wedge would say "there is no way through", which would be a lie.
+            //
+            // For a ranged move the shape being drawn is the lane the shot will sweep, authored on
+            // the attack asset. A projectile takes its own collision radius from the RangedProfile
+            // and never reads Hitbox, so that field is free to describe the warning instead — which
+            // is the only description worth drawing on the floor.
+            var move = CurrentMove as EnemyMove;
+            if (move != null && move.IsRanged && move.ProjectileCount > 1)
+            {
+                telegraph.ShowFan(
+                    asset, HitboxOrigin, transform.forward,
+                    move.ProjectileSpreadDegrees, move.ProjectileCount, attacks.WindupProgress, FeetY);
+                return;
+            }
+
             telegraph.Show(asset, HitboxOrigin, transform.forward, attacks.WindupProgress, FeetY);
         }
 
@@ -437,6 +456,56 @@ namespace Game.Enemies
             float active = Mathf.Max(0.0001f, attack.ActiveSeconds);
             float lunge = CurrentMove?.LungeDistance ?? definition.LungeDistance;
             lungeVelocity = transform.forward * (lunge / active);
+
+            FireProjectiles(attack);
+        }
+
+        /// <summary>
+        /// Launches a move's projectiles at the instant its wind-up completes.
+        ///
+        /// <para>Fired from <c>ActiveStarted</c> rather than on a timer, which is what makes the
+        /// telegraph honest: an interrupt landing during the wind-up means the shot is never
+        /// created at all. Staggering a Sailspit mid-gulp eats the glob.</para>
+        ///
+        /// <para>The fan is spread evenly end to end, and the <em>gaps</em> are the point —
+        /// ENEMIES_BIOME1.md § 2.3 makes them dash-through lanes, so the answer to a spine fan is
+        /// to read a gap rather than to outrun the cone.</para>
+        /// </summary>
+        protected virtual void FireProjectiles(IAttackDefinition attack)
+        {
+            var move = CurrentMove as EnemyMove;
+            if (move == null || !move.IsRanged || target == null)
+                return;
+
+            // Projectiles fly planar, so the launch height must be the target's centre or every
+            // shot sails over its head. Taken from the target rather than a fixed muzzle offset,
+            // so it stays correct whatever the two capsules' heights are.
+            Vector3 origin = new Vector3(transform.position.x, target.position.y, transform.position.z);
+            Vector3 toTarget = target.position - origin;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+                toTarget = transform.forward;
+
+            float range = toTarget.magnitude;
+            Vector3 aim = toTarget.normalized;
+            int count = Mathf.Max(1, move.ProjectileCount);
+            RangedProfile profile = move.ResolveProfile(definition.Ranged);
+
+            for (int i = 0; i < count; i++)
+            {
+                float t = count == 1 ? 0.5f : i / (float)(count - 1);
+                float angle = Mathf.Lerp(-move.ProjectileSpreadDegrees * 0.5f, move.ProjectileSpreadDegrees * 0.5f, t);
+                Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * aim;
+
+                Projectile shot = Instantiate(move.ProjectilePrefab, origin, Quaternion.LookRotation(direction, Vector3.up));
+                shot.Launch(
+                    origin, direction, attack, resolver, transform,
+                    profile, hittableLayers, projectileBlockingLayers, range);
+            }
+
+            GameLog.Info(LogCategory.Enemy,
+                $"fire {definition.Id}  {move.Id}  {count} shot(s) over {move.ProjectileSpreadDegrees:0}deg  " +
+                $"speed {profile.ProjectileSpeed:0.##}m/s");
         }
 
         protected virtual void OnActiveEnded(IAttackDefinition attack) => ClearAlreadyHit();
