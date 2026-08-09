@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37aa8799252a6e446aed279f3e97d6e9, type: 3}
+  m_Name: Ambershell
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.CapsuleRecipe
+  displayName: Ambershell
+  identityColor: {r: 1, g: 0.67, b: 0.13, a: 1}
+  accentColor: {r: 0.28, g: 0.19, b: 0.13, a: 1}
+  parts:
+  - Name: Dome
+    Primitive: 0
+    LocalPosition: {x: 0, y: 0.16, z: -0.05}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1.55, y: 0.8, z: 1.85}
+    UseAccent: 0
+    IsDamageZone: 1
+    Armored: 1
+    DamageReduction: 0.7
+  - Name: Skull
+    Primitive: 0
+    LocalPosition: {x: 0, y: -0.05, z: 0.92}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.62, y: 0.48, z: 0.62}
+    UseAccent: 0
+    IsDamageZone: 1
+    Armored: 1
+    DamageReduction: 0.7
+  - Name: FlankL
+    Primitive: 3
+    LocalPosition: {x: -0.78, y: -0.08, z: -0.05}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.26, y: 0.42, z: 1.45}
+    UseAccent: 0
+    IsDamageZone: 1
+    Armored: 1
+    DamageReduction: 0.7
+  - Name: FlankR
+    Primitive: 3
+    LocalPosition: {x: 0.78, y: -0.08, z: -0.05}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.26, y: 0.42, z: 1.45}
+    UseAccent: 0
+    IsDamageZone: 1
+    Armored: 1
+    DamageReduction: 0.7
+  - Name: TailBase
+    Primitive: 1
+    LocalPosition: {x: 0, y: -0.18, z: -1.05}
+    LocalEulerAngles: {x: 78, y: 0, z: 0}
+    LocalScale: {x: 0.34, y: 0.42, z: 0.34}
+    UseAccent: 1
+    IsDamageZone: 1
+    Armored: 0
+    DamageReduction: 0
+  - Name: Underside
+    Primitive: 3
+    LocalPosition: {x: 0, y: -0.42, z: 0.1}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1.05, y: 0.26, z: 1.45}
+    UseAccent: 1
+    IsDamageZone: 1
+    Armored: 0
+    DamageReduction: 0
+  - Name: Legs
+    Primitive: 3
+    LocalPosition: {x: 0, y: -0.52, z: -0.05}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 1.25, y: 0.34, z: 1.3}
+    UseAccent: 1
+    IsDamageZone: 0
+    Armored: 0
+    DamageReduction: 0

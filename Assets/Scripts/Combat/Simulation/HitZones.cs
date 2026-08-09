@@ -28,5 +28,26 @@ namespace Game.Combat
 
             return collider.TryGetComponent(out DamageZone zone) ? zone.Describe() : default;
         }
+
+        /// <summary>
+        /// True when this collider belongs to a zoned body but is not itself a zone — the root
+        /// capsule of an Ambershell, for instance.
+        ///
+        /// <para>Attackers must skip these. A hit is deduplicated per <see cref="IDamageable"/>, so
+        /// landing on the root capsule instead of a plate would resolve as an unzoned, full-damage
+        /// hit and the armour would simply not apply. Which collider a query returns first is
+        /// arbitrary, so without this the plating would work intermittently — the worst possible
+        /// failure, because it looks like bad luck rather than a bug.</para>
+        /// </summary>
+        public static bool IsNonZoneColliderOfZonedBody(Collider collider)
+        {
+            if (collider == null)
+                return false;
+
+            if (collider.GetComponent<DamageZone>() != null)
+                return false;
+
+            return collider.GetComponentInParent<ZonedBody>() != null;
+        }
     }
 }

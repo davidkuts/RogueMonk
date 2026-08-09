@@ -403,6 +403,12 @@ namespace Game.Combat
                 if (target == null || !target.IsAlive || alreadyHit.Contains(target))
                     continue;
 
+                // A zoned body may only be struck on a plate or a soft spot. Its root capsule is
+                // skipped, or the hit would resolve unzoned at full damage and the armour would
+                // apply only when the query happened to return the right collider first.
+                if (HitZones.IsNonZoneColliderOfZonedBody(collider))
+                    continue;
+
                 alreadyHit.Add(target);
 
                 Vector3 point = collider.ClosestPoint(center);

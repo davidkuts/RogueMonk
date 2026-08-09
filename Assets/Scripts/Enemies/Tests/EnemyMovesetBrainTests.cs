@@ -315,6 +315,80 @@ namespace Game.Enemies.Tests
         }
 
         [Test]
+        public void ARequestedMoveJumpsAheadOfTheWeightedDraw()
+        {
+            var ordinary = new FakeEnemyMove { Id = "sweep", MaxRange = 4f, SelectionWeight = 10f };
+            var requested = new FakeEnemyMove { Id = "stomp", MaxRange = 4f, SelectionWeight = 0f };
+
+            EnemyMovesetBrain brain = Make(out _, new IEnemyMove[] { ordinary, requested });
+
+            // Weight 0 means it can never be drawn. That is the point: a move that could also turn
+            // up at random teaches nothing, because seeing it would sometimes mean "I overstayed"
+            // and sometimes just mean "it rolled a four".
+            Assert.IsTrue(brain.RequestMove("stomp"));
+            Assert.AreEqual("stomp", RunUntilAttack(brain, 2f)?.Id);
+        }
+
+        [Test]
+        public void AZeroWeightMoveIsOtherwiseUnreachable()
+        {
+            var ordinary = new FakeEnemyMove { Id = "sweep", MaxRange = 4f, SelectionWeight = 1f, MoveCooldownSeconds = 0f };
+            var never = new FakeEnemyMove { Id = "stomp", MaxRange = 4f, SelectionWeight = 0f };
+
+            EnemyMovesetBrain brain = Make(out _, new IEnemyMove[] { ordinary, never });
+
+            for (int i = 0; i < 12; i++)
+            {
+                Assert.AreEqual("sweep", RunUntilAttack(brain, 2f)?.Id);
+                brain.NotifyLinkFinished();
+            }
+        }
+
+        [Test]
+        public void ARequestOutOfRangeIsForgivenRatherThanBanked()
+        {
+            var near = new FakeEnemyMove { Id = "stomp", MinRange = 0f, MaxRange = 3f, SelectionWeight = 0f };
+            var far = new FakeEnemyMove { Id = "roll", MinRange = 4f, MaxRange = 12f, SelectionWeight = 1f };
+
+            EnemyMovesetBrain brain = Make(out _, new IEnemyMove[] { near, far });
+
+            brain.RequestMove("stomp");
+
+            // Ticked at 8m, where the stomp is illegal. A banked request would fire the answer long
+            // after the provocation that earned it, which reads as arbitrary — so it is dropped.
+            brain.Tick(Step, 8f, hasTarget: true, isAttacking: false, isStaggered: false, attackPermitted: true);
+
+            IEnemyMove chosen = brain.WantsToAttack ? brain.CurrentMove : RunUntilAttack(brain, 8f);
+            Assert.AreEqual("roll", chosen?.Id, "the illegal request must not be held onto");
+        }
+
+        [Test]
+        public void RequestingAMoveThatDoesNotExistIsRefused()
+        {
+            EnemyMovesetBrain brain = Make(out _, new IEnemyMove[] { new FakeEnemyMove { Id = "sweep" } });
+            Assert.IsFalse(brain.RequestMove("nope"));
+            Assert.IsFalse(brain.RequestMove(null));
+        }
+
+        [Test]
+        public void ARequestNeverInterruptsAnAttackAlreadyRunning()
+        {
+            var chain = new FakeEnemyMove { Id = "sweep", MaxRange = 4f, Links = FakeEnemyMove.Chain(2) };
+            var stomp = new FakeEnemyMove { Id = "stomp", MaxRange = 4f, SelectionWeight = 0f };
+
+            EnemyMovesetBrain brain = Make(out _, new IEnemyMove[] { chain, stomp });
+
+            RunUntilAttack(brain, 2f);
+            brain.RequestMove("stomp");
+
+            // CLAUDE.md rule 6: a wind-up is committed. Asking for a counter mid-swing must never
+            // erase a swing the player has already started dodging.
+            brain.Tick(Step, 2f, hasTarget: true, isAttacking: true, isStaggered: false, attackPermitted: true);
+            Assert.IsFalse(brain.WantsToAttack);
+            Assert.AreEqual("sweep", brain.CurrentMove?.Id);
+        }
+
+        [Test]
         public void TheSameSeedReplaysTheSameSequenceOfMoves()
         {
             string[] Run(uint seed)

@@ -414,6 +414,11 @@ namespace Game.Enemies
                 if (damageable == null || !damageable.IsAlive || alreadyHit.Contains(damageable))
                     continue;
 
+                // Same rule the player follows: a zoned body is only hittable on its zones, so a
+                // Cerashorn charge cannot bypass an Ambershell's plating through the root capsule.
+                if (HitZones.IsNonZoneColliderOfZonedBody(collider))
+                    continue;
+
                 alreadyHit.Add(damageable);
 
                 Vector3 direction = collider.transform.position - transform.position;

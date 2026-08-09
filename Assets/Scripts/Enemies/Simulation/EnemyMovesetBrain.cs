@@ -38,6 +38,7 @@ namespace Game.Enemies
         float graceRemaining;
         int lastMoveIndex = -1;
         int linkIndex = -1;
+        int requestedMoveIndex = -1;
         bool dead;
 
         /// <param name="initialCooldownJitter">
@@ -190,6 +191,22 @@ namespace Game.Enemies
                 return;
             }
 
+            // A requested move jumps the weighted draw and the global cooldown, but never a
+            // wind-up already in progress (the guards above have returned by now) and never its own
+            // range band. This is how a move can mean "you provoked this" rather than "it rolled a
+            // four" — Ambershell's anti-camp stomp, and the same shape as BossBrain's retaliation.
+            if (requestedMoveIndex >= 0)
+            {
+                int requested = requestedMoveIndex;
+                requestedMoveIndex = -1;
+
+                if (attackPermitted && IsLegalNow(requested, distanceToTarget))
+                {
+                    Commit(requested);
+                    return;
+                }
+            }
+
             if (!attackPermitted)
             {
                 // Someone else is swinging. Keep circling — a pack that freezes while it waits for
@@ -223,6 +240,53 @@ namespace Game.Enemies
 
             SetState(EnemyState.Attacking);
             MoveChosen?.Invoke(CurrentMove);
+        }
+
+        /// <summary>
+        /// Asks for a specific move to be thrown at the next opportunity, ahead of the ordinary
+        /// weighted draw.
+        ///
+        /// <para>For moves that must mean "you caused this". A move that could also turn up on a
+        /// random draw teaches nothing — the player can never learn that seeing it means they
+        /// overstayed, because sometimes it just happened. Excluding it from the rotation (weight 0)
+        /// and requesting it explicitly is what makes it legible.</para>
+        ///
+        /// <para>The request is consumed on the next Tick whether or not it could be honoured, so a
+        /// move that is out of range or on cooldown is forgiven rather than banked — a delayed
+        /// answer to a provocation the player has already stopped reads as arbitrary. It never
+        /// shortens a wind-up (CLAUDE.md rule 6): the committed-attack guard returns before this is
+        /// ever reached.</para>
+        /// </summary>
+        /// <returns>False when no move by that id exists.</returns>
+        public bool RequestMove(string moveId)
+        {
+            if (dead || string.IsNullOrEmpty(moveId))
+                return false;
+
+            for (int i = 0; i < moves.Count; i++)
+            {
+                if (moves[i].Id != moveId)
+                    continue;
+
+                requestedMoveIndex = i;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Range band and cooldown, without the weight — a requested move ignores weight by design.</summary>
+        bool IsLegalNow(int index, float distance)
+        {
+            if (index < 0 || index >= moves.Count)
+                return false;
+
+            IEnemyMove move = moves[index];
+            return move.Links != null
+                && move.Links.Count > 0
+                && moveCooldowns[index] <= 0f
+                && distance >= move.MinRange
+                && distance <= move.MaxRange;
         }
 
         /// <summary>Called by the controller when one link's attack finishes, recovery included.</summary>

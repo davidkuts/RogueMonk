@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 4 of 7 — entry tier **complete** |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 5 of 7 — entry tier + Ambershell done |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,19 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 5 of 7: AMBERSHELL (the Armored showcase) — Phase 0's zone framework pays off
+- **Almost all of it is zones, not behaviour**, which was the bet Phase 0 made. The plating is `DamageZone` colliders baked straight from the capsule recipe; the base controller already routed every hit through them. **Measured: the dome takes 3 of a 10-damage punch with poise untouched; the underside takes the full 10 and drops poise 40→30.** That is the whole Armored lesson in two hits.
+- ⚠️ **Two framework holes surfaced, and one of them would have made the armour a lie.**
+  1. **A zoned body was still hittable on its root capsule.** A hit is deduplicated per `IDamageable` and a query returns colliders in arbitrary order, so landing on the CharacterController instead of a plate resolved as an *unzoned, full-damage* hit. The plating would have worked **intermittently** — the worst possible failure, because it reads as bad luck rather than a bug. Fixed with a `ZonedBody` marker: bodies carrying it are hittable **only** on their zones, and both the player's and the enemies' hit loops honour it. Unzoned enemies are completely unaffected.
+  2. **`CapsuleKitBuilder` left every primitive on the Default layer.** A zone collider on the wrong layer is invisible to every hitbox query in the game, so the plating would never have been hit at all and the enemy would have looked invulnerable rather than armoured. Parts now inherit the root's layer.
+- **The charge physics were extracted, not copied.** Cerashorn's line charge and Ambershell's rolling charge are the same thing with one difference — what happens at the wall — so `ChargingEnemyController` now owns the phasing, the displacement-based slam detection and the knockdown, with a single `OnWallSlam()` hook. That matters because the charge is where *both* of this milestone's real bugs lived; a second copy would be a second place for them to return.
+- **The wall bait opens the whole shell, not the plate that touched the wall.** The player earned the opening with a manoeuvre; making them then hunt for which specific plate made contact would turn a positioning reward into an aiming problem. **Verified: all four plates cracked for 8.0 s, a cracked dome then took the full 10 damage and real poise damage, and `HasIntactArmorZone` went false — so the Undertow can pull it while it is open.** They re-harden on their own.
+- **The compression stomp is request-only.** It carries **selection weight 0**, so it can never appear in a weighted draw — it is thrown by an explicit `RequestMove` from the camp timer. A move that could also turn up at random teaches nothing, because seeing it would sometimes mean "I overstayed" and sometimes just mean "it rolled a four". Same reasoning as the boss's retaliations. **Verified firing at exactly 2.5 s of camping**, and a request that is out of range or on cooldown is *forgiven* rather than banked.
+- **`EnemyMovesetBrain.RequestMove`** is new and general — the Tyrant will want it. It never shortens a wind-up: the committed-attack guard returns before it is ever reached (CLAUDE.md rule 6, pinned by a test).
+- **Tier stays Staggerable, deliberately.** The armour here is per-collider; also setting the enemy-wide Armored tier would stack two different armour systems on one body and the player could never tell which one they were fighting.
+- **488/488 EditMode tests** (+5, all on `RequestMove`).
+- Known issues / TODO next: the amber plating has **no distinct cracked visual** — mechanically it is open, but the body does not yet say so, and §3.1 wants a material state swap. `EnemyActor` retints per-renderer already, so the hook exists. The tail sweep is authored as a 270° arc centred on facing, which leaves the safe wedge *in front of the skull* — the armoured end. That tension is intended but unverified against a real player.
 
 ### 2026-08-09 — M14.1 enemy 4 of 7: SCRAPFEATHERS (carrion swarm) — entry tier complete
 - **The one archetype that is lighter for having less machinery.** Scrapfeathers have no telegraphed attacks at all — §2.4: "the swarm *is* the attack" — so `ScrapfeatherController` is deliberately **not** a `MovesetEnemyController`. A moveset brain, an attack state machine, a telegraph presenter and an attack token would all be machinery with nothing to do, twelve times over. What is left is: flock, touch, die.

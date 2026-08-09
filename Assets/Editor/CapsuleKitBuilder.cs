@@ -63,14 +63,21 @@ namespace Game.EditorTools
 
             var body = new GameObject(BodyChildName);
             body.transform.SetParent(root.transform, false);
+            body.layer = root.layer;
 
             Material material = ResolveMaterial();
+            bool anyZone = false;
 
             foreach (CapsulePart part in recipe.Parts)
             {
                 GameObject piece = GameObject.CreatePrimitive(part.Primitive);
                 piece.name = string.IsNullOrWhiteSpace(part.Name) ? part.Primitive.ToString() : part.Name;
                 piece.transform.SetParent(body.transform, false);
+
+                // CreatePrimitive puts everything on Default. A zone collider on the wrong layer is
+                // invisible to every hitbox query in the game, so the plating would simply never be
+                // hit — and the enemy would look invulnerable rather than armoured.
+                piece.layer = root.layer;
                 piece.transform.localPosition = part.LocalPosition;
                 piece.transform.localEulerAngles = part.LocalEulerAngles;
                 piece.transform.localScale = part.LocalScale == Vector3.zero ? Vector3.one : part.LocalScale;
@@ -79,6 +86,7 @@ namespace Game.EditorTools
 
                 if (part.IsDamageZone)
                 {
+                    anyZone = true;
                     // A zone collider must be a trigger: it exists to be *found* by an overlap
                     // query, not to push the body around. Left solid, an enemy's own plates would
                     // fight its CharacterController.
@@ -113,6 +121,15 @@ namespace Game.EditorTools
                 block.SetColor("_BaseColor", recipe.ColorFor(part));
                 renderer.SetPropertyBlock(block);
             }
+
+            // Marks the body hittable only on its zones. Added when the recipe has any, removed
+            // when it has none, so re-baking a recipe that lost its plating does not leave a body
+            // that nothing can hit.
+            var marker = root.GetComponent<ZonedBody>();
+            if (anyZone && marker == null)
+                root.AddComponent<ZonedBody>();
+            else if (!anyZone && marker != null)
+                Object.DestroyImmediate(marker);
 
             return body;
         }

@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
+  m_Name: Ambershell
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
+  maxHealth: 120
+  tier: 0
+  poiseMax: 40
+  poiseRegenDelay: 2
+  poiseRegenRate: 10
+  armorMax: 0
+  staggerDurationSeconds: 1.4
+  moveSpeed: 2.2
+  aggroRange: 16
+  attackRange: 3
+  attackCooldownSeconds: 1.8
+  spawnGraceSeconds: 1.4
+  lungeDistance: 0
+  attack: {fileID: 11400000, guid: b168ce5f89f49ea4c8f650af07695fa3, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 9
+    ProjectileSpeed: 9
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.35
+    KiteSpeedFraction: 0.7
+  moves:
+  - id: TailSweep
+    links:
+    - {fileID: 11400000, guid: b168ce5f89f49ea4c8f650af07695fa3, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 3.2
+    selectionWeight: 1.2
+    moveCooldownSeconds: 3
+    lungeDistance: 0
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  - id: RollingCharge
+    links:
+    - {fileID: 11400000, guid: 5b7be7d16fa92a9469e049fdc4173fe2, type: 2}
+    linkDelaySeconds: 0
+    minRange: 4
+    maxRange: 13
+    selectionWeight: 1
+    moveCooldownSeconds: 5
+    lungeDistance: 11
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  - id: CompressionStomp
+    links:
+    - {fileID: 11400000, guid: 3e58d3d4b6ea9a24ab6b065750401d65, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 3.5
+    selectionWeight: 0
+    moveCooldownSeconds: 4
+    lungeDistance: 0
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  repeatWeightMultiplier: 0.4
+  tokenKind: 0
+  concurrentAttackerCap: 1
+  initialCooldownJitterSeconds: 0.8
+  turnSpeedDegPerSec: 200
+  circleSpeedFraction: 0
+  circleRadius: 3.2
