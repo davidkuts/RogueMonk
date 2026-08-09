@@ -45,9 +45,17 @@ namespace Game.Combat
 
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
 
-        /// <summary>True during post-hit invulnerability or dash i-frames.</summary>
+        /// <summary>
+        /// Debug: while true, no hit ever lands. Toggled by <c>DebugCheats</c> (R2 / G) so the
+        /// whole run can be tested without health pressure. Deliberately checked *after* the
+        /// dash i-frame branch, so perfect dodges still register and the Riposte loop — the
+        /// only way to damage a gated elite — remains testable with god mode on.
+        /// </summary>
+        public bool GodMode { get; set; }
+
+        /// <summary>True during post-hit invulnerability, dash i-frames, or debug god mode.</summary>
         public bool IsInvulnerable =>
-            invulnerabilityRemaining > 0f || (motor != null && motor.IsInvulnerable);
+            GodMode || invulnerabilityRemaining > 0f || (motor != null && motor.IsInvulnerable);
 
         public event Action<float> Damaged;
 
@@ -107,6 +115,12 @@ namespace Game.Combat
                     PerfectDodged?.Invoke();
                 }
 
+                return;
+            }
+
+            if (GodMode)
+            {
+                GameLog.Debug(LogCategory.Combat, $"GOD MODE ignored {context.Attack.Id}");
                 return;
             }
 

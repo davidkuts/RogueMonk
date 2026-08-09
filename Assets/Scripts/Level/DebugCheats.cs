@@ -1,3 +1,4 @@
+using Game.Combat;
 using Game.Core.Diagnostics;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -32,7 +33,15 @@ namespace Game.Level
 
         [SerializeField] string mainScene = "GrayboxArena";
 
+        [Header("God mode")]
+        [SerializeField, Tooltip("Keyboard toggle for invulnerability, for testing whole runs without health pressure.")]
+        Key godModeKey = Key.G;
+        [SerializeField, Tooltip("Also bound to the gamepad right trigger (R2).")]
+        bool useRightTrigger = true;
+
         bool triggerWasDown;
+        bool rightTriggerWasDown;
+        PlayerHealth playerHealth;
 
         void Awake()
         {
@@ -46,6 +55,10 @@ namespace Game.Level
             // behind that guard is unreachable from inside it — including the key back out.
             if (TryHandleSceneSwitch())
                 return;
+
+            // Also ahead of the director guard, so god mode works in the lab too.
+            if (WasGodTogglePressed())
+                ToggleGodMode();
 
             if (director == null || director.CurrentRoom == null)
                 return;
@@ -105,6 +118,49 @@ namespace Game.Level
             GameLog.Warn(LogCategory.Level, $"DEBUG: loading scene '{sceneName}'");
             UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
             return true;
+        }
+
+        /// <summary>
+        /// Flips invulnerability on the player. The reference is re-found on demand because a
+        /// scene switch (F9/F10) destroys the player this component last saw; the mode itself
+        /// therefore does not survive a scene change, which for a cheat is the safe default.
+        /// </summary>
+        void ToggleGodMode()
+        {
+            if (playerHealth == null)
+                playerHealth = FindAnyObjectByType<PlayerHealth>();
+
+            if (playerHealth == null)
+            {
+                GameLog.Warn(LogCategory.Level, "DEBUG: god mode toggle found no player");
+                return;
+            }
+
+            playerHealth.GodMode = !playerHealth.GodMode;
+            GameLog.Warn(LogCategory.Level, $"DEBUG: GOD MODE {(playerHealth.GodMode ? "ON" : "OFF")}");
+        }
+
+        bool WasGodTogglePressed()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard[godModeKey].wasPressedThisFrame)
+                return true;
+
+            if (!useRightTrigger)
+                return false;
+
+            Gamepad pad = Gamepad.current;
+            if (pad == null)
+            {
+                rightTriggerWasDown = false;
+                return false;
+            }
+
+            // Analogue triggers have no reliable "pressed this frame", so edge-detect manually.
+            bool down = pad.rightTrigger.ReadValue() >= triggerThreshold;
+            bool pressed = down && !rightTriggerWasDown;
+            rightTriggerWasDown = down;
+            return pressed;
         }
 
         bool WasClearPressed()
