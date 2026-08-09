@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 3 of 7 — **Swiftjaw, Sailspit, Cerashorn done** |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 4 of 7 — entry tier **complete** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 4 of 7: SCRAPFEATHERS (carrion swarm) — entry tier complete
+- **The one archetype that is lighter for having less machinery.** Scrapfeathers have no telegraphed attacks at all — §2.4: "the swarm *is* the attack" — so `ScrapfeatherController` is deliberately **not** a `MovesetEnemyController`. A moveset brain, an attack state machine, a telegraph presenter and an attack token would all be machinery with nothing to do, twelve times over. What is left is: flock, touch, die.
+- **Each bird is still a full `EnemyActor`**, because that is what `RoomRunner` counts and what the run stats read. 1 HP means anything at all kills it — verified, a single punch removes one outright, and **one Kick swept two birds plus a Cerashorn in one swing**, which is the "gloriously efficient sweep" §2.4 asks for.
+- **The flock is emergent, not managed.** Birds find each other through a static roster, so one spawns through exactly the same path as every other enemy — the level spawner and the debug spawner both just instantiate a prefab with an `EnemyActor`, and no manager object has to exist or be wired.
+  - **Positions and velocities are snapshotted once per frame and shared.** Without it each bird would read neighbours its predecessors had already moved this frame — the flock would behave differently depending on component order — and twelve birds would do twelve full passes instead of one. It is also what keeps the whole thing allocation-free.
+- **`BoidsSteering` is engine-free and tested (8 tests)**, because a swarm is the one archetype you cannot eyeball: "did they clump?" and "did they stop seeking?" are questions a test answers and a playtest only feels. The balance that matters is pinned directly — **separation beats seek when crowded and loses when spaced**; if it never backs off they collapse to a dot, if it never presses they orbit harmlessly.
+- **Verified live, 8 birds + 2 Cerashorns**: closest pair **0.64 m** (a pile would be ~0), widest pair **2.59 m** (a non-flock would be arena-sized), mean distance to player **1.02 m** — a coherent carpet that swarms. Chip damage real and measurable: **100 → 68 HP** over ~20 s of standing in it. **102–134 fps with 10 actors**, well clear of the 60 target, so the perf risk the brief flagged did not materialise at this count.
+- ⚠️ **A measurement of mine was wrong before it was right.** My first sweep test reported "killed 3" — it counted *resolves*, and the layer mask included the Cerashorns, so it was really "hit 3, of which 2 were birds". Re-measured properly. Worth recording because the number looked plausible.
+- **483/483 EditMode tests** (+8).
+- Known issues / TODO next: **dash-lane blocking is inherited rather than authored** — birds sit on the Hittable layer, which the dash already phases through, so i-frames pass and the player lands among them and takes contact chip, exactly as §2.4 describes. It has not been *measured* with a real dash yet. No death-pop particle (§2.4 wants `[C]` VFX); they simply vanish, which is correct mechanically and unsatisfying visually.
 
 ### 2026-08-09 — M14.1 enemy 3 of 7: CERASHORN (baitable line charger)
 - **The first enemy that needed a subclass** — and it needed less of one than expected. "Cannot steer once committed" turned out to be the base's *existing* rules: facing locks at commit, and an attacking body travels on its lunge velocity. **A long lunge over a long active window simply is a line-locked charge**, so no bespoke movement mode was written. `CerashornController` only owns what happens when the charge meets something.

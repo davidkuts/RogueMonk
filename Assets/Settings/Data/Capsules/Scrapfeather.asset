@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37aa8799252a6e446aed279f3e97d6e9, type: 3}
+  m_Name: Scrapfeather
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.CapsuleRecipe
+  displayName: Scrapfeather
+  identityColor: {r: 0.3, g: 0.38, b: 0.3, a: 1}
+  accentColor: {r: 0.85, g: 0.82, b: 0.45, a: 1}
+  parts:
+  - Name: Body
+    Primitive: 0
+    LocalPosition: {x: 0, y: 0, z: 0}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.34, y: 0.26, z: 0.44}
+    UseAccent: 0
+    IsDamageZone: 0
+    Armored: 0
+    DamageReduction: 0
+  - Name: Head
+    Primitive: 0
+    LocalPosition: {x: 0, y: 0.1, z: 0.24}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.18, y: 0.16, z: 0.18}
+    UseAccent: 0
+    IsDamageZone: 0
+    Armored: 0
+    DamageReduction: 0
+  - Name: Eye
+    Primitive: 0
+    LocalPosition: {x: 0, y: 0.13, z: 0.32}
+    LocalEulerAngles: {x: 0, y: 0, z: 0}
+    LocalScale: {x: 0.07, y: 0.07, z: 0.07}
+    UseAccent: 1
+    IsDamageZone: 0
+    Armored: 0
+    DamageReduction: 0
+  - Name: Tail
+    Primitive: 3
+    LocalPosition: {x: 0, y: 0.02, z: -0.28}
+    LocalEulerAngles: {x: 20, y: 0, z: 0}
+    LocalScale: {x: 0.1, y: 0.04, z: 0.22}
+    UseAccent: 0
+    IsDamageZone: 0
+    Armored: 0
+    DamageReduction: 0

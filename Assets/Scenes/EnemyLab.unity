@@ -310,7 +310,10 @@ MonoBehaviour:
   - Label: Cerashorn
     Prefab: {fileID: 6908010922901766939, guid: 670d471bda4671d49b8b5270e589029d, type: 3}
     CountPerPress: 1
-  mixedWaveArchetypes: 0100000000000000
+  - Label: Scrapfeather
+    Prefab: {fileID: 8435890271187948631, guid: 6c1053a07022a1942af676abedda52e1, type: 3}
+    CountPerPress: 8
+  mixedWaveArchetypes: 020000000200000003000000
   player: {fileID: 1949805134}
   spawnRadius: 7
   enemyParent: {fileID: 142119643}
