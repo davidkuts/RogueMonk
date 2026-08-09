@@ -49,7 +49,9 @@ namespace Game.Combat
         float moveSpeedMultiplier;
 
         [Header("Telegraph")]
-        [SerializeField, Tooltip("Colour flashed during wind-up. Same colour must always mean the same threat (DESIGN.md § Telegraph grammar). Saturated hues are reserved for exactly this.")]
+        [SerializeField, Tooltip("What this telegraph MEANS. Anything but Custom resolves its colour from the TelegraphPalette, so the 'same colour = same threat' rule is enforced in one place instead of per asset.")]
+        TelegraphChannel telegraphChannel = TelegraphChannel.Custom;
+        [SerializeField, Tooltip("Colour flashed during wind-up. Used only when the channel is Custom — every attack authored before the palette existed keeps exactly the colour it had.")]
         Color telegraphColor = new Color(1f, 0.25f, 0.2f, 1f);
 
         public string Id => name;
@@ -71,6 +73,16 @@ namespace Game.Combat
 
         /// <summary>Wind-up telegraph colour. Not part of <see cref="IAttackDefinition"/> — presentation, not simulation.</summary>
         public Color TelegraphColor => telegraphColor;
+
+        /// <summary>
+        /// The threat class this telegraph belongs to. <see cref="TelegraphChannel.Custom"/> means
+        /// "use <see cref="TelegraphColor"/> as authored".
+        /// </summary>
+        public TelegraphChannel TelegraphChannel => telegraphChannel;
+
+        /// <summary>Convenience for the presenters: the colour this attack should actually flash.</summary>
+        public Color ResolveTelegraphColor(TelegraphPalette palette) =>
+            TelegraphPalette.Resolve(palette, telegraphChannel, telegraphColor);
 
         /// <summary>Total length of the attack, for tooling and tests.</summary>
         public float TotalSeconds => windupSeconds + activeSeconds + recoverySeconds;

@@ -9,37 +9,16 @@ namespace Game.Enemies
     ///
     /// A move is the unit of *decision*; the attacks it holds are the unit of *timing*, and those
     /// still run through the same <c>AttackStateMachine</c> every other attack in the game uses.
+    ///
+    /// <para>The range band, cooldown, weight, chain and lunge live on <see cref="IEnemyMove"/>,
+    /// because none of them were ever boss-specific — a raptor picking between a pounce and a snap
+    /// combo makes the same decision. What remains here is what only a boss has: phase gating,
+    /// projectile fans, hazard scatters, and the answer to being combo'd.</para>
     /// </summary>
-    public interface IBossMove
+    public interface IBossMove : IEnemyMove
     {
-        string Id { get; }
-
-        /// <summary>
-        /// Attacks played in order. One element is a single swing; two is a scripted two-hit that
-        /// always completes — the boss never chooses to continue, so there is no drop window.
-        /// </summary>
-        IReadOnlyList<IAttackDefinition> Links { get; }
-
-        /// <summary>Gap between one link ending and the next starting. The only pause inside a chain.</summary>
-        float LinkDelaySeconds { get; }
-
-        /// <summary>Closest distance at which this move is legal.</summary>
-        float MinRange { get; }
-
-        /// <summary>Furthest distance at which this move is legal. Outside the band it is never chosen.</summary>
-        float MaxRange { get; }
-
-        /// <summary>Relative likelihood among the currently legal moves. Zero disables it entirely.</summary>
-        float SelectionWeight { get; }
-
         /// <summary>Zero-based phase index that unlocks this move. 0 means available from the start.</summary>
         int UnlockedAtPhase { get; }
-
-        /// <summary>Enforced gap before this specific move may be chosen again.</summary>
-        float MoveCooldownSeconds { get; }
-
-        /// <summary>Distance the boss travels across each link's active frames. 0 roots it.</summary>
-        float LungeDistance { get; }
 
         /// <summary>Projectiles fired when a link's active window opens. 0 makes the move melee.</summary>
         int ProjectileCount { get; }

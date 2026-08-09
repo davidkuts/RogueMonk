@@ -30,10 +30,25 @@ namespace Game.Combat
 
         public float HitstopSeconds;
 
+        /// <summary>
+        /// Which part of the body was struck. Left at <c>default</c> — ordinary flesh — by every
+        /// attacker that does not care, so an unzoned target behaves exactly as it always has.
+        ///
+        /// <para>It rides on the context rather than being looked up by the target because only
+        /// the attacker knows which collider it overlapped; by the time the hit arrives, the
+        /// target has no way to find out.</para>
+        /// </summary>
+        public HitZone Zone;
+
         /// <summary>A modifier may set this to veto the hit entirely (a future "phase through" boon, a parry).</summary>
         public bool Cancelled;
 
-        public static HitContext FromAttack(IAttackDefinition attack, IDamageable target, Vector3 direction, Vector3 point)
+        public static HitContext FromAttack(
+            IAttackDefinition attack,
+            IDamageable target,
+            Vector3 direction,
+            Vector3 point,
+            HitZone zone = default)
         {
             direction.y = 0f;
 
@@ -48,6 +63,7 @@ namespace Game.Combat
                 Direction = direction.sqrMagnitude > 0f ? direction.normalized : Vector3.forward,
                 Point = point,
                 HitstopSeconds = attack.HitstopSeconds,
+                Zone = zone,
                 Cancelled = false,
             };
         }

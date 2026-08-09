@@ -407,7 +407,10 @@ namespace Game.Combat
 
                 Vector3 point = collider.ClosestPoint(center);
                 Vector3 direction = collider.transform.position - transform.position;
-                HitContext context = HitContext.FromAttack(definition, target, direction, point);
+                // The collider is what says whether this landed on amber or on the seam beside it.
+                // Resolved here because this is the last moment anything knows it.
+                HitContext context = HitContext.FromAttack(
+                    definition, target, direction, point, HitZones.Resolve(collider));
                 resolver.Resolve(ref context);
             }
         }

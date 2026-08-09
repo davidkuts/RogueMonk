@@ -208,7 +208,37 @@ namespace Game.Level
             alive.Add(actor);
             actor.Died += () => OnEnemyDied(actor);
 
+            BindRandomness(instance, actor);
             BindIfBoss(instance, actor);
+        }
+
+        /// <summary>
+        /// Hands a multi-move enemy its own seeded stream, for exactly the reason the boss gets
+        /// one: it draws once per move it actually throws, and how many that is depends on the
+        /// player. Drawing from the run stream at combat time would make every later draw land
+        /// differently depending on how the fight went, and the seed would stop reproducing the
+        /// run — with no existing test catching it, because generation finishes before combat
+        /// starts.
+        ///
+        /// <para>Single-attack archetypes are not bound and consume nothing, so the two shipped
+        /// trash types leave every existing seed exactly where it was.</para>
+        /// </summary>
+        void BindRandomness(GameObject instance, EnemyActor actor)
+        {
+            var moveset = instance.GetComponent<MovesetEnemyController>();
+            if (moveset == null)
+                return;
+
+            if (run == null)
+            {
+                // The lab scene has no RunContext. The controller falls back to a stream keyed on
+                // its archetype, which is still deterministic and still never UnityEngine.Random.
+                GameLog.Debug(LogCategory.Level,
+                    $"'{actor.name}' spawned without a RunContext - using its archetype fallback stream");
+                return;
+            }
+
+            moveset.Bind(run.DeriveStream());
         }
 
         /// <summary>

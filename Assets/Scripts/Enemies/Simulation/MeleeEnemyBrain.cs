@@ -19,6 +19,18 @@ namespace Game.Enemies
 
         /// <summary>Poise broken. Helpless.</summary>
         Staggered = 4,
+
+        /// <summary>
+        /// Backing away from a target that has closed inside this enemy's minimum range. Only a
+        /// multi-move brain produces it; the single-attack archetypes never retreat.
+        /// </summary>
+        Reposition = 5,
+
+        /// <summary>
+        /// In range and off cooldown, but another enemy is holding the attack token. Circling
+        /// rather than swinging — this is what a pack cap looks like from inside one raptor.
+        /// </summary>
+        Waiting = 6,
     }
 
     /// <summary>

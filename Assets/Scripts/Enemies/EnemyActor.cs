@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Combat;
 using Game.Core.Diagnostics;
 using Game.Core.Timing;
@@ -47,6 +48,7 @@ namespace Game.Enemies
         Renderer[] renderers;
         MaterialPropertyBlock propertyBlock;
         Color[] baseColors;
+        DamageZone[] zones;
         CharacterController controller;
         Vector3 knockbackVelocity;
         float flashRemaining;
@@ -72,6 +74,30 @@ namespace Game.Enemies
 
         /// <summary>True while poise is broken — the enemy cannot act and takes the punish.</summary>
         public bool IsStaggered => Poise != null && Poise.IsStaggered;
+
+        /// <summary>The per-collider armour plates on this body. Empty for an unzoned enemy.</summary>
+        public IReadOnlyList<DamageZone> Zones => zones ?? System.Array.Empty<DamageZone>();
+
+        /// <summary>
+        /// True while at least one amber plate is up. Drives pull resistance, so a zoned body
+        /// holds its ground against the Undertow for the same reason a bar-armoured one does.
+        /// </summary>
+        public bool HasIntactArmorZone
+        {
+            get
+            {
+                if (zones == null)
+                    return false;
+
+                for (int i = 0; i < zones.Length; i++)
+                {
+                    if (zones[i] != null && zones[i].IsIntactArmor)
+                        return true;
+                }
+
+                return false;
+            }
+        }
 
         /// <summary>
         /// Movement scaling from active statuses. Read by the controllers each frame rather than
@@ -126,16 +152,43 @@ namespace Game.Enemies
             Poise.Broke += OnPoiseBroke;
             Poise.ArmorStripped += OnArmorStripped;
 
+            // Zones are colliders on the body, so they are found once here rather than walked per
+            // hit — a hit already knows its own collider, and this list exists only for the
+            // whole-body questions (is any amber still up, crack all of it).
+            zones = GetComponentsInChildren<DamageZone>(includeInactive: true);
+
             renderers = GetComponentsInChildren<Renderer>();
             propertyBlock = new MaterialPropertyBlock();
             baseColors = new Color[renderers.Length];
             for (int i = 0; i < renderers.Length; i++)
             {
-                Material material = renderers[i].sharedMaterial;
-                baseColors[i] = material != null && material.HasProperty(BaseColorId)
-                    ? material.GetColor(BaseColorId)
-                    : Color.white;
+                baseColors[i] = ReadBaseColor(renderers[i]);
             }
+        }
+
+        /// <summary>
+        /// The colour this renderer sits at when nothing is happening to it.
+        ///
+        /// <para>The property block is checked <em>first</em>, and that is load-bearing for the
+        /// capsule kit: seven archetypes share one material and get their identity hue from a
+        /// per-renderer block, so reading the shared material would give every enemy in the biome
+        /// the same base colour — and then the first hit flash would repaint them all to it
+        /// permanently. A body with no block set falls back to the material as before.</para>
+        /// </summary>
+        Color ReadBaseColor(Renderer renderer)
+        {
+            if (renderer == null)
+                return Color.white;
+
+            var block = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(block);
+            if (block.HasColor(BaseColorId))
+                return block.GetColor(BaseColorId);
+
+            Material material = renderer.sharedMaterial;
+            return material != null && material.HasProperty(BaseColorId)
+                ? material.GetColor(BaseColorId)
+                : Color.white;
         }
 
         void OnDestroy()
@@ -153,12 +206,21 @@ namespace Game.Enemies
             if (!IsAlive)
                 return;
 
-            float applied = Health.TakeDamage(context.Damage);
+            // The zone is a property of the *target*, so it lands after every attacker-side
+            // modifier has had its say — an amber plate reduces whatever actually arrived, rather
+            // than a number a boon might still have multiplied afterwards. DESIGN.md wires boons
+            // on the attacker's resolver, so there is no target-side stage for it to sit in.
+            HitZone zone = context.Zone;
+            float applied = Health.TakeDamage(context.Damage * zone.DamageMultiplier);
 
             // Poise only matters to something still standing. Applying it after a lethal hit
             // would open a "punish window" on a corpse, fire Staggered at the controller and
             // put a stagger status on a dead enemy.
-            PoiseResult poiseResult = Health.IsAlive
+            //
+            // Intact amber declines to have a poise bar at all rather than absorbing into one: a
+            // plated zone beaten on forever must never accumulate toward a stagger, or "no stagger"
+            // becomes "a slower stagger".
+            PoiseResult poiseResult = Health.IsAlive && !zone.BlocksStagger
                 ? Poise.ApplyPoiseDamage(context.PoiseDamage)
                 : PoiseResult.Absorbed;
 
@@ -167,8 +229,13 @@ namespace Game.Enemies
             // amber resists it: it takes the ticks and the armour damage but does not slide, so a
             // single frame of the spin tells the player which tier is which by who moved. Once the
             // armour is off, an Armored enemy behaves as tier 1 in this as in everything else.
+            //
+            // A zoned body resists on the same rule for the same reason, even at Staggerable tier
+            // with no armour bar at all: what holds an Ambershell in place is the amber on its
+            // back, and that is a collider rather than a number.
             bool isPull = context.Knockback < 0f;
-            bool resistsPull = isPull && definition.Tier == StaggerTier.Armored && !Poise.IsArmorStripped;
+            bool resistsPull = isPull &&
+                ((definition.Tier == StaggerTier.Armored && !Poise.IsArmorStripped) || HasIntactArmorZone);
 
             if (definition.Tier != StaggerTier.Immune && !resistsPull)
                 knockbackVelocity += context.Direction * context.Knockback;
@@ -180,7 +247,25 @@ namespace Game.Enemies
             GameLog.Info(LogCategory.Enemy,
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
                 $"poise {Poise.Poise:0.##}/{definition.PoiseMax:0.##} -> {poiseResult}" +
-                (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty));
+                (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty) +
+                (zone.IsNeutral ? string.Empty : $"  zone '{zone.Id}' x{zone.DamageMultiplier:0.00}"));
+        }
+
+        /// <summary>
+        /// Cracks every armored zone on this body for <paramref name="seconds"/>. The wall-bait
+        /// payoff: one call opens the whole shell rather than the one plate that touched the wall,
+        /// because the player earned the opening with a manoeuvre and not with an aiming problem.
+        /// </summary>
+        public void CrackArmorZones(float seconds)
+        {
+            if (zones == null)
+                return;
+
+            for (int i = 0; i < zones.Length; i++)
+            {
+                if (zones[i] != null)
+                    zones[i].Crack(seconds);
+            }
         }
 
         /// <summary>

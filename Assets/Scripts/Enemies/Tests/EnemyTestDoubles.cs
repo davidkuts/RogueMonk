@@ -55,6 +55,28 @@ namespace Game.Enemies.Tests
         };
     }
 
+    /// <summary>A move for the multi-move trash brain. The boss-only half is not implemented.</summary>
+    internal sealed class FakeEnemyMove : IEnemyMove
+    {
+        public string Id { get; set; } = "move";
+        public IReadOnlyList<IAttackDefinition> Links { get; set; } = new IAttackDefinition[] { new FakeEnemyAttack() };
+        public float LinkDelaySeconds { get; set; } = 0.2f;
+        public float MinRange { get; set; }
+        public float MaxRange { get; set; } = 2.4f;
+        public float SelectionWeight { get; set; } = 1f;
+        public float MoveCooldownSeconds { get; set; } = 2f;
+        public float LungeDistance { get; set; }
+
+        /// <summary>Builds a chain of n distinct links, so tests can tell them apart by identity.</summary>
+        public static IAttackDefinition[] Chain(int count)
+        {
+            var links = new IAttackDefinition[count];
+            for (int i = 0; i < count; i++)
+                links[i] = new FakeEnemyAttack { Id = $"link{i}" };
+            return links;
+        }
+    }
+
     internal sealed class FakeBossMove : IBossMove
     {
         public string Id { get; set; } = "move";

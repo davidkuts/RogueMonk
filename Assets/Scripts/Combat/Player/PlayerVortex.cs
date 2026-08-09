@@ -229,7 +229,8 @@ namespace Game.Combat
 
                 Vector3 direction = distance > 0.001f ? toTarget / distance : Vector3.forward;
 
-                HitContext context = HitContext.FromAttack(vortex, target, direction, collider.ClosestPoint(origin));
+                HitContext context = HitContext.FromAttack(
+                    vortex, target, direction, collider.ClosestPoint(origin), HitZones.Resolve(collider));
                 context.Knockback = -impulse; // negative: inward
                 attacks.Resolver.Resolve(ref context);
 
