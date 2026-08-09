@@ -825,6 +825,7 @@ MonoBehaviour:
     m_Bits: 768
   wallSlamSpeedFraction: 0.35
   chargeTurnDegPerSec: 0
+  stopChargeOnTargetHit: 0
   wallSlamStunSeconds: 1.5
 --- !u!114 &-6615132052012015311
 MonoBehaviour:

@@ -68,6 +68,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Known issues / TODO next: ...
 -->
 
+### 2026-08-09 — M14.5: retreats stop being cat-and-mouse, and a landed charge stops being a punishment
+- **Backpedalling is half speed roster-wide** (`KiteSpeedFraction` 0.70 → 0.50). Fast enough to read as "it is retreating", slow enough that the player always closes: Swiftjaw backs at **2.5 m/s**, Sailspit at **1.7**, against the player's **6.0**. Cat and mouse is only fun for the mouse.
+- ⚠️ **Landing the charge was worse for Ambershell than missing it.** It ploughed through the player, carried on into a wall, and self-stunned — so a *successful* charge still handed the player a punish window. The Minotaur it is modelled on stops on you. New `stopChargeOnTargetHit`: connecting ends the run where it connected, and the enemy takes only the ordinary post-attack cooldown that every attack already owes. **Verified: stopped at z=2.45 against a player at z=−0.5 — did not reach the wall, did not stagger, plating intact, log reads `charge connected - stopping on target`.**
+  - **Only the primary target stops it.** An ally shouldered aside must not end the run, since ploughing the room is the other half of the move — the check is against the enemy's ordinary hittable mask, not "anything damageable".
+  - **Cerashorn deliberately keeps ploughing** (`stopChargeOnTargetHit` false). Its wall slam is the reward for a *sidestep*, and stopping it on the player would delete that.
+- **The roll's wind-up read as "iffy": now longer *and* louder** — 0.70 → **0.80 s** at emphasis **x1.7 → x2.2**. A 30 m committed rush deserves to announce itself, and emphasis is the lever that buys readability without slowing the move.
+- **488/488 EditMode tests.** Rebuilt.
+
 ### 2026-08-09 — M14.4: one melee cadence, a Minotaur charge, and debris that actually threatens
 - **The whole roster now shares the Tyrant's melee cadence**, which the human singled out as feeling right. The rule its two attacks set: **small arc ≈ 0.45 s, wide arc ≈ 0.62 s**. Gap-closers deliberately keep longer tells (0.55–0.80 s) because they cross the room and the answer is positional rather than reactive.
   - ⚠️ **Ambershell's tail sweep moved 1.00 → 0.62 s, overriding ENEMIES_BIOME1.md § 3.1's "big, slow, honest (1.0s)".** Done on instruction; recorded rather than changed quietly. One enemy running at half the roster's speed read as sluggish rather than as deliberate.

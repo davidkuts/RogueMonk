@@ -32,7 +32,7 @@ MonoBehaviour:
     ProjectileSpeed: 9
     ProjectileLifetime: 4
     ProjectileRadius: 0.35
-    KiteSpeedFraction: 0.7
+    KiteSpeedFraction: 0.5
   moves:
   - id: HornRush
     links:
@@ -78,5 +78,6 @@ MonoBehaviour:
   concurrentAttackerCap: 1
   initialCooldownJitterSeconds: 0.8
   turnSpeedDegPerSec: 380
+  preferredRange: 0
   circleSpeedFraction: 0
   circleRadius: 3.2

@@ -32,12 +32,13 @@ MonoBehaviour:
     ProjectileSpeed: 9
     ProjectileLifetime: 4
     ProjectileRadius: 0.35
-    KiteSpeedFraction: 0.7
+    KiteSpeedFraction: 0.5
   moves: []
   repeatWeightMultiplier: 0.45
   tokenKind: 0
   concurrentAttackerCap: 0
   initialCooldownJitterSeconds: 0
   turnSpeedDegPerSec: 720
+  preferredRange: 0
   circleSpeedFraction: 0
   circleRadius: 3.2

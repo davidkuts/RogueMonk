@@ -32,7 +32,7 @@ MonoBehaviour:
     ProjectileSpeed: 9
     ProjectileLifetime: 4
     ProjectileRadius: 0.35
-    KiteSpeedFraction: 0.7
+    KiteSpeedFraction: 0.5
   moves:
   - id: PounceBite
     links:

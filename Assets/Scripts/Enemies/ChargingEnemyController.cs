@@ -37,6 +37,9 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Degrees per second the charge may steer toward the target while running. 0 is a pure straight line. A small value tracks a walking player but loses a committed sidestep — the Minotaur rule.")]
         protected float chargeTurnDegPerSec;
 
+        [SerializeField, Tooltip("End the charge where it connects with its target. Landing the hit should be the SUCCESS case — a charge that ploughs on into a wall and self-stuns punishes the enemy for hitting you.")]
+        protected bool stopChargeOnTargetHit;
+
         Vector3 positionBeforeMove;
         Vector3 lockedChargeDirection;
         LayerMask baseExcludeLayers;
@@ -214,11 +217,52 @@ namespace Game.Enemies
         {
             base.OnHitLanded(collider, damageable);
 
-            if (!IsCharging || knockdownSeconds <= 0f)
+            if (!IsCharging)
                 return;
 
-            damageable.ApplyStagger(knockdownSeconds);
+            if (knockdownSeconds > 0f)
+                damageable.ApplyStagger(knockdownSeconds);
+
+            // Connecting ends the charge, where the charge is meant to end on its target.
+            //
+            // Without this, landing the hit is *worse* for the attacker than missing: it ploughs on
+            // into a wall and self-stuns, so a successful charge still hands the player a punish
+            // window. The Minotaur it is modelled on stops on you. Only the primary target counts —
+            // an ally shouldered aside must not end the run, since ploughing the room is the other
+            // half of the move.
+            if (stopChargeOnTargetHit && IsPrimaryTarget(collider))
+                EndChargeOnImpact();
         }
+
+        /// <summary>True when this collider is something the enemy's ordinary attacks target — the player.</summary>
+        bool IsPrimaryTarget(Collider collider) =>
+            collider != null && (hittableLayers.value & (1 << collider.gameObject.layer)) != 0;
+
+        /// <summary>
+        /// Stops a charge dead on its target and recovers normally.
+        ///
+        /// <para>Deliberately <em>not</em> a stagger: the enemy did its job. It takes the ordinary
+        /// post-attack cooldown, which is the punish window every attack already owes the player,
+        /// and nothing more.</para>
+        /// </summary>
+        void EndChargeOnImpact()
+        {
+            // Blocks the wall-slam test for the rest of this charge, so stopping on the player can
+            // never also be credited as hitting a wall.
+            slammedThisCharge = true;
+
+            SetLungeVelocity(Vector3.zero);
+            attacks.Cancel();
+            Brain.NotifyInterrupted();
+            ReleaseToken();
+
+            OnChargeStoppedOnTarget();
+
+            GameLog.Info(LogCategory.Enemy, $"{Definition.Id} charge connected - stopping on target");
+        }
+
+        /// <summary>Hook for anything a body wants to do when its charge lands rather than misses.</summary>
+        protected virtual void OnChargeStoppedOnTarget() { }
 
         /// <summary>Metres per second the current charge is travelling, from its own frame data.</summary>
         protected float ChargeSpeed
