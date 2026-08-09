@@ -154,7 +154,9 @@ namespace Game.Level
                     ? BuildScriptedWaves(random, template, script)
                     : BuildWaves(random, template, index, levelBudgetBonus);
 
-                rooms.Add(new RoomPlan(template.Id, index, waves, RoomRole.Standard));
+                bool bossIsNext = index == standardRooms - 1;
+                rooms.Add(new RoomPlan(
+                    template.Id, index, waves, RoomRole.Standard, DrawExitLabels(random, bossIsNext)));
             }
 
             IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
@@ -165,6 +167,37 @@ namespace Game.Level
                 RoomRole.Boss));
 
             return new LevelPlan(run.Seed, rooms);
+        }
+
+        /// <summary>The label reserved for the one door that leads to the boss.</summary>
+        public const int BossDoorLabel = 9;
+
+        /// <summary>Most doors a cleared room may offer.</summary>
+        public const int MaxExitDoors = 4;
+
+        /// <summary>
+        /// Decides a cleared room's doors: when the boss is next there is exactly one, marked
+        /// <see cref="BossDoorLabel"/> — the boss is never optional and never a surprise.
+        /// Otherwise a seeded 1–4 doors, each carrying a distinct placeholder reward number
+        /// drawn from 1–8 (9 stays the boss's mark so the player can learn it).
+        /// </summary>
+        List<int> DrawExitLabels(IRandomSource random, bool bossIsNext)
+        {
+            if (bossIsNext)
+                return new List<int>(1) { BossDoorLabel };
+
+            int doors = random.NextInt(1, MaxExitDoors + 1);
+
+            spawnPointScratch.Clear();
+            for (int label = 1; label < BossDoorLabel; label++)
+                spawnPointScratch.Add(label);
+            random.Shuffle(spawnPointScratch);
+
+            var labels = new List<int>(doors);
+            for (int i = 0; i < doors; i++)
+                labels.Add(spawnPointScratch[i]);
+
+            return labels;
         }
 
         IRoomTemplate PickTemplate(IRandomSource random, IRoomTemplate previous, RoomRole role)

@@ -44,6 +44,10 @@ namespace Game.Enemies
         [Header("Attack")]
         [SerializeField] AttackDefinition attack;
 
+        [Header("Damage gate")]
+        [SerializeField, Tooltip("When set, ONLY this attack can deal health damage to this enemy — everything else lands for zero (poise, knockback and feedback still apply). Set to the Riposte on Biome 1 elites: the fight becomes earn-the-counter, spend-the-counter. Leave empty for ordinary enemies.")]
+        AttackDefinition onlyDamagedBy;
+
         [Header("Ranged only")]
         [SerializeField, Tooltip("Read only by ranged archetypes. Melee enemies ignore this block.")]
         RangedProfile ranged = new RangedProfile
@@ -72,5 +76,8 @@ namespace Game.Enemies
         public float LungeDistance => lungeDistance;
         public IAttackDefinition Attack => attack;
         public RangedProfile Ranged => ranged;
+
+        /// <summary>The one attack allowed to damage this enemy, or null for no gate.</summary>
+        public IAttackDefinition OnlyDamagedBy => onlyDamagedBy;
     }
 }

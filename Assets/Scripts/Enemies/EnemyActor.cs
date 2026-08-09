@@ -211,7 +211,15 @@ namespace Game.Enemies
             // than a number a boon might still have multiplied afterwards. DESIGN.md wires boons
             // on the attacker's resolver, so there is no target-side stage for it to sit in.
             HitZone zone = context.Zone;
-            float applied = Health.TakeDamage(context.Damage * zone.DamageMultiplier);
+
+            // The damage gate: an enemy that declares onlyDamagedBy takes health damage from
+            // exactly that attack and nothing else. Poise, knockback and every piece of hit
+            // feedback still land, so the fight stays interactive — only the health bar waits
+            // for the earned counter.
+            bool guarded = definition.OnlyDamagedBy != null &&
+                (context.Attack == null || context.Attack.Id != definition.OnlyDamagedBy.Id);
+
+            float applied = guarded ? 0f : Health.TakeDamage(context.Damage * zone.DamageMultiplier);
 
             // Poise only matters to something still standing. Applying it after a lethal hit
             // would open a "punish window" on a corpse, fire Staggered at the controller and
@@ -247,6 +255,7 @@ namespace Game.Enemies
             GameLog.Info(LogCategory.Enemy,
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
                 $"poise {Poise.Poise:0.##}/{definition.PoiseMax:0.##} -> {poiseResult}" +
+                (guarded ? $"  GUARDED - only '{definition.OnlyDamagedBy.Id}' damages this enemy" : string.Empty) +
                 (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty) +
                 (zone.IsNeutral ? string.Empty : $"  zone '{zone.Id}' x{zone.DamageMultiplier:0.00}"));
         }
@@ -411,7 +420,11 @@ namespace Game.Enemies
         /// </summary>
         void TickBurn(float deltaTime)
         {
-            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive)
+            // A damage-gated enemy does not burn: the gate promises that only the earned counter
+            // moves the health bar, and a boon's DoT trickling past it would quietly break that
+            // promise (burn bypasses the hit resolver, so the ApplyHit gate never sees it).
+            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive
+                || definition.OnlyDamagedBy != null)
             {
                 burnTickRemaining = 0f;
                 return;

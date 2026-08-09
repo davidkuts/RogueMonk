@@ -57,6 +57,7 @@ namespace Game.Level.Tests
                     Assert.That(LevelValidator.IsSolvable(plan, settings, out string reason), Is.True,
                         $"seed {seed} level {level}: {reason}");
 
+                    int standardRooms = plan.RoomCount - 1;
                     foreach (RoomPlan room in plan.Rooms)
                     {
                         int elitesInRoom = 0;
@@ -67,11 +68,40 @@ namespace Game.Level.Tests
                                 wave.Spawns.All(s => s.ArchetypeId == "ScrapfeatherArchetype"), Is.False,
                                 $"seed {seed} level {level} room {room.Index}: Scrapfeathers must never be a wave's only type");
 
-                            elitesInRoom += wave.Spawns.Count(s => EliteIds.Contains(s.ArchetypeId));
+                            int elitesInWave = wave.Spawns.Count(s => EliteIds.Contains(s.ArchetypeId));
+                            elitesInRoom += elitesInWave;
+
+                            // Human call 2026-08-09: an elite fights ALONE — its wave holds
+                            // nothing else. The riposte-gated duel wants no bystanders.
+                            if (elitesInWave > 0)
+                                Assert.That(wave.Spawns.Count, Is.EqualTo(1),
+                                    $"seed {seed} level {level} room {room.Index}: an elite's wave must hold only the elite");
                         }
 
                         Assert.That(elitesInRoom, Is.LessThanOrEqualTo(1),
                             $"seed {seed} level {level} room {room.Index}: never two elites in a Biome 1 room");
+
+                        // Door rules: 1-4 doors with distinct 1-8 labels, exactly one "9" door
+                        // when the boss is next, none leaving the boss room itself.
+                        if (room.IsBossRoom)
+                        {
+                            Assert.That(room.ExitDoorCount, Is.EqualTo(0),
+                                $"seed {seed} level {level}: the boss room needs no door");
+                        }
+                        else if (room.Index == standardRooms - 1)
+                        {
+                            Assert.That(room.ExitLabels, Is.EqualTo(new[] { LevelGenerator.BossDoorLabel }),
+                                $"seed {seed} level {level} room {room.Index}: the room before the boss offers one door marked 9");
+                        }
+                        else
+                        {
+                            Assert.That(room.ExitDoorCount, Is.InRange(1, LevelGenerator.MaxExitDoors),
+                                $"seed {seed} level {level} room {room.Index}: door count out of range");
+                            Assert.That(room.ExitLabels.Distinct().Count(), Is.EqualTo(room.ExitDoorCount),
+                                $"seed {seed} level {level} room {room.Index}: door labels must be distinct");
+                            Assert.That(room.ExitLabels.All(l => l >= 1 && l <= 8), Is.True,
+                                $"seed {seed} level {level} room {room.Index}: ordinary door labels stay in 1-8");
+                        }
                     }
 
                     // The boss room is the Tyrant, solo, on the designated point.

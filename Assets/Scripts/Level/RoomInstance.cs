@@ -51,8 +51,8 @@ namespace Game.Level
         public event Action ExitReached;
 
         [Header("Exits")]
-        [SerializeField, Tooltip("How far off-centre each doorway sits when the room offers two exits, as a fraction of the room's width. Clamped so the doors always fit the smallest room.")]
-        float exitSpacingFraction = 0.22f;
+        [SerializeField, Tooltip("Centre-to-centre distance between neighbouring doorways. The doors form one cluster in the middle of the exit wall — seeing one door means seeing them all — and the pitch shrinks automatically in rooms too narrow for it.")]
+        float exitDoorPitch = 3.6f;
 
         sealed class BuiltExit
         {
@@ -148,13 +148,14 @@ namespace Game.Level
         }
 
         /// <summary>
-        /// Replaces the room's single authored door with <paramref name="count"/> doorways along
-        /// the exit wall, each with a visible frame and a floating number naming the reward
-        /// behind it (placeholder digits for now). The director calls this on entry: two exits
-        /// for an ordinary next room, one when the boss is next, zero for the final room —
-        /// which keeps the authored prefab untouched and the choice a per-run fact.
+        /// Replaces the room's single authored door with <paramref name="count"/> doorways
+        /// clustered at the middle of the exit wall, each with a visible frame and a floating
+        /// number naming the reward behind it (placeholder digits for now). The plan decides
+        /// how many (1–4 ordinarily, exactly one when the boss is next, zero for the final
+        /// room); the cluster guarantees that finding one door means finding them all, even in
+        /// a wide room.
         ///
-        /// <para>Both doors lead to the same generated next room today; the choice is the
+        /// <para>Every door leads to the same generated next room today; the choice is the
         /// signposting groundwork for per-exit rewards.</para>
         /// </summary>
         public void ConfigureExits(int count, IReadOnlyList<int> labels)
@@ -165,9 +166,14 @@ namespace Game.Level
             Transform blockerT = doorBlocker.transform;
             Transform triggerT = exitTrigger.transform;
 
-            float spacing = 4f;
-            if (TryGetPlayArea(out Bounds play))
-                spacing = Mathf.Clamp(play.size.x * exitSpacingFraction, 3f, 6f);
+            // The pitch shrinks when the wall cannot seat the cluster at full spacing, rather
+            // than pushing the outer doors through the side walls.
+            float pitch = Mathf.Max(1f, exitDoorPitch);
+            if (count > 1 && TryGetPlayArea(out Bounds play))
+            {
+                float usable = play.size.x - blockerT.localScale.x - 1f;
+                pitch = Mathf.Min(pitch, usable / (count - 1));
+            }
 
             Material markerMaterial = null;
             var blockerRenderer = doorBlocker.GetComponent<MeshRenderer>();
@@ -176,7 +182,7 @@ namespace Game.Level
 
             for (int i = 0; i < count; i++)
             {
-                float offset = count == 1 ? 0f : (i == 0 ? -spacing : spacing);
+                float offset = (i - (count - 1) * 0.5f) * pitch;
                 Vector3 shift = blockerT.right * offset;
 
                 GameObject blocker = Instantiate(doorBlocker, blockerT.position + shift, blockerT.rotation, blockerT.parent);

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
   m_Name: Ambershell
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
-  maxHealth: 360
+  maxHealth: 720
   tier: 0
   poiseMax: 40
   poiseRegenDelay: 2
@@ -25,6 +25,7 @@ MonoBehaviour:
   attackCooldownSeconds: 1.8
   spawnGraceSeconds: 1.4
   lungeDistance: 0
+  onlyDamagedBy: {fileID: 11400000, guid: b83f1e02a7c94d5689e34b071fa2c6de, type: 2}
   attack: {fileID: 11400000, guid: b168ce5f89f49ea4c8f650af07695fa3, type: 2}
   ranged:
     PreferredMinRange: 5

@@ -129,21 +129,18 @@ MonoBehaviour:
           count: 3
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
           count: 1
-  - note: 'Room 5 - elite room: one elite + light escort, never two elites in Biome 1'
+  - note: 'Room 5 - elite room: the elite fights ALONE (human call 2026-08-09) - a riposte-gated
+      duel wants no bystanders'
     variants:
-    - note: Ambershell positioning tax
+    - note: Ambershell duel
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
           count: 1
-        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
-          count: 2
-    - note: Twice-Struck echo duel with artillery pressure
+    - note: Twice-Struck echo duel
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
-          count: 1
-        - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
           count: 1
   - note: 'Room 6 - overtime: only exists on escalated later levels'
     variants:
@@ -157,8 +154,6 @@ MonoBehaviour:
       - entries:
         - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
           count: 1
-        - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
-          count: 2
     - note: Artillery then the shell
       waves:
       - entries:
@@ -169,5 +164,3 @@ MonoBehaviour:
       - entries:
         - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
           count: 1
-        - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
-          count: 4

@@ -35,13 +35,29 @@ namespace Game.Level
     /// <summary>One room in the level: which template to build, and what fights happen in it.</summary>
     public sealed class RoomPlan
     {
-        public RoomPlan(string templateId, int index, IReadOnlyList<WavePlan> waves, RoomRole role = RoomRole.Standard)
+        public RoomPlan(
+            string templateId,
+            int index,
+            IReadOnlyList<WavePlan> waves,
+            RoomRole role = RoomRole.Standard,
+            IReadOnlyList<int> exitLabels = null)
         {
             TemplateId = templateId;
             Index = index;
             Waves = waves ?? new List<WavePlan>();
             Role = role;
+            ExitLabels = exitLabels ?? new List<int>();
         }
+
+        /// <summary>
+        /// The doors offered once this room is cleared, one entry per door, each carrying the
+        /// number displayed above it (placeholder reward markings, 1–9). Decided at generation
+        /// time so a seed reproduces the doors as faithfully as the fights. Empty for the final
+        /// room, whose clear ends the level with no door.
+        /// </summary>
+        public IReadOnlyList<int> ExitLabels { get; }
+
+        public int ExitDoorCount => ExitLabels.Count;
 
         public string TemplateId { get; }
 
