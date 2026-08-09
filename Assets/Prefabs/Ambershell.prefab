@@ -929,6 +929,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 768
   wallSlamSpeedFraction: 0.35
+  chargeTurnDegPerSec: 50
   crackedSeconds: 8
   wallSlamStunSeconds: 1.6
   stompMoveId: CompressionStomp

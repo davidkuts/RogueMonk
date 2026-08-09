@@ -329,13 +329,28 @@ namespace Game.Enemies
 
                 if (move.UseFixedHazardPattern)
                 {
-                    // Evenly spaced around a ring, leaving one gap wide enough to stand in. No
-                    // jitter at all: the pattern has to be learnable, because learning it is how
-                    // the player earns the escape.
-                    float usable = 360f - gapDegrees;
-                    float step = count > 1 ? usable / (count - 1) : 0f;
-                    angle = awayDegrees + gapDegrees * 0.5f + step * i;
-                    radius = scatter;
+                    // The FIRST zone lands exactly where the player is standing.
+                    //
+                    // A ring drawn around the player leaves the middle — where they already are —
+                    // permanently safe, so the whole move could be answered by standing still. It
+                    // has to demand movement to be a threat at all. Everything else is arranged so
+                    // that the movement it demands is possible: one deliberate gap, one dash away.
+                    if (i == 0)
+                    {
+                        angle = 0f;
+                        radius = 0f;
+                    }
+                    else
+                    {
+                        // Evenly spaced around a ring, leaving one gap wide enough to stand in. No
+                        // jitter: the pattern has to be learnable, because learning it is how the
+                        // player earns the escape.
+                        int ringCount = count - 1;
+                        float usable = 360f - gapDegrees;
+                        float step = ringCount > 1 ? usable / (ringCount - 1) : 0f;
+                        angle = awayDegrees + gapDegrees * 0.5f + step * (i - 1);
+                        radius = scatter;
+                    }
                 }
                 else if (fullRing)
                 {

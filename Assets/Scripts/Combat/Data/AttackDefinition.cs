@@ -54,6 +54,9 @@ namespace Game.Combat
         [SerializeField, Tooltip("Colour flashed during wind-up. Used only when the channel is Custom — every attack authored before the palette existed keeps exactly the colour it had.")]
         Color telegraphColor = new Color(1f, 0.25f, 0.2f, 1f);
 
+        [SerializeField, Range(1f, 3f), Tooltip("How LOUD this tell is, independent of how long it lasts. A short wind-up can still be fair if it is unmistakable — this is what pays for a fast attack, rather than shortening the warning and hoping.")]
+        float telegraphEmphasis = 1f;
+
         public string Id => name;
         public float WindupSeconds => windupSeconds;
         public float ActiveSeconds => activeSeconds;
@@ -80,9 +83,30 @@ namespace Game.Combat
         /// </summary>
         public TelegraphChannel TelegraphChannel => telegraphChannel;
 
+        /// <summary>
+        /// How emphatically this tell is drawn. Brightness and opacity, not duration.
+        ///
+        /// <para>DESIGN.md's rule is that difficulty comes from decision pressure, never from
+        /// shortening tells. This is the lever that lets a fast attack stay fair: the warning gets
+        /// <em>louder</em> rather than longer, so a 0.45 s wind-up can still be read at a glance.</para>
+        /// </summary>
+        public float TelegraphEmphasis => telegraphEmphasis;
+
         /// <summary>Convenience for the presenters: the colour this attack should actually flash.</summary>
-        public Color ResolveTelegraphColor(TelegraphPalette palette) =>
-            TelegraphPalette.Resolve(palette, telegraphChannel, telegraphColor);
+        public Color ResolveTelegraphColor(TelegraphPalette palette)
+        {
+            Color resolved = TelegraphPalette.Resolve(palette, telegraphChannel, telegraphColor);
+
+            if (telegraphEmphasis <= 1f)
+                return resolved;
+
+            // Brightened rather than hue-shifted: the grammar says a colour means a threat class,
+            // so an emphatic tell must be the same colour shouted, never a different colour.
+            resolved.r *= telegraphEmphasis;
+            resolved.g *= telegraphEmphasis;
+            resolved.b *= telegraphEmphasis;
+            return resolved;
+        }
 
         /// <summary>Total length of the attack, for tooling and tests.</summary>
         public float TotalSeconds => windupSeconds + activeSeconds + recoverySeconds;

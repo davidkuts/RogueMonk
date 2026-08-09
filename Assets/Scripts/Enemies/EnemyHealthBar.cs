@@ -68,6 +68,21 @@ namespace Game.Enemies
                 Destroy(root.gameObject);
         }
 
+        /// <summary>
+        /// Hides the bar the moment its owner is switched off.
+        ///
+        /// <para>The bar lives in world space, unparented — that is what stops a scaled or spinning
+        /// body distorting it. The cost is that deactivating the body does <em>not</em> deactivate
+        /// the bar: <c>LateUpdate</c> simply stops running and the bar freezes on screen, still
+        /// showing full health. Scrapfeathers made this obvious because they have a zero-length
+        /// death beat, so they deactivate the instant they die and leave a bar behind every time.</para>
+        /// </summary>
+        void OnDisable()
+        {
+            if (root != null)
+                root.gameObject.SetActive(false);
+        }
+
         void Build()
         {
             root = new GameObject("HealthBar").transform;

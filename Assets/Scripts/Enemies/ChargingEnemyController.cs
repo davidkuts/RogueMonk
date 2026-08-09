@@ -34,6 +34,9 @@ namespace Game.Enemies
         [SerializeField, Range(0.05f, 0.9f), Tooltip("Fraction of charge speed below which a moving charge counts as stopped. Guards against a glancing scrape ending it.")]
         protected float wallSlamSpeedFraction = 0.35f;
 
+        [SerializeField, Tooltip("Degrees per second the charge may steer toward the target while running. 0 is a pure straight line. A small value tracks a walking player but loses a committed sidestep — the Minotaur rule.")]
+        protected float chargeTurnDegPerSec;
+
         Vector3 positionBeforeMove;
         Vector3 lockedChargeDirection;
         LayerMask baseExcludeLayers;
@@ -58,7 +61,46 @@ namespace Game.Enemies
             base.Update();
 
             if (IsCharging)
+            {
+                SteerCharge();
                 CheckWallSlam();
+            }
+        }
+
+        /// <summary>
+        /// Lets a running charge bend slowly toward the target.
+        ///
+        /// <para>The Minotaur rule: it locks on and commits, and it keeps coming until something
+        /// stops it — but the lock is not perfect. A slow turn rate tracks a player who is merely
+        /// walking, and loses one who commits to a hard cut across it. That is what makes the
+        /// answer a <em>decision</em> ("break hard, or dash through it") rather than a reflex, and
+        /// it is why the turn rate is small rather than zero.</para>
+        ///
+        /// <para>The locked direction is updated as it turns, so the wall-slam test keeps measuring
+        /// progress along the line the body is <em>currently</em> committed to.</para>
+        /// </summary>
+        void SteerCharge()
+        {
+            if (chargeTurnDegPerSec <= 0f || target == null)
+                return;
+
+            Vector3 toTarget = target.position - transform.position;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+                return;
+
+            float maxRadians = chargeTurnDegPerSec * Mathf.Deg2Rad * Time.deltaTime;
+            Vector3 steered = Vector3.RotateTowards(lockedChargeDirection, toTarget.normalized, maxRadians, 0f);
+            steered.y = 0f;
+            if (steered.sqrMagnitude <= 0.0001f)
+                return;
+
+            lockedChargeDirection = steered.normalized;
+            transform.rotation = Quaternion.LookRotation(lockedChargeDirection, Vector3.up);
+
+            // Redirect the travel itself, or the body would face a new way while still sliding
+            // along the old one.
+            SetLungeVelocity(lockedChargeDirection * ChargeSpeed);
         }
 
         protected override void OnAttackStarted(IAttackDefinition attack)

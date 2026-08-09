@@ -51,11 +51,11 @@ MonoBehaviour:
     links:
     - {fileID: 11400000, guid: 5b7be7d16fa92a9469e049fdc4173fe2, type: 2}
     linkDelaySeconds: 0
-    minRange: 4
-    maxRange: 13
-    selectionWeight: 1
-    moveCooldownSeconds: 5
-    lungeDistance: 11
+    minRange: 3.5
+    maxRange: 16
+    selectionWeight: 1.6
+    moveCooldownSeconds: 6
+    lungeDistance: 30
     projectilePrefab: {fileID: 0}
     projectileCount: 0
     projectileSpreadDegrees: 0
@@ -78,5 +78,6 @@ MonoBehaviour:
   concurrentAttackerCap: 1
   initialCooldownJitterSeconds: 0.8
   turnSpeedDegPerSec: 200
+  preferredRange: 0
   circleSpeedFraction: 0
   circleRadius: 3.2

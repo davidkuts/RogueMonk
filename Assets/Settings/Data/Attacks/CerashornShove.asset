@@ -34,3 +34,4 @@ MonoBehaviour:
   moveSpeedMultiplier: 0
   telegraphChannel: 1
   telegraphColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  telegraphEmphasis: 1.5
