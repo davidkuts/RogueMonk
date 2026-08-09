@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 5 of 7 — entry tier + Ambershell done |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 6 of 7 — **only the Tyrant left** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 6 of 7: TWICE-STRUCK (the echo elite)
+- **Built as generic delayed playback, as the brief asked.** `EchoPlayback` records an attack at the moment it commits — attack, position, rotation, lunge — and replays it 0.5 s later on a ghost with its **own real hitbox**. The controller is tiny: record on commit, cancel on stagger. Everything else is the mechanism and the data.
+- **Recorded at commit, not at impact.** The echo has to start from where the body *was*, because retracing the original line is the entire read. Recording later would have the ghost chase the player instead of replaying the past.
+- **The ghost is cloned from the body at runtime**, colliders stripped, tinted pale bone-cyan at 0.45 alpha, and **parented to the world rather than to the body** — parenting would drag it along with where the enemy is *now*, which is precisely the information it exists to withhold. Cloning is what §3.2 means by "costs zero clips": it matches whatever the body looks like, including after the capsule becomes a mesh.
+- **Perfect-dodging the echo counts, with no code to enforce it.** Echo hits resolve through the real body's own `HitResolver`, so i-frames, the dodge grace and the perfect-dodge reward all apply identically. §3.2 asked for this explicitly and it fell out of using the shared pipeline.
+- ⚠️ **A real interaction worth knowing about, and I think it is correct.** The echo delay (0.5 s) is exactly the player's mandatory post-hit invulnerability (0.5 s), so **when the real attack connects, the echo is usually eaten by those i-frames** — observed directly in the log (`ignored TwiceStruckSkullHook - 0.00s of post-hit invulnerability left`). The consequence is that the echo primarily threatens the player who *successfully dodged the first hit*. That is exactly §3.2's thesis — "you cannot dodge into where it just was" — and it means one mistake is not punished twice. **Recording it rather than tuning it: if it should double-punish, the delay must move off 0.5 s, and that is a playtest call.**
+- **Verified live**: the DoubleStamp landed twice for 14 each, **0.543 s apart**; the SkullHook likewise (18 + 18). Staggering the real body dropped the pending echo to **0** — §3.2's reward for aggression. An echo *already replaying* is deliberately left alone: its hitbox is live and the player is mid-dodge, and cancelling a swing someone is already reacting to is the same unfairness as cancelling a wind-up, from the other side.
+- **488/488 EditMode tests** (unchanged — the playback is adapter-side and was verified live; the brain and hit paths underneath are already covered).
+- Known issues / TODO next: the ghost has **no dissolve or trail** — it snaps on and off, where §3.2 wants an echo shader. Only one echo replays at a time; a chained move would queue its second link behind the first, which is correct but untested. The horn rush's echo reproduces travel from the recorded lunge, so it retraces the line — verified by construction, not yet measured.
 
 ### 2026-08-09 — M14.1 enemy 5 of 7: AMBERSHELL (the Armored showcase) — Phase 0's zone framework pays off
 - **Almost all of it is zones, not behaviour**, which was the bet Phase 0 made. The plating is `DamageZone` colliders baked straight from the capsule recipe; the base controller already routed every hit through them. **Measured: the dome takes 3 of a 10-damage punch with poise untouched; the underside takes the full 10 and drops poise 40→30.** That is the whole Armored lesson in two hits.

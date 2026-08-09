@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
+  m_Name: TwiceStruck
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
+  maxHealth: 140
+  tier: 0
+  poiseMax: 45
+  poiseRegenDelay: 2
+  poiseRegenRate: 11
+  armorMax: 0
+  staggerDurationSeconds: 1.5
+  moveSpeed: 4
+  aggroRange: 18
+  attackRange: 2.8
+  attackCooldownSeconds: 1.9
+  spawnGraceSeconds: 1.4
+  lungeDistance: 0
+  attack: {fileID: 11400000, guid: 8c7d92b943e10d44880c2174049f7173, type: 2}
+  ranged:
+    PreferredMinRange: 5
+    PreferredMaxRange: 9
+    ProjectileSpeed: 9
+    ProjectileLifetime: 4
+    ProjectileRadius: 0.35
+    KiteSpeedFraction: 0.7
+  moves:
+  - id: HornRush
+    links:
+    - {fileID: 11400000, guid: 0d4779981a15970479a896e6bc7baa98, type: 2}
+    linkDelaySeconds: 0
+    minRange: 3.5
+    maxRange: 11
+    selectionWeight: 1.1
+    moveCooldownSeconds: 4
+    lungeDistance: 7.5
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  - id: SkullHook
+    links:
+    - {fileID: 11400000, guid: 8c7d92b943e10d44880c2174049f7173, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 3
+    selectionWeight: 1.3
+    moveCooldownSeconds: 2.4
+    lungeDistance: 0.5
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  - id: DoubleStamp
+    links:
+    - {fileID: 11400000, guid: b04191f8af79e4d4c942e1f87e2de014, type: 2}
+    linkDelaySeconds: 0
+    minRange: 0
+    maxRange: 3.4
+    selectionWeight: 1
+    moveCooldownSeconds: 3.6
+    lungeDistance: 0
+    projectilePrefab: {fileID: 0}
+    projectileCount: 0
+    projectileSpreadDegrees: 0
+    projectileSpeedOverride: 0
+  repeatWeightMultiplier: 0.4
+  tokenKind: 0
+  concurrentAttackerCap: 1
+  initialCooldownJitterSeconds: 0.8
+  turnSpeedDegPerSec: 380
+  circleSpeedFraction: 0
+  circleRadius: 3.2

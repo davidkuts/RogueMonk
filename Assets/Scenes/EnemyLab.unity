@@ -316,6 +316,9 @@ MonoBehaviour:
   - Label: Ambershell
     Prefab: {fileID: 7212784579539804977, guid: b62b56d7134e6eb42bdab3896d2c055d, type: 3}
     CountPerPress: 1
+  - Label: Twice-Struck
+    Prefab: {fileID: 368868541844086673, guid: e56cf4bf1e66ee745b4387d1654ddb5b, type: 3}
+    CountPerPress: 1
   mixedWaveArchetypes: 020000000200000003000000
   player: {fileID: 1949805134}
   spawnRadius: 7
