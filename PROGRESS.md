@@ -50,7 +50,7 @@
 | 13.2 | Code-driven spin (full circle), movement during the spin, Riposte placeholder clip | ✅ done (pending feel-check) |
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
-| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 2 of 7 — **Swiftjaw, Sailspit done** |
+| 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | 🔨 3 of 7 — **Swiftjaw, Sailspit, Cerashorn done** |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -61,6 +61,17 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — M14.1 enemy 3 of 7: CERASHORN (baitable line charger)
+- **The first enemy that needed a subclass** — and it needed less of one than expected. "Cannot steer once committed" turned out to be the base's *existing* rules: facing locks at commit, and an attacking body travels on its lunge velocity. **A long lunge over a long active window simply is a line-locked charge**, so no bespoke movement mode was written. `CerashornController` only owns what happens when the charge meets something.
+- ⚠️ **Two real bugs, both found by playing rather than by tests, and both silently deleted a whole design payoff.**
+  1. **The charge was body-blocked by the player's CharacterController.** Two controllers collide, so a charge with 12.5 m of runway **stopped dead after 4.5 m** against the player's capsule. That quietly removed *both* of §2.2's payoffs at once: it could never reach a wall, so sidestepping earned nothing, and it could never plough the room, so baiting it into a pack did nothing. Fixed with the technique `PlayerMotor` already uses for the dash — `excludeLayers` recomputed from the charge state **every frame** rather than toggled on events, so it is self-healing and a charge cut short by a stagger or a death can never strand the body permanently phased.
+  2. **The charge hitbox was 0.20 m tall.** It caught the tall player and *nothing else*. Measured directly: a 0.2 m box returns **0** colliders over a Swiftjaw, a 0.6 m box returns **2**. Friendly fire had been silently dead. Now 1.6 m — and the ground decal only reads Size.x/Size.z, so the warning the player sees is unchanged. Audited every other Box hitbox in the project; Sailspit's two are telegraph-only (a projectile takes its radius from the `RangedProfile` and never reads `Hitbox`), so their thinness is harmless.
+- **The wall slam is detected by displacement, not by `collisionFlags`.** A CharacterController reports a side collision for any graze — including brushing another enemy, which must never end a charge. Measuring how far the body actually moved asks the only question that matters: *did it stop?* A confirming raycast on environment layers only then stops a body wedged on a slope from self-stunning for free.
+- **The self-stun goes through the ordinary stagger path** rather than a bespoke "dazed" state, so the interrupt, the colour, the status and the brain's recovery are the same ones a poise break produces. A second thing that means "helpless" would be a second thing to keep in step.
+- **Verified live, deliberately staged**: charged 10 m from z=2.0, **`WALL SLAM Cerashorn - self-stunned 1.5s`**, `excludeLayers` self-healed to 0. Both Swiftjaws parked in the lane took **16 damage each (24→8) and `POISE BREAK ... staggered 1.20s`, on the same frame** — friendly fire and knockdown exactly as §2.2 asks. Frill shove lands for 7 at close range. Charge telegraphs **violet** (gap-closer) over a 0.8 s ground-paw; shove telegraphs **red**.
+- **475/475 EditMode tests** (unchanged — both fixes are adapter-side physics, verified live; the brain logic they sit on is already covered).
+- Known issues / TODO next: ⚠️ **the global melee token cap starves it in a mixed wave.** Two Swiftjaws fill the cap of 2 and the Cerashorn sat in `Waiting` unable to act. Its own group cap is 1, but the *global* cap is what bites. Likely answer is a per-archetype priority or a slightly higher global melee cap — **needs a playtest call, not a guess**. Also: Cerashorn never repositions to create its own charge runway (`circleSpeedFraction` 0, and it holds inside shove range), so the charge only appears when the *player* makes distance. That matches "baitable" but is worth watching.
 
 ### 2026-08-09 — M14.1 enemy 2 of 7: SAILSPIT (artillery, area denial)
 - **Three new mechanics, all general rather than Sailspit-shaped**: projectiles fired from a moveset move, stall zones, and fan telegraphs. Still no enemy subclass — the roster is two for two on "SOs plus minimal code".

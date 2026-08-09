@@ -379,7 +379,16 @@ namespace Game.Enemies
         /// charge damages whatever it runs into for the whole of its travel, not for an active
         /// window measured in frames.
         /// </summary>
-        protected void QueryHitbox() => QueryHitbox(attacks.Current, transform.forward, hittableLayers);
+        protected void QueryHitbox() => QueryHitbox(attacks.Current, transform.forward, ActiveHitLayers);
+
+        /// <summary>
+        /// What this enemy's live attack can hit. Normally just the player.
+        ///
+        /// <para>Overridable because ENEMIES_BIOME1.md § 2.2 makes Cerashorn's charge damage and
+        /// knock down <em>other enemies</em> — friendly fire is not a bug there, it is the reward
+        /// for baiting a charge, and "players discovering this is a designed delight".</para>
+        /// </summary>
+        protected virtual LayerMask ActiveHitLayers => hittableLayers;
 
         protected void QueryHitbox(IAttackDefinition definitionToUse, Vector3 forward, LayerMask layers)
         {

@@ -307,6 +307,9 @@ MonoBehaviour:
   - Label: Sailspit
     Prefab: {fileID: 7244785236773632690, guid: ea6ae03782631734981a68e51b9a3c15, type: 3}
     CountPerPress: 2
+  - Label: Cerashorn
+    Prefab: {fileID: 6908010922901766939, guid: 670d471bda4671d49b8b5270e589029d, type: 3}
+    CountPerPress: 1
   mixedWaveArchetypes: 0100000000000000
   player: {fileID: 1949805134}
   spawnRadius: 7
