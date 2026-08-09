@@ -3,9 +3,11 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## Current status
-- **M14 is content-complete in capsule phase (framework + all seven Biome 1 enemies), and has had its first human playtest (M14.2). 488 EditMode tests passing**, zero console errors.
-- **The playtest found two dead mechanics that tests had not**: the player could not hit Scrapfeathers at all (attack origin too high), and the Tyrant's junk-rain dealt zero damage (the payload was on an orphaned asset). Both fixed and verified. **A verification I previously reported as passing was invalid** — see M14.2.
-- **Locked by the human 2026-08-09: there is no guaranteed damage in this game.** Skill must be rewarded; a player who reads a threat and moves correctly takes nothing. The only exception is damage the player *chooses* to take (Hades' chaos-gate pattern). Scrapfeather contact was the first thing held to this rule.
+- **M14 is DONE and human-signed-off (2026-08-09): "Everything works fine."** The Biome 1 framework, all seven enemies in capsule phase, and five playtest iterations on top. **488 EditMode tests passing**, zero console errors, build current at 162.2 MB.
+- **Active milestone: none.** Clean stopping point. The human named two candidates for the next session — **environment/biome art**, or **wiring the roster into the actual gameplay loop**. See the handoff below for which is cheaper and why.
+- **Locked by the human 2026-08-09: there is no guaranteed damage in this game.** Skill must be rewarded; a player who reads a threat and moves correctly takes nothing. The only exception is damage the player *chooses* to take (Hades' chaos-gate pattern). Now in DESIGN.md § Player health, and it is the rule that shaped Scrapfeather contact dwell, the fixed hazard pattern and the 0.55 s heavy-hit stagger.
+- ⚠️ **The roster is not in the game yet — only in the lab.** Nothing is registered in `LevelGenerationSettings`, so a real run still fights the old MeleeGrunt / RangedSkirmisher / Stone Warden. This is deliberate (see below) and is the single highest-value next task.
+- **Playtesting is `F9` in the build.** `Builds/Win64/RogueMonk.exe` → F9 for the enemy lab, keys 1–7 per enemy, 0 mixed wave, Backspace clear, F10 back.
 - **`EnemyLab.unity` is the test bench.** Keys **1–7** spawn Swiftjaw / Sailspit / Cerashorn / Scrapfeather / Ambershell / Twice-Struck / Tyrant, **0** spawns the mixed wave, **Backspace** clears. Seeded (12345) so a fight replays.
 - **`Builds/Win64/RogueMonk.exe` is rebuilt and contains the roster** (162.2 MB, 0 errors, 0 warnings, both scenes written fresh). **In the build, press `F9` to jump to the enemy lab and `F10` to come back.** The game still launches into `GrayboxArena` exactly as before — `EnemyLab` was appended at build index 1, so nothing about the normal run changed.
 - ⚠️ **None of the seven are registered in `LevelGenerationSettings`**, so a real run still fights the old grunt/skirmisher/Stone Warden. That is deliberate — wave composition is an ENEMIES_BIOME1.md §5 decision that wants the whole roster present, and registering them piecemeal would have shifted every existing seed mid-milestone. **This is the obvious next task.**
@@ -57,6 +59,9 @@
 | 13.3 | Spin spans the whole move (LateUpdate), foot-traced smear ribbons, short visible pull | ✅ done (pending feel-check) |
 | 14.0 | Biome 1 enemy framework: zones, tokens, moveset brain, telegraph palette, capsule kit, lab scene | ✅ **done** — awaiting go for Phase 1 |
 | 14.1 | Biome 1 roster: Swiftjaw → Sailspit → Cerashorn → Scrapfeathers → Ambershell → Twice-Struck → Tyrant | ✅ **7 of 7 — roster complete (capsule phase)** |
+| 14.2–14.6 | Five playtest passes: dead mechanics, obstacle avoidance, health bars, melee cadence, Minotaur charge, heavy hits | ✅ **done — human-signed-off 2026-08-09** |
+| 15 | **Wire the roster into the gameplay loop** — archetype assets, §5 wave composition, Tyrant replaces the Stone Warden | ⬜ not started (recommended next) |
+| — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 
@@ -67,6 +72,29 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-09 — Session close: M14 shipped, and where the next one picks up
+- **14 commits, `794ee67` → `d412386`.** Phase 0 framework, seven enemies one commit each, then five playtest passes. 430 → **488 EditMode tests**. Working tree clean, build current, pushed.
+- **The shape of this session: one framework bet, then five rounds of the human playing it.** The bet was that a Biome 1 enemy should be *data* — and it held: Swiftjaw, Sailspit and Scrapfeathers needed **zero** bespoke code, and the four that did need a subclass needed a small one. What the playtests found was almost never tuning; it was **mechanics that were silently dead**.
+- ⚠️ **Four dead mechanics that tests did not catch, and one bad verification of mine.** Worth reading before trusting a green suite again:
+  1. The player **could not hit Scrapfeathers at all** — attack origin y1.8, birds topped out at 0.45.
+  2. The Tyrant's **junk-rain dealt zero damage** — the payload lived on an orphaned asset nothing referenced.
+  3. **Friendly fire was dead** — the charge hitbox was 0.20 m tall and only ever caught the tall player.
+  4. The **charge was body-blocked by the player's capsule**, so it could never reach a wall *or* plough the room.
+  - And ⚠️ **my "one Kick swept 2 birds" test was invalid** — it used a different attack origin than the game does. **A test that constructs its own inputs can pass while the real path is broken.** Where a value comes from the adapter (an origin, a layer, a material), the test has to read it from the adapter.
+- **Every one of those was found by playing, not by testing.** The EditMode suite stayed green through all four. That is not an argument against the tests — they caught real brain-logic regressions — it is an argument that **adapter wiring needs live verification**, which is exactly what CLAUDE.md's "never declare done on unverified code" is for.
+
+**Start the next session here. Two candidates, and they are not equal:**
+1. **Wire the roster into the gameplay loop (cheaper, higher value).** Everything exists; nothing is connected. Needed: seven `EnemyArchetypeDefinition` assets, registration in `LevelGenerationSettings`, and ENEMIES_BIOME1.md **§5 wave composition** (vocabulary rooms → sentence rooms → elite room → boss; Scrapfeathers never alone; never two elites in Biome 1). Plus **the Tyrant replacing the Stone Warden** in the boss room, which the theme has wanted since DESIGN.md's biome ladder. ⚠️ **Registering shifts every existing seed** — do it in one go, not piecemeal, which is exactly why it was deferred.
+2. **Environment / biome art.** `ASSETS_BIOME1.md` §7 says capsules first for the *entire* roster, then meshes — that gate is now passed, so this is legitimately unblocked. But it is a long pipeline (Flux → Hunyuan3D → palette remap → toon shader) and it makes the game *look* like a game rather than *play* like one.
+- **Recommendation: do (1) first.** It converts seven lab exhibits into an actual Cretaceous level, and it is the last thing standing between this milestone and a playable biome.
+
+**Also open, smaller:**
+- ⚠️ **`ObstacleAvoidance`, `preferredRange` and the fixed hazard pattern have no EditMode tests.** All three are engine-free or near it. The hazard pattern especially: "there is always exactly one escape, within one dash" is a **fairness guarantee**, and that belongs in a test rather than resting on one playtest.
+- **Convergence candidate:** `MeleeEnemyBrain`, `BossBrain` and `EnemyMovesetBrain` are three weighted-selection brains; `MovesetEnemyController` and `BossController` are two copies of the gravity/facing/hitbox adapter. Now that the roster is proven it is finally obvious which parts are genuinely common.
+- **Ambershell has no cracked-plating visual** — mechanically the shell opens for 8 s and the body does not say so. `EnemyActor` already retints per renderer, so the hook exists.
+- **Two locked values were overridden on instruction** and should be revisited if anything feels off: Ambershell's tail sweep (§3.1's 1.0 s → 0.62 s) and the Tyrant's Immune-tier wind-ups (DESIGN's 650–750 ms → 450/620 ms). Both are recorded in their session entries.
+- `Right Hook.fbx` still has no animation data (unchanged since M13).
 
 ### 2026-08-09 — M14.6: the charge collides where it looks like it collides, and heavy hits land like they look
 - ⚠️ **Measured: the roll's hitbox registered 1.85 m before the bodies touched.** Its box reached **2.70 m** from the enemy's centre while the two capsules only meet at **1.25 m** (shell 0.85 + player 0.4). That gap is exactly the clunkiness the human described — it stopped short and "hit" from thin air, which is worse while the player is also moving. The box is now sized to the **shell rather than to a reach**: front edge at 0.85 m, so registration and contact both land at **1.25 m**.
