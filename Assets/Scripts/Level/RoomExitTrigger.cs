@@ -22,6 +22,13 @@ namespace Game.Level
         Transform player;
         bool notified;
 
+        /// <summary>
+        /// Which of the room's exit offers this door is. Assigned when the exit bank is built;
+        /// the authored template trigger keeps 0, which is only ever read on the legacy
+        /// single-door path where there is nothing to choose anyway.
+        /// </summary>
+        public int ExitIndex { get; set; }
+
         void Awake()
         {
             volume = GetComponent<Collider>();
@@ -64,7 +71,7 @@ namespace Game.Level
                 return;
 
             notified = true;
-            room.NotifyExitReached();
+            room.NotifyExitReached(ExitIndex);
         }
     }
 }

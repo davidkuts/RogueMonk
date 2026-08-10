@@ -82,6 +82,10 @@ namespace Game.Level
         [SerializeField, Tooltip("Authored wave composition per standard-room slot, in order. Rooms beyond this list (or slots with no variants) fall back to the budget-weighted generator.")]
         List<ScriptedRoom> roomScripts = new List<ScriptedRoom>();
 
+        [Header("Door rewards (REWARDS.md §8)")]
+        [SerializeField, Tooltip("The tier-parity reward generator's tuning. Leave empty and every fork degrades to one Minutes-cache door.")]
+        RewardGenerationConfig rewardConfig;
+
         readonly List<IRoomTemplate> templateView = new List<IRoomTemplate>();
         readonly List<IEnemyArchetype> archetypeView = new List<IEnemyArchetype>();
         readonly List<IRoomScript> roomScriptView = new List<IRoomScript>();
@@ -207,6 +211,11 @@ namespace Game.Level
 
             public IReadOnlyList<IReadOnlyList<ScriptedSpawn>> Waves => waves;
         }
+
+        public IRewardConfig Rewards => rewardConfig;
+
+        /// <summary>The concrete config, for presentation (tints, icons) and pickup effects.</summary>
+        public RewardGenerationConfig RewardConfigAsset => rewardConfig;
 
         public RoomTemplateDefinition FindTemplate(string id)
         {

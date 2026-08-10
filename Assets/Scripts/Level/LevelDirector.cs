@@ -19,6 +19,8 @@ namespace Game.Level
         [SerializeField] Transform player;
         [SerializeField, Tooltip("The gameplay vcam. Its confiner is retargeted per room.")]
         CinemachineCamera gameplayCamera;
+        [SerializeField, Tooltip("Optional. Owns reward pickups, wallets and door-held-for-reward flow; without one, rooms behave exactly as before rewards existed.")]
+        RewardDirector rewardDirector;
 
         [Header("Seeding")]
         [SerializeField, Tooltip("Leave 0 to pick a seed from the system clock and log it.")]
@@ -43,7 +45,21 @@ namespace Game.Level
         int levelIndex;
         bool awaitingLevelAdvance;
 
+        /// <summary>
+        /// The reward promised over the door the player just walked through, waiting to become
+        /// the next room's reward. Null after the boss door, between levels, and at run start.
+        /// </summary>
+        RewardChoice? pendingReward;
+
         public RunContext Run { get; private set; }
+
+        /// <summary>
+        /// A dedicated stream for reward CONTENT rolls that happen at collect time (which
+        /// giver calls, which Stray drifts in). Those draws depend on which doors the player
+        /// chooses, so they must never touch the run stream — one derived stream absorbs them
+        /// all and the run stream stays reproducible from the seed alone.
+        /// </summary>
+        public Game.Core.Rng.IRandomSource RewardStream { get; private set; }
 
         public LevelPlan Plan { get; private set; }
 
@@ -108,6 +124,7 @@ namespace Game.Level
             if (currentRoom != null)
             {
                 currentRoom.ExitReached -= OnExitReached;
+                currentRoom.ExitChosen -= OnExitChosen;
                 Destroy(currentRoom.gameObject);
                 currentRoom = null;
             }
@@ -185,8 +202,13 @@ namespace Game.Level
                 seed = (uint)Environment.TickCount;
 
             Run = new RunContext(seed);
+            RewardStream = Run.DeriveStream();
             levelIndex = 0;
             awaitingLevelAdvance = false;
+            pendingReward = null;
+
+            if (rewardDirector != null)
+                rewardDirector.OnRunBegan(this);
 
             // A new run starts empty-handed. Without this a restart would inherit the previous
             // run's loadout and make its first room trivial.
@@ -256,6 +278,7 @@ namespace Game.Level
             if (currentRoom != null)
             {
                 currentRoom.ExitReached -= OnExitReached;
+                currentRoom.ExitChosen -= OnExitChosen;
                 Destroy(currentRoom.gameObject);
             }
 
@@ -298,14 +321,15 @@ namespace Game.Level
             currentRoom = Instantiate(template.Prefab, Vector3.zero, Quaternion.identity);
             currentRoom.name = $"Room_{roomIndex + 1}_{roomPlan.TemplateId}{(roomPlan.IsBossRoom ? "_BOSS" : string.Empty)}";
             currentRoom.ExitReached += OnExitReached;
+            currentRoom.ExitChosen += OnExitChosen;
             currentRoom.ApplyRole(roomPlan.Role);
 
             // The doors were decided at generation time with the rest of the plan: a seeded 1–4
-            // for an ordinary next room, exactly one marked "9" when the boss is next (elites are
-            // Standard rooms and do not count), none for the final room — clearing it ends the
-            // level with no door involved. The numbers are placeholder reward markings for now.
+            // reward offers for an ordinary next room (tier parity: one tier, distinct types),
+            // exactly one boss-marked door when the boss is next (elites are Standard rooms and
+            // do not count), none for the final room — clearing it ends the level with no door.
             if (roomPlan.ExitDoorCount > 0)
-                currentRoom.ConfigureExits(roomPlan.ExitDoorCount, roomPlan.ExitLabels);
+                currentRoom.ConfigureExits(roomPlan.ExitRewards, settings.RewardConfigAsset);
 
             RoomEntered?.Invoke(roomPlan);
 
@@ -320,7 +344,63 @@ namespace Game.Level
             currentRunner.EnemyKilled += OnEnemyKilled;
             currentRunner.BossSpawned += OnBossSpawned;
             currentRunner.BossDefeated += OnBossDefeated;
-            currentRunner.Begin();
+
+            // What this room pays out: the run's very first room asks the policy (and pays out
+            // BEFORE combat); every other room pays what the door the player chose promised.
+            // Boss rooms pay nothing until boss drops are built. Without a reward director the
+            // whole feature stands down and rooms behave exactly as they always have.
+            RewardChoice? roomReward = null;
+            bool rewardBeforeEnemies = false;
+
+            if (rewardDirector != null && !roomPlan.IsBossRoom)
+            {
+                if (levelIndex == 0 && roomIndex == 0)
+                {
+                    roomReward = rewardDirector.DecideFirstRoomReward(RewardStream);
+                    rewardBeforeEnemies = roomReward.HasValue;
+                }
+                else
+                {
+                    roomReward = pendingReward;
+                }
+            }
+
+            pendingReward = null;
+            currentRunner.HoldDoorForReward = roomReward.HasValue && !rewardBeforeEnemies;
+
+            if (rewardDirector != null)
+                rewardDirector.OnRoomStarted(roomPlan, currentRoom, currentRunner, roomReward, rewardBeforeEnemies);
+
+            // The first room of a run waits: enemies spawn only after the opening reward is
+            // collected. The reward director calls BeginHeldRoom once that happens.
+            if (rewardBeforeEnemies)
+                GameLog.Info(LogCategory.Level, "first room holds its reward - enemies wait for the collect");
+            else
+                currentRunner.Begin();
+        }
+
+        /// <summary>
+        /// Starts the fight in a room whose enemies were held back for a pre-combat reward.
+        /// Called by the reward director when the opening pickup is collected.
+        /// </summary>
+        public void BeginHeldRoom()
+        {
+            if (currentRunner != null && !currentRunner.IsCleared && currentRunner.WaveNumber == 0)
+                currentRunner.Begin();
+        }
+
+        /// <summary>Remembers which offer the player walked through, for the next room's payout.</summary>
+        void OnExitChosen(int exitIndex)
+        {
+            RoomPlan plan = Plan != null && roomIndex >= 0 && roomIndex < Plan.RoomCount ? Plan.Rooms[roomIndex] : null;
+            if (plan == null || exitIndex < 0 || exitIndex >= plan.ExitRewards.Count)
+                return;
+
+            RewardChoice choice = plan.ExitRewards[exitIndex];
+            pendingReward = choice.IsBossDoor ? (RewardChoice?)null : choice;
+
+            GameLog.Info(LogCategory.Level,
+                choice.IsBossDoor ? "chose the boss door" : $"chose the {choice} door");
         }
 
         void DetachRunner(RoomRunner runner)

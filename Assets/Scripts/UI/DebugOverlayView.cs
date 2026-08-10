@@ -20,6 +20,10 @@ namespace Game.UI
         [SerializeField] PlayerAttackController attacks;
         [SerializeField] PlayerMotor motor;
         [SerializeField] PlayerHealth health;
+        [SerializeField] Game.Core.Economy.PlayerWallet wallet;
+        [SerializeField] TransmissionBoons transmissions;
+        [SerializeField] StrayInventory strays;
+        [SerializeField] StopgapInventory stopgaps;
 
         [Header("Display")]
         [SerializeField, Tooltip("Start with the overlay already visible.")]
@@ -41,6 +45,10 @@ namespace Game.UI
             if (attacks == null) attacks = FindAnyObjectByType<PlayerAttackController>();
             if (motor == null) motor = FindAnyObjectByType<PlayerMotor>();
             if (health == null) health = FindAnyObjectByType<PlayerHealth>();
+            if (wallet == null) wallet = FindAnyObjectByType<Game.Core.Economy.PlayerWallet>();
+            if (transmissions == null) transmissions = FindAnyObjectByType<TransmissionBoons>();
+            if (strays == null) strays = FindAnyObjectByType<StrayInventory>();
+            if (stopgaps == null) stopgaps = FindAnyObjectByType<StopgapInventory>();
         }
 
         void OnDestroy()
@@ -138,6 +146,49 @@ namespace Game.UI
                     builder.AppendFormat("   window {0:0.00}s", attacks.Combo.WindowRemaining);
 
                 Line(builder.ToString(), new Color(1f, 0.72f, 0.25f));
+            }
+
+            // The economy: the only place Hours and Amber are visible until the hub exists.
+            if (wallet != null)
+            {
+                builder.Clear();
+                builder.AppendFormat("wallet  Seconds {0}  Minutes {1}  Hours {2}  Amber {3}",
+                    wallet.Wallet.Get(Game.Core.Economy.CurrencyType.Seconds),
+                    wallet.Wallet.Get(Game.Core.Economy.CurrencyType.Minutes),
+                    wallet.Wallet.Get(Game.Core.Economy.CurrencyType.Hours),
+                    wallet.Wallet.Get(Game.Core.Economy.CurrencyType.Amber));
+                Line(builder.ToString(), new Color(0.95f, 0.85f, 0.5f));
+            }
+
+            if (strays != null || stopgaps != null)
+            {
+                builder.Clear();
+                builder.Append("carry   ");
+                builder.AppendFormat("stray {0}", strays != null && strays.Equipped != null ? strays.Equipped.DisplayName : "-");
+                if (health != null)
+                    builder.AppendFormat("   shield {0}", health.HasOneHitShield);
+                if (stopgaps != null)
+                {
+                    builder.AppendFormat("   stopgaps {0}/{1}", stopgaps.Count, stopgaps.CarryCap);
+                    for (int i = 0; i < stopgaps.Carried.Count; i++)
+                        builder.AppendFormat(" [{0}]", stopgaps.Carried[i].DisplayName);
+                }
+
+                Line(builder.ToString(), new Color(0.75f, 0.9f, 0.8f));
+            }
+
+            if (transmissions != null && transmissions.Owned.Count > 0)
+            {
+                builder.Clear();
+                builder.Append("boons   ");
+                for (int i = 0; i < transmissions.Owned.Count; i++)
+                {
+                    var owned = transmissions.Owned[i];
+                    builder.AppendFormat("{0}{1} [{2}/{3}]", i > 0 ? ", " : string.Empty,
+                        owned.Definition.DisplayName, owned.Definition.Ability, owned.Tier);
+                }
+
+                Line(builder.ToString(), new Color(0.55f, 0.85f, 0.95f));
             }
         }
 

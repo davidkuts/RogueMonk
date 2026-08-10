@@ -109,5 +109,12 @@ namespace Game.Level
         /// budget-weighted generator.
         /// </summary>
         IReadOnlyList<IRoomScript> RoomScripts { get; }
+
+        /// <summary>
+        /// Door-reward generator tuning (REWARDS.md §8). Null degrades gracefully: forks get a
+        /// single door with a Normal Minutes cache, so a content set without the config still
+        /// produces a playable level.
+        /// </summary>
+        IRewardConfig Rewards { get; }
     }
 }

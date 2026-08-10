@@ -54,6 +54,13 @@ namespace Game.Level
 
         public bool IsCleared { get; private set; }
 
+        /// <summary>
+        /// When true, clearing the last wave does NOT open the door: the room holds a reward,
+        /// and the door waits for it to be collected (REWARDS.md — doors gate on collection,
+        /// not on clear). Whoever set this owns calling <see cref="OpenDoor"/> afterwards.
+        /// </summary>
+        public bool HoldDoorForReward { get; set; }
+
         public int AliveCount => alive.Count;
 
         public int WaveNumber => waveIndex + 1;
@@ -68,6 +75,12 @@ namespace Game.Level
 
         /// <summary>Raised for each enemy death, so the run can keep a kill tally.</summary>
         public event Action EnemyKilled;
+
+        /// <summary>
+        /// Raised for each enemy death with where the body fell, so the economy can shed its
+        /// loose seconds from the corpse rather than from thin air.
+        /// </summary>
+        public event Action<Vector3> EnemyKilledAt;
 
         /// <summary>Raised when a boss enters play, so the HUD can put its bar up.</summary>
         public event Action<IBossEncounter> BossSpawned;
@@ -91,11 +104,13 @@ namespace Game.Level
             if (waveIndex >= plan.Waves.Count)
             {
                 IsCleared = true;
-                room.SetDoorOpen(true);
+                if (!HoldDoorForReward)
+                    room.SetDoorOpen(true);
+
                 GameLog.Info(LogCategory.Level,
                     plan.IsBossRoom
                         ? $"BOSS ROOM {plan.Index + 1} CLEARED"
-                        : $"ROOM {plan.Index + 1} CLEARED - door open");
+                        : $"ROOM {plan.Index + 1} CLEARED - {(HoldDoorForReward ? "door held for reward" : "door open")}");
                 Cleared?.Invoke();
                 return;
             }
@@ -301,6 +316,9 @@ namespace Game.Level
 
             alive.Remove(actor);
             EnemyKilled?.Invoke();
+            if (actor != null)
+                EnemyKilledAt?.Invoke(actor.transform.position);
+
             PruneAndCheckCleared();
         }
 
@@ -349,6 +367,16 @@ namespace Game.Level
             alive.Clear();
             waveIndex = plan.Waves.Count - 1;
             AdvanceWave();
+        }
+
+        /// <summary>Opens the door of a cleared room whose reward has now been collected.</summary>
+        public void OpenDoor()
+        {
+            if (!IsCleared)
+                return;
+
+            room.SetDoorOpen(true);
+            GameLog.Info(LogCategory.Level, $"ROOM {plan.Index + 1} reward collected - door open");
         }
 
         /// <summary>Drops any survivors, for aborting a run.</summary>

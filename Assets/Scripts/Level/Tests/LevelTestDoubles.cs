@@ -1,8 +1,40 @@
 using System.Collections.Generic;
+using Game.Core.Economy;
 using UnityEngine;
 
 namespace Game.Level.Tests
 {
+    internal sealed class FakeRewardConfig : IRewardConfig
+    {
+        public float NormalWeight = 6f;
+        public float RareWeight = 3f;
+        public float EpicWeight = 1f;
+
+        public List<RewardTypeOption> Options = new List<RewardTypeOption>
+        {
+            new RewardTypeOption(RewardType.Transmission, true, 3f),
+            new RewardTypeOption(RewardType.MinutesCache, true, 3f),
+            new RewardTypeOption(RewardType.HoursCache, true, 1f),
+            new RewardTypeOption(RewardType.Splice, true, 2f),
+            new RewardTypeOption(RewardType.Stray, true, 2f),
+            new RewardTypeOption(RewardType.Stopgap, true, 2f),
+            new RewardTypeOption(RewardType.Recalibration, false, 1f),
+            new RewardTypeOption(RewardType.SupplyDrop, false, 1f),
+        };
+
+        public float TierWeight(RewardTier tier)
+        {
+            switch (tier)
+            {
+                case RewardTier.Epic: return EpicWeight;
+                case RewardTier.Rare: return RareWeight;
+                default: return NormalWeight;
+            }
+        }
+
+        public IReadOnlyList<RewardTypeOption> TypeOptions => Options;
+    }
+
     internal sealed class FakeRoomTemplate : IRoomTemplate
     {
         public string Id { get; set; } = "room";
@@ -75,5 +107,7 @@ namespace Game.Level.Tests
         };
 
         public IReadOnlyList<IRoomScript> RoomScripts { get; set; }
+
+        public IRewardConfig Rewards { get; set; } = new FakeRewardConfig();
     }
 }

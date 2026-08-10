@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3772d5498c87004ab153c21c666ecd2, type: 3}
+  m_Name: Reward_Stopgap
+  m_EditorClassIdentifier: Game.Level::Game.Level.RewardDefinition
+  type: 5
+  payloadNormal: 0
+  payloadRare: 0
+  payloadEpic: 0
+  iconShape: 5
+  iconSprite: {fileID: 0}
+  spawnPrefab: {fileID: 0}

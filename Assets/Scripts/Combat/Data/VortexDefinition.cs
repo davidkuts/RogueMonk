@@ -15,8 +15,12 @@ namespace Game.Combat
     /// only thing that scales them is a boon, through the ordinary hit-modifier pipeline.</para>
     /// </summary>
     [CreateAssetMenu(menuName = "Monk/Vortex Definition", fileName = "VortexDefinition")]
-    public sealed class VortexDefinition : ScriptableObject, IAttackDefinition
+    public sealed class VortexDefinition : ScriptableObject, IAttackDefinition, IAbilityTagged
     {
+        [Header("Ability slot")]
+        [SerializeField, Tooltip("Slot-scoped boons filter hits by this. The Undertow is the VORTEX slot.")]
+        AbilityId ability = AbilityId.VORTEX;
+
         [Header("Frame data (seconds)")]
         [SerializeField, Tooltip("Committed wind-up — the tell that a spin is coming.")]
         float windupSeconds = 0.12f;
@@ -75,6 +79,7 @@ namespace Game.Combat
         Color telegraphColor = new Color(0.3f, 0.9f, 1f, 1f);
 
         public string Id => name;
+        public AbilityId Ability => ability;
         public float WindupSeconds => windupSeconds;
         public float ActiveSeconds => activeSeconds;
         public float RecoverySeconds => recoverySeconds;

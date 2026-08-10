@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33065028e056e4246b3d72608bbdd014, type: 3}
+  m_Name: RewardGenerationConfig
+  m_EditorClassIdentifier: Game.Level::Game.Level.RewardGenerationConfig
+  normalWeight: 6
+  rareWeight: 3
+  epicWeight: 1
+  types:
+  - definition: {fileID: 11400000, guid: 7a19d47130b58264baa88fb995ac0caa, type: 2}
+    enabled: 1
+    weight: 3
+  - definition: {fileID: 11400000, guid: 41f946dacfeccad44b5555203919faf6, type: 2}
+    enabled: 1
+    weight: 3
+  - definition: {fileID: 11400000, guid: da63865afa41a15498a866bbc0afaf96, type: 2}
+    enabled: 1
+    weight: 1
+  - definition: {fileID: 11400000, guid: cdb16ea86eacca640ae934ef69da81f8, type: 2}
+    enabled: 1
+    weight: 2
+  - definition: {fileID: 11400000, guid: a49ebbfa5bc2a1f4e9eabf371d7e306b, type: 2}
+    enabled: 1
+    weight: 2
+  - definition: {fileID: 11400000, guid: b3062ddf425a8cb4d96d10c4f61b1a25, type: 2}
+    enabled: 1
+    weight: 2
+  - definition: {fileID: 11400000, guid: 343360caf95dcd7409c0e38da6ea053f, type: 2}
+    enabled: 0
+    weight: 1
+  - definition: {fileID: 11400000, guid: 039d88215aa618e41b42620ac0bb0543, type: 2}
+    enabled: 0
+    weight: 1
+  normalTint: {r: 0.78, g: 0.58, b: 0.3, a: 1}
+  rareTint: {r: 0.8, g: 0.84, b: 0.9, a: 1}
+  epicTint: {r: 1, g: 0.84, b: 0.25, a: 1}
+  pickupRadius: 2.5
+  firstRoomPolicy: {fileID: 11400000, guid: 619bfd2aacaa5fb4f818ba59913aa306, type: 2}

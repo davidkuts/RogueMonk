@@ -535,6 +535,10 @@ MonoBehaviour:
   attacks: {fileID: 1949805135}
   motor: {fileID: 1949805131}
   health: {fileID: 1949805137}
+  wallet: {fileID: 0}
+  transmissions: {fileID: 0}
+  strays: {fileID: 0}
+  stopgaps: {fileID: 0}
   visibleOnStart: 1
   visibleLines: 18
   toggleKey: 94
@@ -604,6 +608,8 @@ MonoBehaviour:
   enemyLabScene: EnemyLab
   mainSceneKey: 103
   mainScene: GrayboxArena
+  godModeKey: 21
+  useRightTrigger: 1
 --- !u!114 &209475370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2153,6 +2159,7 @@ GameObject:
   m_Component:
   - component: {fileID: 673184061}
   - component: {fileID: 673184060}
+  - component: {fileID: 673184062}
   m_Layer: 0
   m_Name: LevelDirector
   m_TagString: Untagged
@@ -2175,6 +2182,7 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: 6dc6dd9569ae68247ac45a8fb8235e27, type: 2}
   player: {fileID: 1949805134}
   gameplayCamera: {fileID: 1243274634}
+  rewardDirector: {fileID: 673184062}
   fixedSeed: 0
   confinerMargin: {x: 2.5, y: 1}
   confinerHeight: 30
@@ -2193,6 +2201,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &673184062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673184059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e90eb3d16c7995b4ea59b2df9a246a49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Level::Game.Level.RewardDirector
+  config: {fileID: 11400000, guid: 6e8f59a91830c6c4c89326a817ad44a6, type: 2}
+  economy: {fileID: 11400000, guid: 00a23eb19ef1764448bdd8582ae8a84d, type: 2}
+  stopgaps: {fileID: 11400000, guid: 3a8f9ea201d1d874b8099551733357fd, type: 2}
+  strayPool:
+  - {fileID: 11400000, guid: a42f8afe7ce65a040885543c048b6fe6, type: 2}
+  - {fileID: 11400000, guid: edc8e2f2b98110e4aaab36c5e0ce94e0, type: 2}
+  - {fileID: 11400000, guid: 02158c4e69484a647bbf0460a870f0ec, type: 2}
+  - {fileID: 11400000, guid: fcf2bce9afc0cd943b305191a1f6cb3d, type: 2}
+  - {fileID: 11400000, guid: ff0e2eb1c4e35eb4686310d7da62dbe2, type: 2}
+  - {fileID: 11400000, guid: e662a00203aebbb4b92002d93faea171, type: 2}
+  transmissionCatalog: {fileID: 11400000, guid: accc0161935097e4bb2238e664c91127, type: 2}
+  primitiveMaterial: {fileID: 2100000, guid: 8895d6e30eaf50a4f95ebacb925c65be, type: 2}
+  wallet: {fileID: 1949805149}
+  playerHealth: {fileID: 1949805137}
+  strays: {fileID: 1949805148}
+  stopgapInventory: {fileID: 1949805147}
+  transmissionBoons: {fileID: 1949805146}
+  input: {fileID: 1949805132}
 --- !u!1 &674026211
 GameObject:
   m_ObjectHideFlags: 0
@@ -3097,6 +3135,8 @@ GameObject:
   - component: {fileID: 847019512}
   - component: {fileID: 847019511}
   - component: {fileID: 847019510}
+  - component: {fileID: 847019515}
+  - component: {fileID: 847019514}
   m_Layer: 0
   m_Name: HUD
   m_TagString: Untagged
@@ -3196,6 +3236,40 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &847019514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847019509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e430aa09b9b78fb4fb376dbcc67a53a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.UI::Game.UI.TransmissionDraftView
+  rewards: {fileID: 673184062}
+  selectedColor: {r: 1, g: 0.95, b: 0.8, a: 1}
+  unselectedColor: {r: 0.45, g: 0.48, b: 0.55, a: 1}
+  inputLockoutSeconds: 0.5
+--- !u!114 &847019515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847019509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90b520985cd62c246b19e696f3cda554, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.UI::Game.UI.WalletHudView
+  wallet: {fileID: 1949805149}
+  stopgaps: {fileID: 1949805147}
+  strays: {fileID: 1949805148}
+  rewards: {fileID: 673184062}
+  feedbackSeconds: 2
+  feedbackRise: 40
 --- !u!1 &852086377
 GameObject:
   m_ObjectHideFlags: 0
@@ -7028,6 +7102,10 @@ GameObject:
   - component: {fileID: 1949805143}
   - component: {fileID: 1949805144}
   - component: {fileID: 1949805145}
+  - component: {fileID: 1949805149}
+  - component: {fileID: 1949805148}
+  - component: {fileID: 1949805147}
+  - component: {fileID: 1949805146}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7053,6 +7131,7 @@ MonoBehaviour:
   dashPhasesThroughLayers:
     serializedVersion: 2
     m_Bits: 256
+  staggerDamping: 8
 --- !u!114 &1949805132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7201,6 +7280,8 @@ MonoBehaviour:
   afterimage: {fileID: 1949805140}
   hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
   flashIntervalSeconds: 0.08
+  healFlashColor: {r: 0.35, g: 1, b: 0.75, a: 1}
+  healFlashSeconds: 0.5
 --- !u!114 &1949805138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7376,6 +7457,60 @@ MonoBehaviour:
   endWidth: 0.02
   smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
   minVertexDistance: 0.02
+--- !u!114 &1949805146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 034d530783f90d5488ebc8d1a184b274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.TransmissionBoons
+  attacks: {fileID: 0}
+  motor: {fileID: 0}
+  rarityScalars: {fileID: 11400000, guid: a93ed432c06f9bf44ac42abdcb5819eb, type: 2}
+--- !u!114 &1949805147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57ed2a834c9ac7943be00dd6a5565644, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.StopgapInventory
+  settings: {fileID: 11400000, guid: 3a8f9ea201d1d874b8099551733357fd, type: 2}
+--- !u!114 &1949805148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2bdfb1fa84930946b3db3d14eb425bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.StrayInventory
+  attacks: {fileID: 0}
+  health: {fileID: 0}
+--- !u!114 &1949805149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb2b28fcac4579846a2e2971613c0b50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core::Game.Core.Economy.PlayerWallet
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54445851b55d61342b982951072b4482, type: 3}
   m_Name: Boss_Tyrant
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BossDefinition
+  era: 1
   maxHealth: 2700
   tier: 2
   poiseMax: 0

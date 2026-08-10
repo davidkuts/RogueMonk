@@ -4,9 +4,10 @@ using System.Collections.Generic;
 namespace Game.Combat.Tests
 {
     /// <summary>Mutable stand-in for an AttackDefinition asset so tests stay asset-free.</summary>
-    internal sealed class FakeAttack : IAttackDefinition
+    internal sealed class FakeAttack : IAttackDefinition, IAbilityTagged
     {
         public string Id { get; set; } = "fake";
+        public AbilityId Ability { get; set; } = AbilityId.None;
         public float WindupSeconds { get; set; } = 0.10f;
         public float ActiveSeconds { get; set; } = 0.06f;
         public float RecoverySeconds { get; set; } = 0.18f;
@@ -27,9 +28,10 @@ namespace Game.Combat.Tests
     }
 
     /// <summary>Records every hit it receives so tests can assert on resolved values.</summary>
-    internal sealed class FakeDamageable : IDamageable
+    internal sealed class FakeDamageable : IDamageable, IEraTagged
     {
         public bool IsAlive { get; set; } = true;
+        public Era Era { get; set; } = Era.None;
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
         public List<HitContext> Hits { get; } = new List<HitContext>();
 

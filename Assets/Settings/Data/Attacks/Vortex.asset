@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e27432015c62fb743955008e3f0a5939, type: 3}
   m_Name: Vortex
   m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexDefinition
+  ability: 3
   windupSeconds: 0.1
   activeSeconds: 0.22
   recoverySeconds: 0.1

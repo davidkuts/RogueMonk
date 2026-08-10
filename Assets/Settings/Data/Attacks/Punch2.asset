@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d361a0db8a4f7e94f9a66db167da2127, type: 3}
   m_Name: Punch2
   m_EditorClassIdentifier: Game.Combat::Game.Combat.AttackDefinition
+  ability: 1
   windupSeconds: 0.09
   activeSeconds: 0.06
   recoverySeconds: 0.2

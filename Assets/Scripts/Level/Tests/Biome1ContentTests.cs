@@ -94,8 +94,9 @@ namespace Game.Level.Tests
                             }
                         }
 
-                        // Door rules: 1-4 doors with distinct 1-8 labels, exactly one "9" door
-                        // when the boss is next, none leaving the boss room itself.
+                        // Door rules: 1-4 reward doors obeying tier parity (one tier per fork,
+                        // distinct types), exactly one boss-marked door when the boss is next,
+                        // none leaving the boss room itself.
                         if (room.IsBossRoom)
                         {
                             Assert.That(room.ExitDoorCount, Is.EqualTo(0),
@@ -103,17 +104,22 @@ namespace Game.Level.Tests
                         }
                         else if (room.Index == standardRooms - 1)
                         {
-                            Assert.That(room.ExitLabels, Is.EqualTo(new[] { LevelGenerator.BossDoorLabel }),
-                                $"seed {seed} level {level} room {room.Index}: the room before the boss offers one door marked 9");
+                            Assert.That(room.ExitDoorCount, Is.EqualTo(1),
+                                $"seed {seed} level {level} room {room.Index}: the room before the boss offers one door");
+                            Assert.That(room.ExitRewards[0].IsBossDoor, Is.True,
+                                $"seed {seed} level {level} room {room.Index}: the boss is never optional and never a surprise");
                         }
                         else
                         {
                             Assert.That(room.ExitDoorCount, Is.InRange(1, LevelGenerator.MaxExitDoors),
                                 $"seed {seed} level {level} room {room.Index}: door count out of range");
-                            Assert.That(room.ExitLabels.Distinct().Count(), Is.EqualTo(room.ExitDoorCount),
-                                $"seed {seed} level {level} room {room.Index}: door labels must be distinct");
-                            Assert.That(room.ExitLabels.All(l => l >= 1 && l <= 8), Is.True,
-                                $"seed {seed} level {level} room {room.Index}: ordinary door labels stay in 1-8");
+                            Assert.That(room.ExitRewards.All(r => !r.IsBossDoor), Is.True,
+                                $"seed {seed} level {level} room {room.Index}: the boss mark stays on the boss's own door");
+                            Assert.That(room.ExitRewards.Select(r => r.Type).Distinct().Count(),
+                                Is.EqualTo(room.ExitDoorCount),
+                                $"seed {seed} level {level} room {room.Index}: no duplicate reward types on one fork");
+                            Assert.That(room.ExitRewards.Select(r => r.Tier).Distinct().Count(), Is.EqualTo(1),
+                                $"seed {seed} level {level} room {room.Index}: tier parity - every door on a fork shares one tier");
                         }
                     }
 

@@ -50,6 +50,31 @@ namespace Game.Level
         /// <summary>Raised when the player touches the exit trigger of a cleared room.</summary>
         public event Action ExitReached;
 
+        /// <summary>
+        /// Raised just before <see cref="ExitReached"/> with the index of the chosen door into
+        /// this room's exit list — which is how the reward promised over that door becomes the
+        /// next room's reward.
+        /// </summary>
+        public event Action<int> ExitChosen;
+
+        [SerializeField, Tooltip("Optional socket where the room-clear reward pickup appears. Rooms without one use the centre of the play area.")]
+        Transform rewardSpawnPoint;
+
+        /// <summary>Where this room's reward pickup materialises.</summary>
+        public Vector3 RewardSpawnPosition
+        {
+            get
+            {
+                if (rewardSpawnPoint != null)
+                    return rewardSpawnPoint.position;
+
+                float floorY = EntryPoint.position.y;
+                return TryGetPlayArea(out Bounds play)
+                    ? new Vector3(play.center.x, floorY, play.center.z)
+                    : transform.position;
+            }
+        }
+
         [Header("Exits")]
         [SerializeField, Tooltip("Centre-to-centre distance between neighbouring doorways. The doors form one cluster in the middle of the exit wall — seeing one door means seeing them all — and the pitch shrinks automatically in rooms too narrow for it.")]
         float exitDoorPitch = 3.6f;
@@ -148,18 +173,16 @@ namespace Game.Level
         }
 
         /// <summary>
-        /// Replaces the room's single authored door with <paramref name="count"/> doorways
-        /// clustered at the middle of the exit wall, each with a visible frame and a floating
-        /// number naming the reward behind it (placeholder digits for now). The plan decides
-        /// how many (1–4 ordinarily, exactly one when the boss is next, zero for the final
-        /// room); the cluster guarantees that finding one door means finding them all, even in
-        /// a wide room.
-        ///
-        /// <para>Every door leads to the same generated next room today; the choice is the
-        /// signposting groundwork for per-exit rewards.</para>
+        /// Replaces the room's single authored door with one doorway per entry of
+        /// <paramref name="rewards"/>, clustered at the middle of the exit wall, each with a
+        /// visible frame and a floating reward icon naming what waits behind it (type as
+        /// silhouette, tier as tint). The plan decides the offers (1–4 ordinarily, exactly one
+        /// boss mark when the boss is next, zero for the final room); the cluster guarantees
+        /// that finding one door means finding them all, even in a wide room.
         /// </summary>
-        public void ConfigureExits(int count, IReadOnlyList<int> labels)
+        public void ConfigureExits(IReadOnlyList<RewardChoice> rewards, RewardGenerationConfig rewardConfig)
         {
+            int count = rewards != null ? rewards.Count : 0;
             if (count <= 0 || doorBlocker == null || exitTrigger == null)
                 return;
 
@@ -194,10 +217,25 @@ namespace Game.Level
                 triggerGo.SetActive(true);
                 var trigger = triggerGo.GetComponent<Collider>();
 
-                int label = labels != null && i < labels.Count ? labels[i] : i + 1;
+                // The trigger remembers which offer it is, so stepping through it can name the
+                // reward the player just chose.
+                var forwarder = triggerGo.GetComponent<RoomExitTrigger>();
+                if (forwarder != null)
+                    forwarder.ExitIndex = i;
+
+                RewardChoice choice = rewards[i];
+                RewardDefinition definition = null;
+                Color tierTint = Color.white;
+                if (rewardConfig != null)
+                {
+                    definition = rewardConfig.FindDefinition(choice.Type);
+                    tierTint = rewardConfig.TierTint(choice.Tier);
+                }
+
                 ExitMarkerView.Build(
                     transform, blockerT.position + shift, transform.position.y,
-                    blockerT.localScale.x, label, markerMaterial);
+                    blockerT.localScale.x, choice, definition, tierTint,
+                    GetComponent<IRewardPreviewRenderer>(), markerMaterial);
 
                 builtExits.Add(new BuiltExit { Blocker = blocker, Trigger = trigger });
             }
@@ -212,9 +250,10 @@ namespace Game.Level
         }
 
         /// <summary>Called by the trigger's forwarder when the player steps into a cleared exit.</summary>
-        internal void NotifyExitReached()
+        internal void NotifyExitReached(int exitIndex)
         {
-            GameLog.Info(LogCategory.Level, $"exit reached in {name}");
+            GameLog.Info(LogCategory.Level, $"exit {exitIndex} reached in {name}");
+            ExitChosen?.Invoke(exitIndex);
             ExitReached?.Invoke();
         }
     }

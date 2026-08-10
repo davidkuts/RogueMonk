@@ -19,6 +19,7 @@ namespace Game.Core.Player
         const string AttackActionName = "Attack";
         const string RiposteActionName = "Riposte";
         const string VortexActionName = "Vortex";
+        const string InteractActionName = "Interact";
 
         [SerializeField] InputActionAsset actions;
 
@@ -28,6 +29,7 @@ namespace Game.Core.Player
         InputAction attackAction;
         InputAction riposteAction;
         InputAction vortexAction;
+        InputAction interactAction;
 
         /// <summary>
         /// True while a menu owns the screen and gameplay must not read the pad.
@@ -64,6 +66,13 @@ namespace Game.Core.Player
         public bool VortexPressedThisFrame =>
             vortexAction != null && !GameplayInputSuspended && vortexAction.WasPressedThisFrame();
 
+        /// <summary>
+        /// True on the frame the interact button went down (R1 / RB, or F). Rebinding-safe:
+        /// everything downstream references this action, never a physical button.
+        /// </summary>
+        public bool InteractPressedThisFrame =>
+            interactAction != null && !GameplayInputSuspended && interactAction.WasPressedThisFrame();
+
         void Awake()
         {
             if (actions == null)
@@ -79,6 +88,7 @@ namespace Game.Core.Player
             attackAction = playerMap.FindAction(AttackActionName, throwIfNotFound: true);
             riposteAction = playerMap.FindAction(RiposteActionName, throwIfNotFound: true);
             vortexAction = playerMap.FindAction(VortexActionName, throwIfNotFound: true);
+            interactAction = playerMap.FindAction(InteractActionName, throwIfNotFound: true);
         }
 
         void OnEnable() => playerMap?.Enable();

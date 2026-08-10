@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f2aa150eb3832145843aa4b52f44599, type: 3}
+  m_Name: TransmissionCatalog
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.TransmissionCatalog
+  boons:
+  - {fileID: 11400000, guid: 64c0603213422eb4ea921466fbd60334, type: 2}
+  - {fileID: 11400000, guid: 1e2216df85de52a49ac68a0b9f7c50ff, type: 2}
+  - {fileID: 11400000, guid: fd4d63f913d4a95489f6d8fad26577ff, type: 2}
+  - {fileID: 11400000, guid: 6cfe89f73f128c44cad0f226597b97a0, type: 2}
+  - {fileID: 11400000, guid: 102181244dbc7db42aa0609f4af7b13f, type: 2}
+  offerCount: 3

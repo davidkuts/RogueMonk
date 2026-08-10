@@ -22,6 +22,7 @@ namespace Game.Level
         public const int BossSpawnPointIndex = 0;
 
         readonly ILevelGenerationSettings settings;
+        readonly RewardRoller rewardRoller;
 
         readonly List<float> weightScratch = new List<float>();
         readonly List<int> spawnPointScratch = new List<int>();
@@ -29,6 +30,8 @@ namespace Game.Level
         public LevelGenerator(ILevelGenerationSettings settings)
         {
             this.settings = settings;
+            if (settings != null && settings.Rewards != null)
+                rewardRoller = new RewardRoller(settings.Rewards);
         }
 
         /// <summary>Returns false with a reason when the content set cannot produce a level at all.</summary>
@@ -156,7 +159,7 @@ namespace Game.Level
 
                 bool bossIsNext = index == standardRooms - 1;
                 rooms.Add(new RoomPlan(
-                    template.Id, index, waves, RoomRole.Standard, DrawExitLabels(random, bossIsNext)));
+                    template.Id, index, waves, RoomRole.Standard, DrawExitRewards(random, bossIsNext)));
             }
 
             IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
@@ -169,35 +172,34 @@ namespace Game.Level
             return new LevelPlan(run.Seed, rooms);
         }
 
-        /// <summary>The label reserved for the one door that leads to the boss.</summary>
-        public const int BossDoorLabel = 9;
-
         /// <summary>Most doors a cleared room may offer.</summary>
         public const int MaxExitDoors = 4;
 
         /// <summary>
-        /// Decides a cleared room's doors: when the boss is next there is exactly one, marked
-        /// <see cref="BossDoorLabel"/> — the boss is never optional and never a surprise.
-        /// Otherwise a seeded 1–4 doors, each carrying a distinct placeholder reward number
-        /// drawn from 1–8 (9 stays the boss's mark so the player can learn it).
+        /// Decides a cleared room's doors: when the boss is next there is exactly one, carrying
+        /// the boss mark — the boss is never optional and never a surprise. Otherwise a seeded
+        /// 1–4 doors rolled by the tier-parity generator (one tier for the fork, a distinct
+        /// reward type per door). With no reward config the fork degrades to one door with a
+        /// Normal Minutes cache rather than failing generation.
         /// </summary>
-        List<int> DrawExitLabels(IRandomSource random, bool bossIsNext)
+        List<RewardChoice> DrawExitRewards(IRandomSource random, bool bossIsNext)
         {
             if (bossIsNext)
-                return new List<int>(1) { BossDoorLabel };
+                return new List<RewardChoice>(1) { RewardChoice.BossDoor };
 
             int doors = random.NextInt(1, MaxExitDoors + 1);
 
-            spawnPointScratch.Clear();
-            for (int label = 1; label < BossDoorLabel; label++)
-                spawnPointScratch.Add(label);
-            random.Shuffle(spawnPointScratch);
+            if (rewardRoller == null)
+                return new List<RewardChoice>(1)
+                {
+                    new RewardChoice(RewardType.MinutesCache, Game.Core.Economy.RewardTier.Normal),
+                };
 
-            var labels = new List<int>(doors);
-            for (int i = 0; i < doors; i++)
-                labels.Add(spawnPointScratch[i]);
+            List<RewardChoice> fork = rewardRoller.RollFork(random, doors);
+            if (fork.Count == 0)
+                fork.Add(new RewardChoice(RewardType.MinutesCache, Game.Core.Economy.RewardTier.Normal));
 
-            return labels;
+            return fork;
         }
 
         IRoomTemplate PickTemplate(IRandomSource random, IRoomTemplate previous, RoomRole role)

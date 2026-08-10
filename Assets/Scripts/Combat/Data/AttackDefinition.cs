@@ -7,8 +7,12 @@ namespace Game.Combat
     /// DESIGN.md § Attacks &amp; combo; everything here is meant to be re-tuned by hand.
     /// </summary>
     [CreateAssetMenu(menuName = "Monk/Attack Definition", fileName = "AttackDefinition")]
-    public sealed class AttackDefinition : ScriptableObject, IAttackDefinition
+    public sealed class AttackDefinition : ScriptableObject, IAttackDefinition, IAbilityTagged
     {
+        [Header("Ability slot")]
+        [SerializeField, Tooltip("Which player ability this attack belongs to (None for enemy attacks). Slot-scoped boons filter hits by this — never by button, which the rebinding rule forbids.")]
+        AbilityId ability = AbilityId.None;
+
         [Header("Frame data (seconds)")]
         [SerializeField, Tooltip("Committed wind-up. Never cancellable — this is the tell.")]
         float windupSeconds = 0.10f;
@@ -64,6 +68,7 @@ namespace Game.Combat
         float telegraphEmphasis = 1f;
 
         public string Id => name;
+        public AbilityId Ability => ability;
         public float WindupSeconds => windupSeconds;
         public float ActiveSeconds => activeSeconds;
         public float RecoverySeconds => recoverySeconds;

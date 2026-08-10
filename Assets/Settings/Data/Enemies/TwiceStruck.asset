@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ede6ae6262244047bf5c48eb73ebad2, type: 3}
   m_Name: TwiceStruck
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
+  era: 1
   maxHealth: 840
   tier: 0
   poiseMax: 45

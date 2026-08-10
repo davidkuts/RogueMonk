@@ -40,24 +40,25 @@ namespace Game.Level
             int index,
             IReadOnlyList<WavePlan> waves,
             RoomRole role = RoomRole.Standard,
-            IReadOnlyList<int> exitLabels = null)
+            IReadOnlyList<RewardChoice> exitRewards = null)
         {
             TemplateId = templateId;
             Index = index;
             Waves = waves ?? new List<WavePlan>();
             Role = role;
-            ExitLabels = exitLabels ?? new List<int>();
+            ExitRewards = exitRewards ?? new List<RewardChoice>();
         }
 
         /// <summary>
         /// The doors offered once this room is cleared, one entry per door, each carrying the
-        /// number displayed above it (placeholder reward markings, 1–9). Decided at generation
-        /// time so a seed reproduces the doors as faithfully as the fights. Empty for the final
+        /// reward waiting in the room behind it (REWARDS.md §8 tier parity: same tier, distinct
+        /// types). Decided at generation time so a seed reproduces the doors as faithfully as
+        /// the fights. Exactly one boss-door entry when the boss is next; empty for the final
         /// room, whose clear ends the level with no door.
         /// </summary>
-        public IReadOnlyList<int> ExitLabels { get; }
+        public IReadOnlyList<RewardChoice> ExitRewards { get; }
 
-        public int ExitDoorCount => ExitLabels.Count;
+        public int ExitDoorCount => ExitRewards.Count;
 
         public string TemplateId { get; }
 

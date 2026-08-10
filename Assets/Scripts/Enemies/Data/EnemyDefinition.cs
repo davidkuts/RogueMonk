@@ -11,6 +11,10 @@ namespace Game.Enemies
     [CreateAssetMenu(menuName = "Monk/Enemy Definition", fileName = "EnemyDefinition")]
     public class EnemyDefinition : ScriptableObject, IEnemyDefinition
     {
+        [Header("Identity")]
+        [SerializeField, Tooltip("The era this enemy belongs to. The Displaced Tooth Stray (and any future era-scoped effect) keys on this; None opts out of all of it.")]
+        Era era = Era.None;
+
         [Header("Vitals")]
         [SerializeField] float maxHealth = 60f;
         [SerializeField, Tooltip("Staggerable = poise breaks. Armored = strip armour first. Immune = never interrupted.")]
@@ -61,6 +65,7 @@ namespace Game.Enemies
         };
 
         public string Id => name;
+        public Era Era => era;
         public float MaxHealth => maxHealth;
         public StaggerTier Tier => tier;
         public float PoiseMax => poiseMax;

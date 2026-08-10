@@ -13,7 +13,7 @@ namespace Game.Enemies
     /// reads its state to decide whether it may act.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class EnemyActor : MonoBehaviour, IDamageable
+    public sealed class EnemyActor : MonoBehaviour, IDamageable, IEraTagged
     {
         [SerializeField] EnemyDefinition definition;
 
@@ -70,6 +70,9 @@ namespace Game.Enemies
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         public IEnemyDefinition Definition => definition;
+
+        /// <summary>The era this body belongs to, for era-scoped hit modifiers (Displaced Tooth).</summary>
+        public Era Era => definition != null ? definition.Era : Era.None;
 
         public Health Health { get; private set; }
 

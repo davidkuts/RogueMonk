@@ -1,0 +1,385 @@
+using System;
+using Game.Combat;
+using Game.Core.Diagnostics;
+using Game.Core.Economy;
+using Game.Core.Player;
+using Game.Core.Rng;
+using UnityEngine;
+
+namespace Game.Level
+{
+    /// <summary>
+    /// Owns the run economy's moment-to-moment flow: seconds fragments and the minutes trickle
+    /// on kills, the reward pickup a cleared room holds, the door that waits for it, and what
+    /// each reward type actually does on the collecting press. The level director drives the
+    /// room lifecycle and calls in; this component never advances rooms itself.
+    ///
+    /// <para>Content rolls (which giver, which Stray, which Stopgap) draw from the run's
+    /// dedicated reward stream, never the run stream — their count depends on the doors the
+    /// player happens to choose, and the run stream must stay reproducible from the seed.</para>
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class RewardDirector : MonoBehaviour
+    {
+        [Header("Config")]
+        [SerializeField, Tooltip("The one asset holding every reward-system knob.")]
+        RewardGenerationConfig config;
+        [SerializeField, Tooltip("Per-kill currency tuning.")]
+        EconomySettings economy;
+        [SerializeField, Tooltip("Stopgap carry cap and reward pool.")]
+        StopgapSettings stopgaps;
+        [SerializeField, Tooltip("Strays a Stray reward can hand out. SO-only entries (no logic yet) are legal and simply inert when equipped.")]
+        StrayDefinition[] strayPool = new StrayDefinition[0];
+        [SerializeField, Tooltip("The transmission boon offering pool and draft rule.")]
+        TransmissionCatalog transmissionCatalog;
+        [SerializeField, Tooltip("Material for placeholder primitives (URP). Null builds one from the URP Unlit shader at runtime.")]
+        Material primitiveMaterial;
+
+        [Header("Player")]
+        [SerializeField] PlayerWallet wallet;
+        [SerializeField] PlayerHealth playerHealth;
+        [SerializeField] StrayInventory strays;
+        [SerializeField] StopgapInventory stopgapInventory;
+        [SerializeField] TransmissionBoons transmissionBoons;
+        [SerializeField] PlayerInputReader input;
+
+        LevelDirector director;
+        RoomRunner currentRunner;
+        RoomInstance currentRoom;
+        RewardChoice? currentReward;
+        bool rewardBeforeEnemies;
+        RewardPickup activePickup;
+
+        /// <summary>Health at biome (level) entry — the Splice's rewind ceiling (REWARDS.md §3).</summary>
+        float spliceCeiling;
+
+        /// <summary>
+        /// Set by the draft UI when it exists. Null falls back to an automatic first pick so a
+        /// scene without the UI (the lab, a test) can still run a whole loop.
+        /// </summary>
+        public ITransmissionDraftPresenter DraftPresenter { get; set; }
+
+        /// <summary>HUD feedback line ("+25 MINUTES"), consumed by the wallet HUD's float text.</summary>
+        public event Action<string> RewardFeedback;
+
+        public PlayerWallet Wallet => wallet;
+        public StopgapInventory Stopgaps => stopgapInventory;
+        public StrayInventory Strays => strays;
+        public TransmissionBoons Transmissions => transmissionBoons;
+
+        Material Primitive
+        {
+            get
+            {
+                if (primitiveMaterial == null)
+                {
+                    // Same shader the health bars survived URP with; building it here beats
+                    // shipping magenta if the scene reference was forgotten.
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit");
+                    if (shader != null)
+                        primitiveMaterial = new Material(shader);
+                }
+
+                return primitiveMaterial;
+            }
+        }
+
+        /// <summary>Run setup: run-scoped currencies and inventories all reset. Meta survives.</summary>
+        public void OnRunBegan(LevelDirector owner)
+        {
+            director = owner;
+
+            if (wallet != null)
+                wallet.Wallet.ResetRunScoped();
+
+            if (strays != null)
+                strays.ClearForNewRun();
+
+            if (stopgapInventory != null)
+                stopgapInventory.ClearForNewRun();
+
+            if (transmissionBoons != null)
+                transmissionBoons.ClearForNewRun();
+        }
+
+        /// <summary>Asks the policy asset what greets the player in the run's first room.</summary>
+        public RewardChoice? DecideFirstRoomReward(IRandomSource rewardStream)
+        {
+            if (config == null || config.FirstRoomPolicy == null)
+                return null;
+
+            return config.FirstRoomPolicy.Decide(rewardStream);
+        }
+
+        /// <summary>
+        /// Called by the level director as each room starts. Owns everything reward-shaped
+        /// about the room from here: kill income, the pickup, and the held door.
+        /// </summary>
+        public void OnRoomStarted(
+            RoomPlan plan, RoomInstance room, RoomRunner runner, RewardChoice? reward, bool preCombatReward)
+        {
+            DetachRunner();
+
+            currentRunner = runner;
+            currentRoom = room;
+            currentReward = reward;
+            rewardBeforeEnemies = preCombatReward;
+            activePickup = null;
+
+            if (runner != null)
+            {
+                runner.EnemyKilledAt += OnEnemyKilledAt;
+                runner.Cleared += OnRoomCleared;
+            }
+
+            // Biome entry: the Splice's ceiling snapshots here. Levels are biomes for now, so
+            // every level's first room re-snapshots — carried damage stays carried.
+            if (plan != null && plan.Index == 0 && playerHealth != null)
+            {
+                spliceCeiling = playerHealth.CurrentHealth;
+                GameLog.Info(LogCategory.Level, $"biome entry - splice ceiling {spliceCeiling:0.##} hp");
+            }
+
+            // The first room of a run: the reward is already waiting when the player walks in,
+            // and the fight waits for the collect.
+            if (preCombatReward && reward.HasValue)
+                SpawnPickup(reward.Value);
+        }
+
+        void DetachRunner()
+        {
+            if (currentRunner == null)
+                return;
+
+            currentRunner.EnemyKilledAt -= OnEnemyKilledAt;
+            currentRunner.Cleared -= OnRoomCleared;
+            currentRunner = null;
+        }
+
+        void OnDestroy() => DetachRunner();
+
+        void OnEnemyKilledAt(Vector3 position)
+        {
+            if (economy == null || wallet == null)
+                return;
+
+            if (economy.SecondsPerKill > 0 && playerHealth != null)
+            {
+                SecondsFragment.Spawn(
+                    position, economy.SecondsPerKill, economy, playerHealth.transform, Primitive,
+                    amount => wallet.Wallet.Add(CurrencyType.Seconds, amount));
+            }
+
+            if (economy.MinutesPerKillTrickle > 0)
+                wallet.Wallet.Add(CurrencyType.Minutes, economy.MinutesPerKillTrickle);
+        }
+
+        void OnRoomCleared()
+        {
+            // Pre-combat rewards were paid on entry; the clear owes nothing further.
+            if (rewardBeforeEnemies || !currentReward.HasValue)
+                return;
+
+            SpawnPickup(currentReward.Value);
+        }
+
+        void SpawnPickup(RewardChoice choice)
+        {
+            if (currentRoom == null || input == null || playerHealth == null)
+            {
+                GameLog.Error(LogCategory.Level, "reward pickup could not spawn - missing wiring; opening the door instead");
+                FinishRewardFlow();
+                return;
+            }
+
+            RewardDefinition definition = config != null ? config.FindDefinition(choice.Type) : null;
+            Color tint = config != null ? config.TierTint(choice.Tier) : Color.white;
+
+            activePickup = RewardPickup.Spawn(
+                currentRoom.RewardSpawnPosition, choice, definition, tint,
+                config != null ? config.PickupRadius : 2.5f,
+                Primitive, input, playerHealth.transform);
+
+            // Parented to the room so a restart or room swap tears it down with everything else.
+            activePickup.transform.SetParent(currentRoom.transform, true);
+            activePickup.Collected += OnPickupCollected;
+
+            GameLog.Info(LogCategory.Level, $"reward pickup waiting  {choice}");
+        }
+
+        void OnPickupCollected(RewardChoice choice)
+        {
+            if (activePickup != null)
+            {
+                activePickup.Collected -= OnPickupCollected;
+                Destroy(activePickup.gameObject);
+                activePickup = null;
+            }
+
+            // A reward pays out once. Without this, the first room's clear would re-spawn the
+            // pickup its entry already paid — the collect consumed the room's reward.
+            currentReward = null;
+
+            ApplyReward(choice, FinishRewardFlow);
+        }
+
+        /// <summary>
+        /// After the reward's consequences have landed: open the held door, or release the
+        /// held first-room fight. Asynchronous rewards (the draft) call this when they close.
+        /// </summary>
+        void FinishRewardFlow()
+        {
+            if (rewardBeforeEnemies)
+            {
+                rewardBeforeEnemies = false;
+                if (director != null)
+                    director.BeginHeldRoom();
+                return;
+            }
+
+            if (currentRunner != null)
+                currentRunner.OpenDoor();
+        }
+
+        void ApplyReward(RewardChoice choice, Action onComplete)
+        {
+            RewardDefinition definition = config != null ? config.FindDefinition(choice.Type) : null;
+            IRandomSource stream = director != null ? director.RewardStream : null;
+
+            switch (choice.Type)
+            {
+                case RewardType.MinutesCache:
+                {
+                    int amount = Mathf.RoundToInt(definition != null ? definition.PayloadFor(choice.Tier) : 0f);
+                    if (wallet != null)
+                        wallet.Wallet.Add(CurrencyType.Minutes, amount);
+                    RewardFeedback?.Invoke($"+{amount} MINUTES");
+                    onComplete();
+                    break;
+                }
+
+                case RewardType.HoursCache:
+                {
+                    int amount = Mathf.RoundToInt(definition != null ? definition.PayloadFor(choice.Tier) : 0f);
+                    if (wallet != null)
+                        wallet.Wallet.Add(CurrencyType.Hours, amount);
+                    RewardFeedback?.Invoke($"+{amount} HOURS");
+                    onComplete();
+                    break;
+                }
+
+                case RewardType.Splice:
+                {
+                    float depth = definition != null ? definition.PayloadFor(choice.Tier) : 0f;
+                    if (strays != null)
+                        depth *= strays.SpliceDepthMultiplier;
+                    if (playerHealth != null)
+                        playerHealth.ApplySplice(depth, spliceCeiling);
+                    RewardFeedback?.Invoke("SPLICE");
+                    onComplete();
+                    break;
+                }
+
+                case RewardType.Stopgap:
+                {
+                    StopgapDefinition drawn = DrawStopgap(stream);
+                    if (drawn != null && stopgapInventory != null)
+                    {
+                        bool taken = stopgapInventory.TryAdd(drawn);
+                        RewardFeedback?.Invoke(taken ? $"STOPGAP: {drawn.DisplayName}" : "STOPGAP FULL");
+                    }
+
+                    onComplete();
+                    break;
+                }
+
+                case RewardType.Stray:
+                {
+                    StrayDefinition drawn = DrawStray(stream);
+                    if (drawn != null && strays != null)
+                    {
+                        strays.Equip(drawn);
+                        RewardFeedback?.Invoke($"STRAY: {drawn.DisplayName}");
+                    }
+
+                    onComplete();
+                    break;
+                }
+
+                case RewardType.Transmission:
+                    BeginTransmissionDraft(choice.Tier, stream, onComplete);
+                    break;
+
+                default:
+                    GameLog.Warn(LogCategory.Level, $"reward type {choice.Type} has no effect yet - collected for nothing");
+                    onComplete();
+                    break;
+            }
+        }
+
+        StopgapDefinition DrawStopgap(IRandomSource stream)
+        {
+            if (stopgaps == null || stopgaps.Pool.Count == 0)
+                return null;
+
+            int index = stream != null ? stream.NextInt(0, stopgaps.Pool.Count) : 0;
+            return stopgaps.Pool[index];
+        }
+
+        /// <summary>
+        /// A uniform draw over the pool minus whatever is already equipped — offering the
+        /// player the Stray they are holding would be a swap with no decision in it.
+        /// </summary>
+        StrayDefinition DrawStray(IRandomSource stream)
+        {
+            var candidates = new System.Collections.Generic.List<StrayDefinition>();
+            for (int i = 0; i < strayPool.Length; i++)
+            {
+                if (strayPool[i] != null && (strays == null || strays.Equipped != strayPool[i]))
+                    candidates.Add(strayPool[i]);
+            }
+
+            if (candidates.Count == 0)
+                return null;
+
+            int index = stream != null ? stream.NextInt(0, candidates.Count) : 0;
+            return candidates[index];
+        }
+
+        void BeginTransmissionDraft(RewardTier tier, IRandomSource stream, Action onComplete)
+        {
+            if (transmissionCatalog == null || transmissionBoons == null)
+            {
+                GameLog.Warn(LogCategory.Level, "transmission reward with no catalog/loadout wired - skipped");
+                onComplete();
+                return;
+            }
+
+            var offer = transmissionCatalog.RollDraft(stream, transmissionBoons.OwnedDefinitions);
+
+            if (offer.Count == 0)
+            {
+                GameLog.Info(LogCategory.Level, "every transmission boon is owned - the channel has nothing left to send");
+                RewardFeedback?.Invoke("SIGNAL EXHAUSTED");
+                onComplete();
+                return;
+            }
+
+            Action<TransmissionBoonDefinition> grant = chosen =>
+            {
+                transmissionBoons.Grant(chosen, tier);
+                RewardFeedback?.Invoke($"{chosen.DisplayName} [{tier}]");
+                onComplete();
+            };
+
+            if (DraftPresenter == null || !DraftPresenter.Present(offer, tier, grant))
+            {
+                // No UI in this scene: pick the front of the shuffled offer so the run can
+                // continue. Logged loudly, because a silent auto-pick in the real game would
+                // mean the draft screen broke.
+                GameLog.Warn(LogCategory.Level, $"no draft presenter - auto-installing {offer[0].DisplayName}");
+                grant(offer[0]);
+            }
+        }
+    }
+}

@@ -26,12 +26,17 @@ namespace Game.Combat
         [Header("Feedback")]
         [SerializeField] Color hitFlashColor = new Color(1f, 0.3f, 0.3f);
         [SerializeField] float flashIntervalSeconds = 0.08f;
+        [SerializeField, Tooltip("Splice feedback: the reverse-tint flash while wounds play backwards. Placeholder for the capsule phase.")]
+        Color healFlashColor = new Color(0.35f, 1f, 0.75f);
+        [SerializeField, Tooltip("How long the splice flash lasts.")]
+        float healFlashSeconds = 0.5f;
 
         Renderer[] renderers;
         MaterialPropertyBlock propertyBlock;
         Color[] baseColors;
         float invulnerabilityRemaining;
         float flashRemaining;
+        float healFlashRemaining;
 
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -57,7 +62,20 @@ namespace Game.Combat
         public bool IsInvulnerable =>
             GodMode || invulnerabilityRemaining > 0f || (motor != null && motor.IsInvulnerable);
 
+        /// <summary>
+        /// True while a one-hit shield is armed (the Gauntlet Buckle Stray). The shield eats
+        /// the next hit that would otherwise deal damage; hits that were dodged, godmoded or
+        /// i-framed away do not consume it.
+        /// </summary>
+        public bool HasOneHitShield { get; private set; }
+
         public event Action<float> Damaged;
+
+        /// <summary>Raised when health goes UP — the Splice, the one sanctioned heal.</summary>
+        public event Action<float> Healed;
+
+        /// <summary>Raised when an armed one-hit shield eats a hit.</summary>
+        public event Action ShieldConsumed;
 
         public event Action PerfectDodged;
 
@@ -131,6 +149,20 @@ namespace Game.Combat
                 return;
             }
 
+            // The one-hit shield (Gauntlet Buckle) sits last, after every free-avoidance path:
+            // it must only be spent on a hit that would genuinely have cost health. Consuming
+            // it grants the same mandatory post-hit window a real hit would, or a two-hit burst
+            // would eat the shield and the health in the same beat.
+            if (HasOneHitShield)
+            {
+                HasOneHitShield = false;
+                invulnerabilityRemaining = Mathf.Max(0f, postHitInvulnerabilitySeconds);
+                flashRemaining = invulnerabilityRemaining;
+                GameLog.Info(LogCategory.Combat, $"SHIELD BROKE  {context.Attack.Id} absorbed - the buckle is spent");
+                ShieldConsumed?.Invoke();
+                return;
+            }
+
             float applied = Mathf.Min(context.Damage, CurrentHealth);
             CurrentHealth -= applied;
             invulnerabilityRemaining = Mathf.Max(0f, postHitInvulnerabilitySeconds);
@@ -161,12 +193,51 @@ namespace Game.Combat
             }
         }
 
-        /// <summary>Full restore. Run setup only — there is deliberately no in-run heal.</summary>
+        /// <summary>Full restore. Run setup only — the Splice is the one in-run heal.</summary>
         public void ResetForNewRun()
         {
             CurrentHealth = maxHealth;
             invulnerabilityRemaining = 0f;
+            HasOneHitShield = false;
             Statuses.ClearAll();
+        }
+
+        /// <summary>Arms the one-hit shield. Idempotent — shields do not stack.</summary>
+        public void GrantOneHitShield()
+        {
+            if (HasOneHitShield || !IsAlive)
+                return;
+
+            HasOneHitShield = true;
+            GameLog.Info(LogCategory.Combat, "SHIELD ARMED - the next hit is free");
+        }
+
+        /// <summary>Disarms the shield without consuming it — for the Stray that granted it being replaced.</summary>
+        public void RevokeOneHitShield() => HasOneHitShield = false;
+
+        /// <summary>
+        /// The Splice (REWARDS.md §3): rewinds the body toward a less-injured state, never past
+        /// the biome-entry snapshot. This is the ONE exception to no-healing — sanctioned by
+        /// the rewards spec, gated behind a room reward, and clamped so it can never undo more
+        /// than the current biome inflicted.
+        /// </summary>
+        public void ApplySplice(float depthFraction, float biomeEntryCeiling)
+        {
+            if (!IsAlive)
+                return;
+
+            float before = CurrentHealth;
+            CurrentHealth = SpliceMath.Heal(CurrentHealth, maxHealth, depthFraction, biomeEntryCeiling);
+
+            float gained = CurrentHealth - before;
+            healFlashRemaining = healFlashSeconds;
+
+            GameLog.Info(LogCategory.Combat,
+                $"SPLICE  +{gained:0.##} hp ({before:0.##} -> {CurrentHealth:0.##}/{maxHealth:0.##})  " +
+                $"ceiling {biomeEntryCeiling:0.##}");
+
+            if (gained > 0f)
+                Healed?.Invoke(gained);
         }
 
         void Update()
@@ -181,6 +252,9 @@ namespace Game.Combat
             if (flashRemaining > 0f)
                 flashRemaining -= deltaTime;
 
+            if (healFlashRemaining > 0f)
+                healFlashRemaining -= deltaTime;
+
             Statuses.Tick(deltaTime);
             ApplyFlash();
         }
@@ -194,13 +268,19 @@ namespace Game.Combat
             bool on = flashRemaining > 0f &&
                       Mathf.Repeat(flashRemaining, flashIntervalSeconds * 2f) < flashIntervalSeconds;
 
+            // The splice's reverse-tint is steady, deliberately unlike the hit blink: one says
+            // "you were hurt", the other says "that is being undone". A hit flash wins if both
+            // are somehow live at once.
+            bool healing = !on && flashRemaining <= 0f && healFlashRemaining > 0f;
+
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null)
                     continue;
 
+                Color color = on ? hitFlashColor : healing ? healFlashColor : baseColors[i];
                 renderers[i].GetPropertyBlock(propertyBlock);
-                propertyBlock.SetColor(BaseColorId, on ? hitFlashColor : baseColors[i]);
+                propertyBlock.SetColor(BaseColorId, color);
                 renderers[i].SetPropertyBlock(propertyBlock);
             }
         }

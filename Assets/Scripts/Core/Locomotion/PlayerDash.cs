@@ -31,8 +31,17 @@ namespace Game.Core.Locomotion
         public float NormalizedTime =>
             !IsDashing || settings.DurationSeconds <= 0f ? 0f : Mathf.Clamp01(elapsed / settings.DurationSeconds);
 
+        /// <summary>
+        /// Runtime multiplier on the settings' i-frame fraction, for boons that extend the
+        /// Blink's protection (Ward's lane). 1 leaves the asset value untouched; the product is
+        /// clamped to 0..1 like the fraction itself. Owned wholesale by the boon system, which
+        /// recomputes it from its loadout rather than incrementing it.
+        /// </summary>
+        public float IFrameFractionMultiplier { get; set; } = 1f;
+
         /// <summary>True while the dash's i-frames proper are live.</summary>
-        public bool IsInvulnerable => IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction);
+        public bool IsInvulnerable =>
+            IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction * Mathf.Max(0f, IFrameFractionMultiplier));
 
         /// <summary>
         /// True during the trailing grace that follows the i-frames. Kept separate from
