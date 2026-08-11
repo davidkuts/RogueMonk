@@ -15,9 +15,16 @@ MonoBehaviour:
   giver: 2
   ability: 1
   displayName: Drag Coefficient
-  description: +20% combo damage; hits chill the target for 2s.
+  description: Hits chill the target for 2s.
+  scaledStat: 0
   damageBonus: 0.2
   poiseBonus: 0
   status: 2
   statusSeconds: 2
   iFrameBonus: 0
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

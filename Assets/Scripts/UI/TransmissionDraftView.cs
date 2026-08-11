@@ -31,19 +31,23 @@ namespace Game.UI
         [SerializeField] Color rareBorder = new Color(0.25f, 0.5f, 1f);
         [SerializeField] Color epicBorder = new Color(0.65f, 0.3f, 0.95f);
 
-        [Header("Giver identity (indexed by GiverId; BOONS.md §8 materials)")]
-        [SerializeField, Tooltip("Overclock/Mara: hot brass. Fray/Reeve: oxidizing patina. Stasis/Percy: frosted silver. Echo/Denny: double-tick ivory. Ward/Frank: heavy casing. Flux: the impossible signal.")]
+        [Header("Giver identity (indexed by GiverId; BOONS.md §8 materials, pushed loud)")]
+        [SerializeField, Tooltip("Overclock/Mara: hot brass. Fray/Reeve: oxidizing patina. Stasis/Percy: frost. Echo/Denny: double-tick gold. Ward/Frank: heavy steel casing. Flux: the impossible signal. Saturated on purpose — the first pass was too subtle to tell apart.")]
         Color[] giverColors =
         {
-            new Color(0.95f, 0.50f, 0.22f),  // Overclock — ember brass
-            new Color(0.45f, 0.78f, 0.55f),  // Fray — verdigris
-            new Color(0.65f, 0.88f, 1.00f),  // Stasis — frost
-            new Color(0.95f, 0.88f, 0.50f),  // Echo — ivory tick
-            new Color(0.85f, 0.68f, 0.40f),  // Ward — sandstone casing
-            new Color(0.78f, 0.70f, 0.90f),  // Flux — off-spectrum
+            new Color(1.00f, 0.45f, 0.15f),  // Overclock — hot ember
+            new Color(0.30f, 0.85f, 0.40f),  // Fray — verdigris green
+            new Color(0.30f, 0.90f, 1.00f),  // Stasis — ice
+            new Color(1.00f, 0.88f, 0.25f),  // Echo — tick gold
+            new Color(0.65f, 0.72f, 0.82f),  // Ward — steel casing
+            new Color(0.92f, 0.40f, 1.00f),  // Flux — off-spectrum
         };
-        [SerializeField, Range(0f, 0.3f), Tooltip("How far each card's dark background leans toward its giver's colour. Subtle — the rarity border must stay the loudest signal.")]
-        float giverBackgroundTint = 0.12f;
+        [SerializeField, Range(0f, 0.5f), Tooltip("How far each card's dark background leans toward its giver's colour.")]
+        float giverBackgroundTint = 0.22f;
+
+        [Header("Rarity scalars (for the stat line — must match RarityScalars.asset)")]
+        [SerializeField, Tooltip("The card quotes the marked stat at the ACTUAL rolled value; this asset supplies the scalar. Null falls back to 1 / 1.5 / 2.")]
+        RarityScalarSettings rarityScalars;
 
         [Header("Selection")]
         [SerializeField, Range(1f, 1.3f), Tooltip("Scale of the focused card.")]
@@ -69,8 +73,23 @@ namespace Game.UI
             public GameObject Root;
             public Image Frame;
             public Image Inner;
+            public Image Header;
             public Text Name;
+            public Text Stat;
             public Text Body;
+        }
+
+        float Scalar(RewardTier tier)
+        {
+            if (rarityScalars != null)
+                return rarityScalars.Scalar(tier);
+
+            switch (tier)
+            {
+                case RewardTier.Epic: return 2f;
+                case RewardTier.Rare: return 1.5f;
+                default: return 1f;
+            }
         }
 
         Color GiverColor(GiverId giver)
@@ -210,14 +229,34 @@ namespace Game.UI
                 card.Inner.color = new Color(0.07f, 0.09f, 0.13f, 1f);
                 Stretch((RectTransform)card.Inner.transform, 6f);
 
-                card.Name = MakeText(card.Root.transform, 30, Color.white, TextAnchor.UpperCenter);
-                var nameRect = (RectTransform)card.Name.transform;
-                Stretch(nameRect, 20f);
-                nameRect.offsetMax = new Vector2(nameRect.offsetMax.x, -30f);
+                // A solid giver-coloured band across the top: the loudest possible "who is
+                // calling" without touching the rarity border.
+                card.Header = new GameObject("Header").AddComponent<Image>();
+                card.Header.transform.SetParent(card.Root.transform, false);
+                var headerRect = (RectTransform)card.Header.transform;
+                headerRect.anchorMin = new Vector2(0f, 1f);
+                headerRect.anchorMax = new Vector2(1f, 1f);
+                headerRect.pivot = new Vector2(0.5f, 1f);
+                headerRect.offsetMin = new Vector2(6f, 0f);
+                headerRect.offsetMax = new Vector2(-6f, -6f);
+                headerRect.sizeDelta = new Vector2(headerRect.sizeDelta.x, 62f);
+
+                card.Name = MakeText(card.Header.transform, 28, new Color(0.05f, 0.06f, 0.09f), TextAnchor.MiddleCenter);
+                Stretch((RectTransform)card.Name.transform, 4f);
+
+                // The marked stat at its rolled value — the one line that changes with quality.
+                card.Stat = MakeText(card.Root.transform, 26, Color.white, TextAnchor.MiddleCenter);
+                var statRect = (RectTransform)card.Stat.transform;
+                statRect.anchorMin = new Vector2(0f, 1f);
+                statRect.anchorMax = new Vector2(1f, 1f);
+                statRect.pivot = new Vector2(0.5f, 1f);
+                statRect.offsetMin = new Vector2(12f, -128f);
+                statRect.offsetMax = new Vector2(-12f, -76f);
 
                 card.Body = MakeText(card.Root.transform, 22, new Color(0.8f, 0.83f, 0.9f), TextAnchor.MiddleCenter);
                 var bodyRect = (RectTransform)card.Body.transform;
                 Stretch(bodyRect, 24f);
+                bodyRect.offsetMax = new Vector2(bodyRect.offsetMax.x, -130f);
 
                 cards.Add(card);
             }
@@ -281,12 +320,19 @@ namespace Game.UI
                 TransmissionOffer o = offer[i];
                 Color giver = GiverColor(o.Definition.Giver);
 
-                // The giver reads at a glance: their colour on the name, a breath of it behind
-                // the card. Kept subtle so the rarity border stays the loudest signal.
+                // The giver reads at a glance: a solid colour band with their name's boon on
+                // it, and the card body leaning the same way.
+                if (card.Header != null)
+                    card.Header.color = giver;
                 card.Name.text = o.Definition.DisplayName.ToUpperInvariant();
-                card.Name.color = giver;
                 if (card.Inner != null)
                     card.Inner.color = Color.Lerp(new Color(0.07f, 0.09f, 0.13f, 1f), giver, giverBackgroundTint);
+
+                // The marked stat at the value THIS rarity actually delivers, highlighted in
+                // the rarity's colour — a Rare card must never quote the Normal number.
+                float scalar = Scalar(o.Rarity);
+                card.Stat.text = o.Definition.ScaledStatLabel(scalar);
+                card.Stat.color = o.Rarity == RewardTier.Normal ? Color.white : BorderFor(o.Rarity);
 
                 string rarityLine = o.Rarity == RewardTier.Normal
                     ? string.Empty

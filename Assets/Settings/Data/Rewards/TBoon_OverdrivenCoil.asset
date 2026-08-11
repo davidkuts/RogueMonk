@@ -15,9 +15,16 @@ MonoBehaviour:
   giver: 0
   ability: 3
   displayName: Overdriven Coil
-  description: +50% vortex payload damage.
+  description: The Undertow hits like it means it.
+  scaledStat: 0
   damageBonus: 0.5
   poiseBonus: 0
   status: 1
   statusSeconds: 0
   iFrameBonus: 0
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

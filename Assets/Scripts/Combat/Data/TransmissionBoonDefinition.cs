@@ -144,6 +144,49 @@ namespace Game.Combat
                 ? shieldRegenSeconds / Mathf.Max(0.01f, rarityScalar)
                 : shieldRegenSeconds;
 
+        /// <summary>
+        /// The marked stat as one card line, at the ACTUAL value the given rarity delivers —
+        /// the card must never quote the Normal number for a Rare roll. Formatting lives here
+        /// beside the data so the label and the effect cannot drift apart.
+        /// </summary>
+        public string ScaledStatLabel(float rarityScalar)
+        {
+            switch (scaledStat)
+            {
+                case ScaledStat.DamageBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.DamageBonus, damageBonus, rarityScalar) * 100f)}% DAMAGE";
+                case ScaledStat.PoiseBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.PoiseBonus, poiseBonus, rarityScalar) * 100f)}% ARMOR DECAY";
+                case ScaledStat.StatusSeconds:
+                    return $"{StatusName(status)} {Scale(ScaledStat.StatusSeconds, statusSeconds, rarityScalar):0.#}s";
+                case ScaledStat.IFrameBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.IFrameBonus, iFrameBonus, rarityScalar) * 100f)}% I-FRAMES";
+                case ScaledStat.DodgeGraceBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.DodgeGraceBonus, dodgeGraceBonus, rarityScalar) * 100f)}% SPLIT-SECOND WINDOW";
+                case ScaledStat.ShieldProcRate:
+                    return $"SHIELD EVERY {ScaledShieldEveryNHits(rarityScalar)} HITS";
+                case ScaledStat.ShieldRegenRate:
+                    return $"SHIELD EVERY {ScaledShieldRegenSeconds(rarityScalar):0.#}s";
+                case ScaledStat.VsStatusDamageBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.VsStatusDamageBonus, vsStatusDamageBonus, rarityScalar) * 100f)}% DAMAGE VS {StatusName(vsStatus)}";
+                case ScaledStat.VsStatusPoiseBonus:
+                    return $"+{Mathf.RoundToInt(Scale(ScaledStat.VsStatusPoiseBonus, vsStatusPoiseBonus, rarityScalar) * 100f)}% ARMOR BREAK VS {StatusName(vsStatus)}";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        static string StatusName(StatusEffect effect)
+        {
+            switch (effect)
+            {
+                case StatusEffect.Burning: return "FRAY";
+                case StatusEffect.Chilled: return "CHILL";
+                case StatusEffect.Rooted: return "ROOT";
+                default: return effect.ToString().ToUpperInvariant();
+            }
+        }
+
         /// <summary>Builds the runtime hit modifier at a rarity, or null for a boon with no hit-side effect.</summary>
         public AbilityScopedModifier CreateModifier(float rarityScalar)
         {

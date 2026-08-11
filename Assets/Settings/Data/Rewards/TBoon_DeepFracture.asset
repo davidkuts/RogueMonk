@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 1
   ability: 4
   displayName: Deep Fracture
-  description: Riposte +10% damage, +50% armor decay, heavy fray (burn) for 4s.
+  description: Riposte +10% damage, heavy fray (burn) for 4s.
   scaledStat: 1
   damageBonus: 0.1
   poiseBonus: 0.5

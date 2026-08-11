@@ -89,7 +89,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 16.2 | Second pass: combo/riposte cancel wind-ups (tiers respected), Interact-confirmed doors with focus preview, L1/H debug heal, 15-boon pool | ✅ **done** |
 | 16.3 | Third pass: boss room ends at a consistent level-exit door (Interact-gated), bosses drop Hours+Amber on kill, drafts prefer full 3-card givers | ✅ **done** |
 | 16.4 | Fourth pass: quality bands decide door kinds (Basic/Valuable/Boon/EliteBoon), per-card boon rarity with blue/purple borders, two-giver elite draft, elemental boon screen retired | ✅ **done** |
-| 16.5 | Fifth pass: rarity scales one marked stat per boon at ×1/×1.5/×2 of base, per-giver identity colours in the draft | ✅ **done — awaiting playtest** |
+| 16.5 | Fifth pass: rarity scales one marked stat per boon at ×1/×1.5/×2 of base, per-giver identity colours in the draft | ✅ **done** |
+| 16.6 | Sixth pass: giver header bands + saturated palette, rarity-correct highlighted stat lines, vortex radius 2.2→4.5 with an honest range ring | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -101,6 +102,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.6: louder givers, honest card numbers, and the Undertow gets its reach back
+- **Cards now quote the marked stat at the value the ROLLED rarity actually delivers**, in a dedicated highlighted line — a Rare card was quoting the Normal number in its description, which is exactly the drift the marked-stat system exists to prevent. `TransmissionBoonDefinition.ScaledStatLabel(scalar)` formats the line beside the data so label and effect cannot diverge; the draft view renders it white at Normal and in the rarity's colour (blue/purple) above it. All 15 descriptions rewritten to flavour + unmarked numbers only. **Verified live: Normal +35% window / Epic +80% i-frames (double base) / Rare shield-every-20s (30 ÷ 1.5).**
+- **Giver identity got loud** (the human's "make it more obvious"): a solid giver-coloured header band across each card's top with the boon name on it, background lean doubled to 22%, and a saturated, hue-separated palette — Overclock hot ember, Fray green, Stasis ice, Echo gold, Ward steel, Flux magenta. The rarity border stays the frame; the giver owns the header.
+- ⚠️ **The Undertow's radius had drifted to 2.2 m in the asset** — DESIGN.md's shipped value is 4.0, so someone's earlier pass halved it, and that (plus the foot-smear's leg-length circle under-selling the reach) is why the vortex "felt like you have to get really close". **Radius → 4.5 m, maxPullImpulse → 40** (far-edge travel 3 m × damping 8 = 24 needs headroom past the old cap). First iteration guess by the human's request — the knob is one field.
+- **New `VortexRangeRing`:** the ACTUAL pull radius drawn as a ground ring in the reserved dash hue while the spin runs — it reads the same `RadiusMeters` the overlap query uses, so like the enemy ground decals it cannot lie. Sweeps out from the inner ring on spin start, dies by thinning (works on the opaque smear material), shares the smear's material so the kit stays one hue.
+- **547/547 EditMode tests.** Rebuilt.
+- Known issues / TODO next: vortex 4.5 m is a first guess — iterate in the build; single-giver drafts show one header colour per draft by design (the giver variety reads across drafts and in the two-giver elite).
 
 ### 2026-08-11 — M16.5: rarity scales one marked stat, and the givers get their colours
 - **Rarity scaling is now the human's exact rule: ×1 / ×1.5 / ×2 of BASE** (20% → 30% → 40%; an Epic is always double, each step +50% of base). `RarityScalarSettings` epic 2.25 → **2.0**.

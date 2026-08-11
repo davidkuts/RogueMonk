@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 2
   ability: 4
   displayName: Hard Lock
-  description: Riposte roots the target for 2s.
+  description: The riposte pins the target where it stands.
   scaledStat: 2
   damageBonus: 0
   poiseBonus: 0

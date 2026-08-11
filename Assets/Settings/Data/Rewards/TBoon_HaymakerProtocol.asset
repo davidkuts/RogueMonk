@@ -15,7 +15,8 @@ MonoBehaviour:
   giver: 0
   ability: 4
   displayName: Haymaker Protocol
-  description: Riposte +60% damage.
+  description: The counter becomes a finisher.
+  scaledStat: 0
   damageBonus: 0.6
   poiseBonus: 0
   status: 1
@@ -23,3 +24,7 @@ MonoBehaviour:
   iFrameBonus: 0
   dodgeGraceBonus: 0
   shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 4
   ability: 2
   displayName: Slip the Punch
-  description: Blink i-frames cover 40% more of the dash.
+  description: The Blink protects for longer.
   scaledStat: 3
   damageBonus: 0
   poiseBonus: 0

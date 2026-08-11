@@ -610,6 +610,9 @@ MonoBehaviour:
   mainScene: GrayboxArena
   godModeKey: 21
   useRightTrigger: 1
+  healKey: 22
+  useLeftShoulder: 1
+  healAmount: 50
 --- !u!114 &209475370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3249,8 +3252,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.UI::Game.UI.TransmissionDraftView
   rewards: {fileID: 673184062}
-  selectedColor: {r: 1, g: 0.95, b: 0.8, a: 1}
-  unselectedColor: {r: 0.45, g: 0.48, b: 0.55, a: 1}
+  normalBorder: {r: 0.45, g: 0.48, b: 0.55, a: 1}
+  rareBorder: {r: 0.25, g: 0.5, b: 1, a: 1}
+  epicBorder: {r: 0.65, g: 0.3, b: 0.95, a: 1}
+  giverColors:
+  - {r: 0.95, g: 0.5, b: 0.22, a: 1}
+  - {r: 0.45, g: 0.78, b: 0.55, a: 1}
+  - {r: 0.65, g: 0.88, b: 1, a: 1}
+  - {r: 0.95, g: 0.88, b: 0.5, a: 1}
+  - {r: 0.85, g: 0.68, b: 0.4, a: 1}
+  - {r: 0.78, g: 0.7, b: 0.9, a: 1}
+  giverBackgroundTint: 0.12
+  rarityScalars: {fileID: 11400000, guid: a93ed432c06f9bf44ac42abdcb5819eb, type: 2}
+  selectedScale: 1.06
+  selectedBrighten: 0.45
   inputLockoutSeconds: 0.5
 --- !u!114 &847019515
 MonoBehaviour:
@@ -7106,6 +7121,7 @@ GameObject:
   - component: {fileID: 1949805148}
   - component: {fileID: 1949805147}
   - component: {fileID: 1949805146}
+  - component: {fileID: 1949805150}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7471,6 +7487,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Combat::Game.Combat.TransmissionBoons
   attacks: {fileID: 0}
   motor: {fileID: 0}
+  health: {fileID: 0}
   rarityScalars: {fileID: 11400000, guid: a93ed432c06f9bf44ac42abdcb5819eb, type: 2}
 --- !u!114 &1949805147
 MonoBehaviour:
@@ -7511,6 +7528,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb2b28fcac4579846a2e2971613c0b50, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Core::Game.Core.Economy.PlayerWallet
+--- !u!114 &1949805150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 258ff00f5eccfc84aab0584815688e8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexRangeRing
+  vortex: {fileID: 0}
+  ringMaterial: {fileID: 2100000, guid: 042e9bb4f0b68ba4fb914058d88d433f, type: 2}
+  ringColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.55}
+  ringWidth: 0.14
+  groundOffset: 0.06
+  segments: 56
+  expandSeconds: 0.12
+  fadeSeconds: 0.2
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 1
   ability: 0
   displayName: Entropy Field
-  description: Frayed (burning) enemies take +30% armor-break damage from everything.
+  description: Frayed timelines come apart under pressure.
   scaledStat: 8
   damageBonus: 0
   poiseBonus: 0

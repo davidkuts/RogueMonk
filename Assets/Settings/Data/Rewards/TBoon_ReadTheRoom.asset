@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 4
   ability: 4
   displayName: Read the Room
-  description: Split Second timing window +35%.
+  description: You see the hit before it lands.
   scaledStat: 4
   damageBonus: 0
   poiseBonus: 0

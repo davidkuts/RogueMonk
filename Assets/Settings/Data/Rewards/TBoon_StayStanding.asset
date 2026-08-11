@@ -15,7 +15,7 @@ MonoBehaviour:
   giver: 4
   ability: 0
   displayName: Stay Standing
-  description: A one-hit shield re-arms every 30 seconds you spend unshielded.
+  description: The shield always comes back.
   scaledStat: 6
   damageBonus: 0
   poiseBonus: 0
