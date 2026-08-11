@@ -10,8 +10,8 @@ namespace Game.Core.Economy
     public sealed class EconomySettings : ScriptableObject
     {
         [Header("Seconds (boon fuel, auto-collect fragments)")]
-        [SerializeField, Tooltip("Seconds granted per ordinary kill, delivered as a drifting fragment.")]
-        int secondsPerKill = 3;
+        [SerializeField, Tooltip("Seconds carried per fragment. A kill worth more sheds several fragments in a small ring, so a big kill visibly rains time. Per-kill AMOUNTS live on each EnemyDefinition — proportional to toughness, never flat per body.")]
+        int secondsPerFragment = 3;
         [SerializeField, Tooltip("Distance at which a loose fragment starts drifting into the Second Hand.")]
         float secondsMagnetRadius = 6f;
         [SerializeField, Tooltip("Fragment drift speed once magnetised, m/s.")]
@@ -23,16 +23,11 @@ namespace Game.Core.Economy
         [SerializeField, Tooltip("Fragments that outlive this are collected wherever they lie, so none is ever lost behind a door.")]
         float fragmentMaxLifetimeSeconds = 20f;
 
-        [Header("Minutes (run currency)")]
-        [SerializeField, Tooltip("Small Minutes trickle granted directly per kill (no pickup). Room caches are the real income.")]
-        int minutesPerKillTrickle = 1;
-
-        public int SecondsPerKill => Mathf.Max(0, secondsPerKill);
+        public int SecondsPerFragment => Mathf.Max(1, secondsPerFragment);
         public float SecondsMagnetRadius => Mathf.Max(0f, secondsMagnetRadius);
         public float FragmentDriftSpeed => Mathf.Max(0.1f, fragmentDriftSpeed);
         public float FragmentDriftAcceleration => Mathf.Max(0f, fragmentDriftAcceleration);
         public float FragmentCollectDistance => Mathf.Max(0.05f, fragmentCollectDistance);
         public float FragmentMaxLifetimeSeconds => Mathf.Max(1f, fragmentMaxLifetimeSeconds);
-        public int MinutesPerKillTrickle => Mathf.Max(0, minutesPerKillTrickle);
     }
 }

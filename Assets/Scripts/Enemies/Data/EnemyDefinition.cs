@@ -15,6 +15,12 @@ namespace Game.Enemies
         [SerializeField, Tooltip("The era this enemy belongs to. The Displaced Tooth Stray (and any future era-scoped effect) keys on this; None opts out of all of it.")]
         Era era = Era.None;
 
+        [Header("Kill economy")]
+        [SerializeField, Tooltip("Seconds shed on death, as drifting fragments. Proportional to toughness, not per body: a PAIR of Swiftjaws (3 each) is the baseline, one Cerashorn equals that pair, a swarm bird is worth a third of a raptor — so a six-bird wave never out-pays the triceratops it was easier than. Elites pay several times the baseline, the boss most of all.")]
+        int secondsOnKill = 3;
+        [SerializeField, Tooltip("Minutes trickled on death, on the same proportionality rule. Small — door caches are the real Minutes income.")]
+        int minutesOnKill = 1;
+
         [Header("Vitals")]
         [SerializeField] float maxHealth = 60f;
         [SerializeField, Tooltip("Staggerable = poise breaks. Armored = strip armour first. Immune = never interrupted.")]
@@ -66,6 +72,8 @@ namespace Game.Enemies
 
         public string Id => name;
         public Era Era => era;
+        public int SecondsOnKill => Mathf.Max(0, secondsOnKill);
+        public int MinutesOnKill => Mathf.Max(0, minutesOnKill);
         public float MaxHealth => maxHealth;
         public StaggerTier Tier => tier;
         public float PoiseMax => poiseMax;

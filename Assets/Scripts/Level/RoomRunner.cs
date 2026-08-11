@@ -77,10 +77,11 @@ namespace Game.Level
         public event Action EnemyKilled;
 
         /// <summary>
-        /// Raised for each enemy death with where the body fell, so the economy can shed its
-        /// loose seconds from the corpse rather than from thin air.
+        /// Raised for each enemy death with where the body fell and what it pays (seconds,
+        /// minutes) — per-archetype data, so a swarm bird and a triceratops are worth what
+        /// they cost to fight, not one flat rate per corpse.
         /// </summary>
-        public event Action<Vector3> EnemyKilledAt;
+        public event Action<Vector3, int, int> EnemyKilledAt;
 
         /// <summary>Raised when a boss enters play, so the HUD can put its bar up.</summary>
         public event Action<IBossEncounter> BossSpawned;
@@ -104,6 +105,11 @@ namespace Game.Level
             if (waveIndex >= plan.Waves.Count)
             {
                 IsCleared = true;
+
+                // The door offers show the moment the fight ends, even while the door itself
+                // waits for the reward to be collected.
+                room.RevealExitMarkers();
+
                 if (!HoldDoorForReward)
                     room.SetDoorOpen(true);
 
@@ -317,7 +323,7 @@ namespace Game.Level
             alive.Remove(actor);
             EnemyKilled?.Invoke();
             if (actor != null)
-                EnemyKilledAt?.Invoke(actor.transform.position);
+                EnemyKilledAt?.Invoke(actor.transform.position, actor.SecondsOnKill, actor.MinutesOnKill);
 
             PruneAndCheckCleared();
         }

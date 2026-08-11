@@ -21,8 +21,10 @@ namespace Game.Combat
     public sealed class TransmissionBoons : MonoBehaviour
     {
         [SerializeField] PlayerAttackController attacks;
-        [SerializeField, Tooltip("For the Ward lane's i-frame patch.")]
+        [SerializeField, Tooltip("For the Ward lane's i-frame and grace patches.")]
         PlayerMotor motor;
+        [SerializeField, Tooltip("For the Ward lane's shield procs (Guard High).")]
+        PlayerHealth health;
         [SerializeField, Tooltip("Normal/Rare/Epic multipliers, shared with everything rarity touches.")]
         RarityScalarSettings rarityScalars;
 
@@ -49,13 +51,15 @@ namespace Game.Combat
         /// <summary>Raised whenever the loadout changes, for HUD and the debug overlay.</summary>
         public event Action Changed;
 
-        readonly Dictionary<TransmissionBoonDefinition, AbilityScopedModifier> registered =
-            new Dictionary<TransmissionBoonDefinition, AbilityScopedModifier>();
+        /// <summary>A boon may install several pipeline pieces (a stat mod AND a shield proc).</summary>
+        readonly Dictionary<TransmissionBoonDefinition, List<IHitModifier>> registered =
+            new Dictionary<TransmissionBoonDefinition, List<IHitModifier>>();
 
         void Awake()
         {
             if (attacks == null) attacks = GetComponent<PlayerAttackController>();
             if (motor == null) motor = GetComponent<PlayerMotor>();
+            if (health == null) health = GetComponent<PlayerHealth>();
         }
 
         float Scalar(RewardTier tier) => rarityScalars != null ? rarityScalars.Scalar(tier) : 1f;
@@ -66,13 +70,25 @@ namespace Game.Combat
                 return;
 
             float scalar = Scalar(tier);
+            var installed = new List<IHitModifier>();
 
             AbilityScopedModifier modifier = boon.CreateModifier(scalar);
             if (modifier != null)
+                installed.Add(modifier);
+
+            // Guard High: rarity divides the hit count, so a Rare shields more often — the
+            // number scales, the mechanic does not.
+            if (boon.ShieldEveryNHits > 0 && health != null)
             {
-                attacks.Resolver.AddModifier(modifier);
-                registered[boon] = modifier;
+                int hits = Mathf.Max(2, Mathf.RoundToInt(boon.ShieldEveryNHits / Mathf.Max(0.01f, scalar)));
+                installed.Add(new ShieldProcModifier(boon.Ability, hits, health.GrantOneHitShield));
             }
+
+            for (int i = 0; i < installed.Count; i++)
+                attacks.Resolver.AddModifier(installed[i]);
+
+            if (installed.Count > 0)
+                registered[boon] = installed;
 
             owned.Add(new OwnedBoon(boon, tier));
             ownedDefinitions.Add(boon);
@@ -89,8 +105,11 @@ namespace Game.Combat
         {
             if (attacks != null)
             {
-                foreach (KeyValuePair<TransmissionBoonDefinition, AbilityScopedModifier> entry in registered)
-                    attacks.Resolver.RemoveModifier(entry.Value);
+                foreach (KeyValuePair<TransmissionBoonDefinition, List<IHitModifier>> entry in registered)
+                {
+                    for (int i = 0; i < entry.Value.Count; i++)
+                        attacks.Resolver.RemoveModifier(entry.Value[i]);
+                }
             }
 
             registered.Clear();
@@ -101,24 +120,29 @@ namespace Game.Combat
         }
 
         /// <summary>
-        /// Recomputes the dash i-frame multiplier from every owned Ward-lane boon. Set as one
-        /// product on the dash rather than incrementally, so clearing and re-granting can never
-        /// drift the value.
+        /// Recomputes the dash's i-frame and grace multipliers from every owned Ward-lane
+        /// boon. Set as one product each rather than incrementally, so clearing and
+        /// re-granting can never drift the values.
         /// </summary>
         void ApplyDashPatches()
         {
             if (motor == null || motor.Dash == null)
                 return;
 
-            float multiplier = 1f;
+            float iFrames = 1f;
+            float grace = 1f;
             for (int i = 0; i < owned.Count; i++)
             {
                 TransmissionBoonDefinition boon = owned[i].Definition;
+                float scalar = Scalar(owned[i].Tier);
                 if (boon.IFrameBonus > 0f)
-                    multiplier *= 1f + boon.IFrameBonus * Scalar(owned[i].Tier);
+                    iFrames *= 1f + boon.IFrameBonus * scalar;
+                if (boon.DodgeGraceBonus > 0f)
+                    grace *= 1f + boon.DodgeGraceBonus * scalar;
             }
 
-            motor.Dash.IFrameFractionMultiplier = multiplier;
+            motor.Dash.IFrameFractionMultiplier = iFrames;
+            motor.Dash.DodgeGraceMultiplier = grace;
         }
     }
 }

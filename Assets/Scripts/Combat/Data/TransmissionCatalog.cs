@@ -20,12 +20,15 @@ namespace Game.Combat
 
         readonly List<GiverId> giverScratch = new List<GiverId>();
         readonly List<TransmissionBoonDefinition> boonScratch = new List<TransmissionBoonDefinition>();
+        readonly List<SlotClaim> claimScratch = new List<SlotClaim>();
 
         public IReadOnlyList<TransmissionBoonDefinition> Boons => boons;
 
         /// <summary>
-        /// Rolls one draft: a random giver among those with at least one not-yet-owned boon,
-        /// then up to <see cref="offerCount"/> of their boons. Empty when everything is owned.
+        /// Rolls one draft: a random giver among those with at least one offerable boon, then
+        /// up to <see cref="offerCount"/> of their boons. Offerable means not owned AND allowed
+        /// by <see cref="TransmissionDraftRules"/> — a slot claimed by one giver never shows
+        /// another giver's boon for it again. Empty when nothing is offerable.
         /// </summary>
         public List<TransmissionBoonDefinition> RollDraft(
             IRandomSource random, IReadOnlyList<TransmissionBoonDefinition> owned)
@@ -34,11 +37,19 @@ namespace Game.Combat
             if (random == null)
                 return offer;
 
+            claimScratch.Clear();
+            for (int i = 0; owned != null && i < owned.Count; i++)
+            {
+                if (owned[i] != null)
+                    claimScratch.Add(new SlotClaim(owned[i].Giver, owned[i].Ability));
+            }
+
             giverScratch.Clear();
             for (int i = 0; i < boons.Count; i++)
             {
                 TransmissionBoonDefinition boon = boons[i];
-                if (boon == null || IsOwned(owned, boon))
+                if (boon == null || IsOwned(owned, boon) ||
+                    !TransmissionDraftRules.IsOfferable(boon.Giver, boon.Ability, claimScratch))
                     continue;
 
                 if (!giverScratch.Contains(boon.Giver))
@@ -54,7 +65,8 @@ namespace Game.Combat
             for (int i = 0; i < boons.Count; i++)
             {
                 TransmissionBoonDefinition boon = boons[i];
-                if (boon != null && boon.Giver == giver && !IsOwned(owned, boon))
+                if (boon != null && boon.Giver == giver && !IsOwned(owned, boon) &&
+                    TransmissionDraftRules.IsOfferable(boon.Giver, boon.Ability, claimScratch))
                     boonScratch.Add(boon);
             }
 

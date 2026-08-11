@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Scrapfeather
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
   era: 1
+  secondsOnKill: 1
+  minutesOnKill: 0
   maxHealth: 3
   tier: 0
   poiseMax: 1

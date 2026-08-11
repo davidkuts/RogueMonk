@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Cerashorn
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
   era: 1
+  secondsOnKill: 6
+  minutesOnKill: 2
   maxHealth: 165
   tier: 0
   poiseMax: 34

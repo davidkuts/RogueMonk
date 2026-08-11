@@ -225,6 +225,11 @@ namespace Game.UI
                 if (!used)
                     continue;
 
+                // Centre the row on however many cards this draft actually has — a two-card
+                // offer parked left-of-centre read as a broken three-card one.
+                var rect = (RectTransform)card.Root.transform;
+                rect.anchoredPosition = new Vector2((i - (offer.Count - 1) * 0.5f) * 440f, -40f);
+
                 TransmissionBoonDefinition boon = offer[i];
                 card.Name.text = boon.DisplayName.ToUpperInvariant();
                 card.Body.text = $"{boon.Description}\n\n[{boon.Ability}]";

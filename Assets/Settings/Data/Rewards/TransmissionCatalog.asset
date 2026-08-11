@@ -18,4 +18,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fd4d63f913d4a95489f6d8fad26577ff, type: 2}
   - {fileID: 11400000, guid: 6cfe89f73f128c44cad0f226597b97a0, type: 2}
   - {fileID: 11400000, guid: 102181244dbc7db42aa0609f4af7b13f, type: 2}
+  - {fileID: 11400000, guid: 9b9a6941075b0a441baee25bf84ba6d7, type: 2}
+  - {fileID: 11400000, guid: d5f161d0aef5bdc4e9b21d082f68772c, type: 2}
+  - {fileID: 11400000, guid: 8b924a62dd4c61b448d393f620c57fac, type: 2}
+  - {fileID: 11400000, guid: d095aafae9ff15f4dadfa7f71cfdaa0a, type: 2}
+  - {fileID: 11400000, guid: aa9abdfc639ce7e468e45f776c27e831, type: 2}
+  - {fileID: 11400000, guid: ce5b9272ac8339347b1f0755622455da, type: 2}
+  - {fileID: 11400000, guid: 2d17010a0ca18af41b4b3dcf8df8abb9, type: 2}
+  - {fileID: 11400000, guid: 8057d965cbe70b74a9d170f01fb3d1f6, type: 2}
   offerCount: 3

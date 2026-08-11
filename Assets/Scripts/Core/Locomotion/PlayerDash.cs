@@ -39,6 +39,12 @@ namespace Game.Core.Locomotion
         /// </summary>
         public float IFrameFractionMultiplier { get; set; } = 1f;
 
+        /// <summary>
+        /// Runtime multiplier on the perfect-dodge grace window (Ward's Read the Room). Same
+        /// ownership rule as <see cref="IFrameFractionMultiplier"/>: recomputed, never nudged.
+        /// </summary>
+        public float DodgeGraceMultiplier { get; set; } = 1f;
+
         /// <summary>True while the dash's i-frames proper are live.</summary>
         public bool IsInvulnerable =>
             IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction * Mathf.Max(0f, IFrameFractionMultiplier));
@@ -129,7 +135,7 @@ namespace Game.Core.Locomotion
             // dash simply ended. Opening it here rather than at dash start means the two windows
             // are contiguous and the total is exactly i-frames + grace.
             if (wasInvulnerable && !IsInvulnerable)
-                graceRemaining = Mathf.Max(0f, settings.PerfectDodgeGraceSeconds);
+                graceRemaining = Mathf.Max(0f, settings.PerfectDodgeGraceSeconds * Mathf.Max(0f, DodgeGraceMultiplier));
 
             return step;
         }

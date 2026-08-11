@@ -74,6 +74,12 @@ namespace Game.Enemies
         /// <summary>The era this body belongs to, for era-scoped hit modifiers (Displaced Tooth).</summary>
         public Era Era => definition != null ? definition.Era : Era.None;
 
+        /// <summary>Seconds this kill sheds (proportional to toughness — see the definition's tooltip).</summary>
+        public int SecondsOnKill => definition != null ? definition.SecondsOnKill : 0;
+
+        /// <summary>Minutes this kill trickles.</summary>
+        public int MinutesOnKill => definition != null ? definition.MinutesOnKill : 0;
+
         public Health Health { get; private set; }
 
         public PoiseSystem Poise { get; private set; }

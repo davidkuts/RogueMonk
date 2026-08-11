@@ -59,6 +59,12 @@ namespace Game.Combat
         [Header("Dash patch (Ward's lane — not a hit modifier)")]
         [SerializeField, Tooltip("Added dash i-frame fraction: 0.4 = i-frames cover 40% more of the dash. Zero for every boon that is not Ward BLINK.")]
         float iFrameBonus;
+        [SerializeField, Tooltip("Added Split Second grace fraction: 0.35 = the perfect-dodge window past the i-frames grows 35%. Ward's Read the Room; zero elsewhere.")]
+        float dodgeGraceBonus;
+
+        [Header("Shield proc (Ward's lane — a counter on the pipeline)")]
+        [SerializeField, Tooltip("Every Nth landed hit of this boon's slot arms the one-hit shield. 0 disables. Rarity divides N (a Rare shields more often).")]
+        int shieldEveryNHits;
 
         public GiverId Giver => giver;
         public AbilityId Ability => ability;
@@ -70,6 +76,8 @@ namespace Game.Combat
         public StatusEffect Status => status;
         public float StatusSeconds => statusSeconds;
         public float IFrameBonus => iFrameBonus;
+        public float DodgeGraceBonus => dodgeGraceBonus;
+        public int ShieldEveryNHits => shieldEveryNHits;
 
         /// <summary>Builds the runtime hit modifier at a tier, or null for a boon with no hit-side effect.</summary>
         public AbilityScopedModifier CreateModifier(float rarityScalar)

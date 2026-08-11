@@ -158,20 +158,37 @@ namespace Game.Level
 
         void OnDestroy() => DetachRunner();
 
-        void OnEnemyKilledAt(Vector3 position)
+        void OnEnemyKilledAt(Vector3 position, int seconds, int minutes)
         {
             if (economy == null || wallet == null)
                 return;
 
-            if (economy.SecondsPerKill > 0 && playerHealth != null)
+            // A big kill sheds several fragments in a deterministic ring rather than one fat
+            // orb — the payout should look like what it is. No RNG, so seeds are untouched.
+            if (seconds > 0 && playerHealth != null)
             {
-                SecondsFragment.Spawn(
-                    position, economy.SecondsPerKill, economy, playerHealth.transform, Primitive,
-                    amount => wallet.Wallet.Add(CurrencyType.Seconds, amount));
+                int perFragment = economy.SecondsPerFragment;
+                int fragments = Mathf.Max(1, Mathf.CeilToInt(seconds / (float)perFragment));
+                int remaining = seconds;
+
+                for (int i = 0; i < fragments; i++)
+                {
+                    int carry = Mathf.Min(perFragment, remaining);
+                    remaining -= carry;
+
+                    float angle = i * 137.5f * Mathf.Deg2Rad;
+                    Vector3 offset = i == 0
+                        ? Vector3.zero
+                        : new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.5f;
+
+                    SecondsFragment.Spawn(
+                        position + offset, carry, economy, playerHealth.transform, Primitive,
+                        amount => wallet.Wallet.Add(CurrencyType.Seconds, amount));
+                }
             }
 
-            if (economy.MinutesPerKillTrickle > 0)
-                wallet.Wallet.Add(CurrencyType.Minutes, economy.MinutesPerKillTrickle);
+            if (minutes > 0)
+                wallet.Wallet.Add(CurrencyType.Minutes, minutes);
         }
 
         void OnRoomCleared()

@@ -113,6 +113,31 @@ namespace Game.Combat.Tests
             Assert.That(SpliceMath.Heal(90f, 100f, 1f, 500f), Is.EqualTo(100f).Within(0.001f));
         }
 
+        [Test]
+        public void ShieldProcArmsEveryNthScopedHitAndIgnoresOtherSlots()
+        {
+            int armed = 0;
+            var resolver = new HitResolver();
+            resolver.AddModifier(new ShieldProcModifier(AbilityId.ATK, 3, () => armed++));
+
+            var target = new FakeDamageable();
+
+            for (int i = 0; i < 7; i++)
+            {
+                var context = Context(new FakeAttack { Ability = AbilityId.ATK }, target);
+                resolver.Resolve(ref context);
+            }
+
+            Assert.That(armed, Is.EqualTo(2), "7 combo hits at every-3rd arm exactly twice");
+
+            var vortexContext = Context(new FakeAttack { Ability = AbilityId.VORTEX }, target);
+            resolver.Resolve(ref vortexContext);
+            var atkContext = Context(new FakeAttack { Ability = AbilityId.ATK }, target);
+            resolver.Resolve(ref atkContext);
+
+            Assert.That(armed, Is.EqualTo(2), "vortex hits do not feed an ATK-scoped counter (2 of 3 so far)");
+        }
+
         /// <summary>An attack with no ability tag at all — enemy attacks look like this.</summary>
         sealed class UntaggedAttack : IAttackDefinition
         {

@@ -38,7 +38,7 @@ The single list of everything known to be missing or unresolved, gathered from t
 - **The pickup prompt is a hardcoded "R1 / F" text**, not glyph-swapped by control scheme and not rebinding-aware. The *logic* is rebinding-safe (everything reads the Interact action); only the prompt string lies once someone rebinds.
 - **Level 2/3 first rooms have no reward** — no door choice precedes them (the boon screen sits between levels instead). The run's very first room is the only policy-driven pre-combat reward. Needs a human call on whether later levels should open the same way.
 - **Boss rooms grant nothing** — REWARDS.md's guaranteed Hours + Amber + high-tier reward comes with the boss-drops task. Amber currently has NO source in play (wallet + save only).
-- **Transmission catalog holds 5 boons across 4 givers** (Overclock 2, Stasis/Fray/Ward 1 each), so most drafts offer fewer than 3 cards. Content, not code — the draft takes whatever the giver has.
+- **Transmission catalog holds 13 boons across 4 givers** (Overclock 4, Fray/Stasis/Ward 3). Early drafts show 3 cards; late-run drafts thin out as slots get claimed and boons get owned — by design, but worth watching. Echo and Flux have no capsule-implementable boons yet.
 - **Draft/pickup SFX are reused placeholders** (RoomClear/PerfectDodge); the pickup collect has no sound of its own.
 - **Recalibration and SupplyDrop** exist in the enum and config with enabled=false; no logic.
 - **Stopgap activation does not exist** (grant/carry/HUD pips only; D-pad stays reserved) and the Cracked Hourglass +1-slot Stray is SO-only.
@@ -84,7 +84,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 15 | **Wire the roster into the gameplay loop** — archetype assets, §5 scripted waves, Tyrant replaces the Stone Warden, 3× roster health, visible numbered exits | ✅ **done — human: "the gameplay loop looks nice"** |
 | 15.1 | First playthrough pass: riposte-gated solo elites at 2× health, seeded 1–4 door cluster labelled 1–8 (boss door "9"), raptor backpedal halved | ✅ done — human: "combat feels nice now" |
 | 15.2 | Second pass: riposte breaks the guard once (then normal damage), 8-room level, one elite max per biome, room 1 never an elite | ✅ **done — level design declared complete, awaiting playthrough** |
-| 16 | **Run rewards (capsule):** wallets + save, tier-parity door rewards with icons, Interact pickup (R1/RB/F), Splice/Stray/Stopgap/caches, minimal Transmission draft, first-room policy | ✅ **done — awaiting playtest** |
+| 16 | **Run rewards (capsule):** wallets + save, tier-parity door rewards with icons, Interact pickup (R1/RB/F), Splice/Stray/Stopgap/caches, minimal Transmission draft, first-room policy | ✅ **done** |
+| 16.1 | First reward playtest pass: icons on clear, proportional kill drops, 13-boon catalog, giver-claims-a-slot rule, draft centering | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -96,6 +97,14 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.1: first reward playtest pass — four corrections from the human
+- **Door offers reveal on the clear, not on entry.** Markers are built hidden and `RoomRunner` calls `RoomInstance.RevealExitMarkers()` the moment the last enemy dies — a fight reads as a fight, and the choice appears exactly when the player starts thinking about it (before the door itself opens, which still waits for the pickup).
+- **Kill currency is proportional to toughness, not per body** (human rule: a PAIR of Swiftjaws is the baseline; one Cerashorn equals that pair; a six-bird swarm must never out-pay it; elites several times the baseline; the boss most of all). `secondsOnKill`/`minutesOnKill` moved onto `EnemyDefinition` — per-enemy SO data, the flat global rates are gone from `EconomySettings`. Shipped values: Swiftjaw/Sailspit 3s/1m · Cerashorn 6s/2m · Scrapfeather 1s/0m · Ambershell/Twice-Struck 12s/4m · Tyrant 30s/10m. A big kill sheds several ~3-second fragments on a deterministic ring (no RNG, seeds untouched) so the payout looks like what it is. **Pinned by `KillEconomyContentTests` on the real assets** — a retune that breaks a ratio has to say so in a test.
+- **The draft's "one option, can't move" complaint was content thinness, not input**: most givers had one boon, and a one-card menu cannot move. The catalog grew 5 → **13** (every entry still a stat/status/pipeline effect at capsule fidelity): Overclock adds Haymaker Protocol (SPLIT +60%) and Spec Violation (PASSIVE +15% global — the first `AbilityId.None` boon); Fray adds Rot Well (vortex ticks burn) and Deep Fracture (SPLIT + armor decay via poise, long burn); Stasis adds Hard Lock (SPLIT roots 2s) and Containment Spin (VORTEX ticks chill — ⚠️ capsule approximation of BOONS.md's "+duration", recorded as drift); Ward adds Read the Room (Split Second grace +35%, via a new `PlayerDash.DodgeGraceMultiplier`) and Guard High (every 10th combo hit arms the one-hit shield, via `ShieldProcModifier` riding the pipeline; rarity divides the count). Draft cards now centre on however many the offer holds — a two-card offer used to park off-centre and read as broken.
+- **The anti-stacking rule (human call): an ability slot is CLAIMED by the giver of its first boon.** Other givers' boons for that slot are never offered again — no Mara-damage + Percy-chill + Reeve-DoT pile-up on one attack — while the claiming giver may keep deepening its own lane, and PASSIVE boons neither claim nor conflict. Pure rule in `TransmissionDraftRules` (engine-free), enforced inside `TransmissionCatalog.RollDraft`, pinned by `TransmissionDraftRulesTests` and verified live over 200 rolled drafts.
+- **535/535 EditMode tests** (+9). Verified live: markers 0-visible before clear → all visible after; a 3-card single-giver draft at symmetric positions; slot rule holds; 2-raptor room pays 2 fragments + 2 Minutes; a simulated elite kill sheds a 4-fragment ring + 4 Minutes. Rebuilt.
+- Known issues / TODO next: Stasis's Containment Spin drifts from the BOONS.md table (chill-on-tick vs duration — reconcile when the real vortex-duration hook exists); givers still top out at 3–4 boons so late-run drafts thin out by design; navigation feel on pad (stick vs d-pad repeat) still wants a human hand on it.
 
 ### 2026-08-10 — M16: the doors stop lying — the run economy lands in capsule form
 - **Done (PROMPT_REWARDS.md, all six phases):**

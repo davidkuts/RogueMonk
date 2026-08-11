@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: TwiceStruck
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
   era: 1
+  secondsOnKill: 12
+  minutesOnKill: 4
   maxHealth: 840
   tier: 0
   poiseMax: 45

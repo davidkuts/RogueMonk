@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Sailspit
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BiomeEnemyDefinition
   era: 1
+  secondsOnKill: 3
+  minutesOnKill: 1
   maxHealth: 90
   tier: 0
   poiseMax: 20

@@ -86,6 +86,7 @@ namespace Game.Level
         }
 
         readonly List<BuiltExit> builtExits = new List<BuiltExit>();
+        readonly List<ExitMarkerView> exitMarkers = new List<ExitMarkerView>();
         bool doorOpen;
 
         [Header("Boss signalling")]
@@ -232,10 +233,16 @@ namespace Game.Level
                     tierTint = rewardConfig.TierTint(choice.Tier);
                 }
 
-                ExitMarkerView.Build(
+                ExitMarkerView marker = ExitMarkerView.Build(
                     transform, blockerT.position + shift, transform.position.y,
                     blockerT.localScale.x, choice, definition, tierTint,
                     GetComponent<IRewardPreviewRenderer>(), markerMaterial);
+
+                // The offer is not revealed until the room is cleared: a fight should be read
+                // as a fight, not shopped from behind enemies — and the reveal is the clear's
+                // second reward beat.
+                marker.gameObject.SetActive(false);
+                exitMarkers.Add(marker);
 
                 builtExits.Add(new BuiltExit { Blocker = blocker, Trigger = trigger });
             }
@@ -247,6 +254,20 @@ namespace Game.Level
             exitTrigger.gameObject.SetActive(false);
 
             SetDoorOpen(doorOpen);
+        }
+
+        /// <summary>
+        /// Shows the reward icons over the doors. Called by the runner the moment the room is
+        /// cleared — before the door itself opens when a reward gates it, because choosing the
+        /// next room is exactly what the player thinks about while walking to the pickup.
+        /// </summary>
+        public void RevealExitMarkers()
+        {
+            for (int i = 0; i < exitMarkers.Count; i++)
+            {
+                if (exitMarkers[i] != null)
+                    exitMarkers[i].gameObject.SetActive(true);
+            }
         }
 
         /// <summary>Called by the trigger's forwarder when the player steps into a cleared exit.</summary>

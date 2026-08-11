@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Boss_StoneWarden
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.BossDefinition
   era: 1
+  secondsOnKill: 30
+  minutesOnKill: 10
   maxHealth: 600
   tier: 2
   poiseMax: 0
