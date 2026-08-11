@@ -36,6 +36,9 @@ namespace Game.EditorTools
             Write("player_hurt", Impact(300f, 0.18f, 0.7f, noise: 0.35f));
             Write("room_clear", Fanfare());
             Write("riposte", Riposte());
+            Write("guard_refused", GuardRefused());
+            Write("guard_break", GuardBreak());
+            Write("door_reveal", DoorReveal());
 
             AssetDatabase.Refresh();
             Debug.Log($"[Monk] Regenerated placeholder SFX in {OutputFolder}");
@@ -152,6 +155,90 @@ namespace Game.EditorTools
                 float crackle = (float)(rng.NextDouble() * 2.0 - 1.0) * 0.3f * Mathf.Exp(-22f * t);
 
                 data[i] = Mathf.Clamp((body + ring + crackle) * 0.95f, -1f, 1f);
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// A hit turned away by amber. Short, dead and deliberately unsatisfying — the point is
+        /// that it does not sound like a hit landing, because it is the sound of nothing happening.
+        /// Damped high knock with no tail at all.
+        /// </summary>
+        static float[] GuardRefused()
+        {
+            int length = (int)(SampleRate * 0.09f);
+            var data = new float[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                float t = i / (float)length;
+                float seconds = i / (float)SampleRate;
+
+                // Two close partials beating against each other read as "solid", where a single
+                // tone reads as a bell.
+                float a = Mathf.Sin(2f * Mathf.PI * 430f * seconds);
+                float b = Mathf.Sin(2f * Mathf.PI * 505f * seconds) * 0.7f;
+
+                // Very fast decay: no ring, because ringing would sound like a reward.
+                data[i] = (a + b) * Mathf.Exp(-38f * t) * 0.45f;
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Solidified time coming apart. The second-biggest sound in the set after the Riposte,
+        /// and the counterpart to <see cref="GuardRefused"/>: where the refusal is stopped dead,
+        /// this one opens up and keeps going — glassy shards over a low release.
+        /// </summary>
+        static float[] GuardBreak()
+        {
+            int length = (int)(SampleRate * 0.6f);
+            var data = new float[length];
+            var rng = new System.Random(8801);
+
+            for (int i = 0; i < length; i++)
+            {
+                float t = i / (float)length;
+                float seconds = i / (float)SampleRate;
+
+                // The weight coming off.
+                float release = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(190f, 70f, t) * seconds) * Mathf.Exp(-5f * t);
+
+                // Glass: several inharmonic partials, which is what stops it sounding like a chime.
+                float glass = 0f;
+                glass += Mathf.Sin(2f * Mathf.PI * 1480f * seconds) * Mathf.Exp(-6f * t);
+                glass += Mathf.Sin(2f * Mathf.PI * 2170f * seconds) * Mathf.Exp(-8f * t) * 0.7f;
+                glass += Mathf.Sin(2f * Mathf.PI * 3310f * seconds) * Mathf.Exp(-11f * t) * 0.45f;
+
+                // Shards scattering after the break rather than at it.
+                float scatter = (float)(rng.NextDouble() * 2.0 - 1.0) * 0.35f * Mathf.Exp(-9f * t) * Mathf.Min(1f, t * 8f);
+
+                data[i] = Mathf.Clamp((release * 0.8f + glass * 0.3f + scatter) * 0.8f, -1f, 1f);
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// One door's incoming signal resolving. Deliberately neutral — a short filtered blip, not
+        /// the game's signature tick, which is the author's to spend (DESIGN.md § Theme).
+        /// </summary>
+        static float[] DoorReveal()
+        {
+            int length = (int)(SampleRate * 0.12f);
+            var data = new float[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                float t = i / (float)length;
+                float seconds = i / (float)SampleRate;
+
+                // Rises slightly: a signal arriving, not an object being struck.
+                float tone = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(740f, 990f, t) * seconds);
+                float envelope = Mathf.Sin(t * Mathf.PI) * Mathf.Exp(-3f * t);
+                data[i] = tone * envelope * 0.3f;
             }
 
             return data;

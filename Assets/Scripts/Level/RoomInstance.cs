@@ -79,6 +79,9 @@ namespace Game.Level
         [SerializeField, Tooltip("Centre-to-centre distance between neighbouring doorways. The doors form one cluster in the middle of the exit wall — seeing one door means seeing them all — and the pitch shrinks automatically in rooms too narrow for it.")]
         float exitDoorPitch = 3.6f;
 
+        [SerializeField, Tooltip("Gap between one door's offer appearing and the next. Long enough that a four-door fork reads as four separate offers, short enough that it never delays the walk to the pickup.")]
+        float exitRevealStagger = 0.12f;
+
         sealed class BuiltExit
         {
             public GameObject Blocker;
@@ -88,6 +91,10 @@ namespace Game.Level
         readonly List<BuiltExit> builtExits = new List<BuiltExit>();
         readonly List<ExitMarkerView> exitMarkers = new List<ExitMarkerView>();
         bool doorOpen;
+
+        /// <summary>Index of the next offer to deal, or −1 when the fork is fully revealed.</summary>
+        int revealNext = -1;
+        float revealTimer;
 
         [SerializeField, Tooltip("How close the player must stand to a door for the Interact press to choose it. The nearest door inside this range is the focused one.")]
         float doorInteractRange = 3f;
@@ -176,7 +183,13 @@ namespace Game.Level
         public void SetDoorOpen(bool open)
         {
             if (open && !doorOpen)
+            {
                 doorUnlockedAtUnscaled = Time.unscaledTime;
+
+                // The unlock is the reveal's deadline: a door the player can already walk through
+                // must never still be announcing what is behind it.
+                FinishRevealingExitMarkers();
+            }
 
             doorOpen = open;
 
@@ -299,11 +312,56 @@ namespace Game.Level
         /// </summary>
         public void RevealExitMarkers()
         {
-            for (int i = 0; i < exitMarkers.Count; i++)
-            {
-                if (exitMarkers[i] != null)
-                    exitMarkers[i].gameObject.SetActive(true);
-            }
+            if (exitMarkers.Count == 0)
+                return;
+
+            // Dealt one at a time rather than switched on together. A bank of icons appearing on a
+            // single frame reads as scenery loading in; dealt in sequence it reads as an offer,
+            // which is what the moment actually is.
+            revealNext = 0;
+            revealTimer = 0f;
+        }
+
+        /// <summary>
+        /// Shows anything the stagger has not reached yet, at once. The door unlocking is the
+        /// deadline: an offer the player can already walk through must never still be arriving.
+        /// </summary>
+        void FinishRevealingExitMarkers()
+        {
+            while (revealNext >= 0 && revealNext < exitMarkers.Count)
+                RevealNextMarker();
+
+            revealNext = -1;
+        }
+
+        void RevealNextMarker()
+        {
+            ExitMarkerView marker = exitMarkers[revealNext];
+            revealNext++;
+
+            if (marker == null)
+                return;
+
+            marker.gameObject.SetActive(true);
+            marker.PlayReveal();
+            Game.Core.Audio.AudioDirector.PlaySound(Game.Core.Audio.GameSound.DoorReveal);
+        }
+
+        void TickExitMarkerReveal()
+        {
+            if (revealNext < 0 || revealNext >= exitMarkers.Count)
+                return;
+
+            // Unscaled: the clear lands inside the killing blow's hitstop.
+            revealTimer -= Time.unscaledDeltaTime;
+            if (revealTimer > 0f)
+                return;
+
+            RevealNextMarker();
+            revealTimer = exitRevealStagger;
+
+            if (revealNext >= exitMarkers.Count)
+                revealNext = -1;
         }
 
         /// <summary>
@@ -314,6 +372,10 @@ namespace Game.Level
         /// </summary>
         void Update()
         {
+            // Ticked before the focus early-out: the offers are dealt on the clear, which is
+            // strictly before the door they sit over unlocks.
+            TickExitMarkerReveal();
+
             if (!doorOpen || builtExits.Count == 0 || interactPlayer == null)
             {
                 ClearDoorFocus();

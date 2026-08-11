@@ -58,3 +58,18 @@ MonoBehaviour:
     Volume: 1
     PitchVariance: 0.02
     MinIntervalSeconds: 0
+  - Sound: 9
+    Clip: {fileID: 8300000, guid: 95cd334325a619f439c049be30662a16, type: 3}
+    Volume: 0.7
+    PitchVariance: 0.05
+    MinIntervalSeconds: 0.06
+  - Sound: 10
+    Clip: {fileID: 8300000, guid: 10b7558d2ddd86b4aa6078361c7eb752, type: 3}
+    Volume: 0.95
+    PitchVariance: 0.02
+    MinIntervalSeconds: 0
+  - Sound: 11
+    Clip: {fileID: 8300000, guid: a772ed7636c435f40a04a8ca734c7a62, type: 3}
+    Volume: 0.4
+    PitchVariance: 0.04
+    MinIntervalSeconds: 0

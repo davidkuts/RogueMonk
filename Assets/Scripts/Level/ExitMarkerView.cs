@@ -22,9 +22,17 @@ namespace Game.Level
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+        const float FocusedScale = 1.35f;
+
         Transform iconRoot;
         Camera view;
         bool focused;
+
+        /// <summary>Seconds the reveal pop takes. Short — it is punctuation, not a cutscene.</summary>
+        const float RevealSeconds = 0.22f;
+
+        /// <summary>0 while the offer is still arriving, 1 once it has landed.</summary>
+        float revealProgress = 1f;
 
         /// <summary>
         /// Marks this door as the one the Interact press would choose: the icon grows so the
@@ -36,8 +44,31 @@ namespace Game.Level
                 return;
 
             focused = value;
-            if (iconRoot != null)
-                iconRoot.localScale = Vector3.one * (value ? 1.35f : 1f);
+            ApplyIconScale();
+        }
+
+        /// <summary>
+        /// Pops this offer into being. Called by the room as it deals the fork one door at a time,
+        /// because a whole bank of icons appearing on one frame reads as a scene loading rather
+        /// than as a choice being handed over.
+        /// </summary>
+        public void PlayReveal()
+        {
+            revealProgress = 0f;
+            ApplyIconScale();
+        }
+
+        void ApplyIconScale()
+        {
+            if (iconRoot == null)
+                return;
+
+            // Overshoots and settles, so the icon arrives rather than merely appearing.
+            float t = Mathf.Clamp01(revealProgress);
+            float eased = t >= 1f ? 1f : 1f - Mathf.Pow(1f - t, 3f);
+            float overshoot = t >= 1f ? 1f : eased + Mathf.Sin(t * Mathf.PI) * 0.25f;
+
+            iconRoot.localScale = Vector3.one * ((focused ? FocusedScale : 1f) * overshoot);
         }
 
         /// <summary>
@@ -87,6 +118,14 @@ namespace Game.Level
         {
             if (iconRoot == null)
                 return;
+
+            if (revealProgress < 1f)
+            {
+                // Unscaled: the last enemy's killing blow triggers hitstop, and the offers are
+                // dealt straight after it.
+                revealProgress = Mathf.Min(1f, revealProgress + Time.unscaledDeltaTime / RevealSeconds);
+                ApplyIconScale();
+            }
 
             if (view == null)
                 view = Camera.main;

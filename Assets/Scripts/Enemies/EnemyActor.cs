@@ -31,6 +31,18 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How fast knockback bleeds off. Higher = stops sooner.")]
         float knockbackDamping = 8f;
 
+        [Header("Plating")]
+        [SerializeField, Tooltip("Where the amber hue comes from. Never author a plate colour — the telegraph grammar is enforced in one asset.")]
+        TelegraphPalette platingPalette;
+        [SerializeField, Range(0f, 1f), Tooltip("How far an intact plate is pushed toward amber. Strong: where the armour is, is the thing the player has to read.")]
+        float intactPlateBlend = 0.85f;
+        [SerializeField, Tooltip("Colour of an open plate. Dull and dead — a cracked plate reports itself as ordinary flesh, and it should stop looking like time at all.")]
+        Color crackedPlateColor = new Color(0.34f, 0.27f, 0.22f, 1f);
+        [SerializeField, Range(0f, 1f), Tooltip("How far a cracked plate is pushed toward the cracked colour.")]
+        float crackedPlateBlend = 0.7f;
+        [SerializeField, Tooltip("How long a plate flares white as it breaks open, so the earned weak point is a beat and not a fade.")]
+        float crackFlashSeconds = 0.25f;
+
         [Header("Statuses")]
         [SerializeField, Tooltip("What Burning/Chilled/Rooted actually do. Shared by every enemy so a status means the same thing whatever inflicted it.")]
         StatusSettings statusSettings;
@@ -48,6 +60,17 @@ namespace Game.Enemies
         Renderer[] renderers;
         MaterialPropertyBlock propertyBlock;
         Color[] baseColors;
+
+        /// <summary>
+        /// The plate each renderer belongs to, parallel to <see cref="renderers"/> and null where
+        /// the renderer is ordinary hide. Built once so the tint stack can paint the armour without
+        /// walking the hierarchy every frame — and so plating stays a layer in the ONE ordered
+        /// stack rather than a second component writing the same property block from Update, which
+        /// would race it.
+        /// </summary>
+        DamageZone[] plateForRenderer;
+        float crackFlashRemaining;
+
         DamageZone[] zones;
         CharacterController controller;
         Vector3 knockbackVelocity;
@@ -97,6 +120,14 @@ namespace Game.Enemies
         /// <summary>True while poise is broken — the enemy cannot act and takes the punish.</summary>
         public bool IsStaggered => Poise != null && Poise.IsStaggered;
 
+        /// <summary>
+        /// True while this body's damage gate stands: nothing but its key attack moves the health
+        /// bar. Read by <see cref="AmberSheen"/>, because a guard whose only tell is a health bar
+        /// refusing to move is a mechanic the player cannot see.
+        /// </summary>
+        public bool IsGuarded =>
+            definition != null && DamageGate.IsUp(definition.OnlyDamagedBy, damageGateBroken);
+
         /// <summary>The per-collider armour plates on this body. Empty for an unzoned enemy.</summary>
         public IReadOnlyList<DamageZone> Zones => zones ?? System.Array.Empty<DamageZone>();
 
@@ -145,6 +176,19 @@ namespace Game.Enemies
         /// </summary>
         public event Action PullResisted;
 
+        /// <summary>
+        /// Raised when the damage gate refused a hit. The player has to be told that the hit did
+        /// nothing at the moment it does nothing — a health bar that fails to move is a tell only
+        /// for someone already watching it.
+        /// </summary>
+        public event Action HitRefused;
+
+        /// <summary>
+        /// Raised by the one hit that breaks the guard. Fires exactly once per body, because the
+        /// gate never re-arms.
+        /// </summary>
+        public event Action GuardBroken;
+
         /// <summary>Raised the moment health reaches zero, before the death beat plays out.</summary>
         public event Action DeathSequenceStarted;
 
@@ -182,10 +226,30 @@ namespace Game.Enemies
             renderers = GetComponentsInChildren<Renderer>();
             propertyBlock = new MaterialPropertyBlock();
             baseColors = new Color[renderers.Length];
+            plateForRenderer = new DamageZone[renderers.Length];
             for (int i = 0; i < renderers.Length; i++)
             {
                 baseColors[i] = ReadBaseColor(renderers[i]);
+                plateForRenderer[i] = renderers[i] != null
+                    ? renderers[i].GetComponentInParent<DamageZone>()
+                    : null;
             }
+
+            // ENEMIES_BIOME1.md § 3.1's whole point is that an Ambershell's skull and dome answer
+            // a swing differently from its tail base. That has resolved correctly since M14.1 and
+            // the body said nothing about it — the plate opened for eight seconds with no visual.
+            // CrackedChanged was written for this ("so the body can retint") and had no subscriber.
+            for (int i = 0; i < zones.Length; i++)
+            {
+                if (zones[i] != null)
+                    zones[i].CrackedChanged += OnZoneCrackedChanged;
+            }
+        }
+
+        void OnZoneCrackedChanged(bool cracked)
+        {
+            if (cracked)
+                crackFlashRemaining = crackFlashSeconds;
         }
 
         /// <summary>
@@ -221,6 +285,15 @@ namespace Game.Enemies
                 Poise.Broke -= OnPoiseBroke;
                 Poise.ArmorStripped -= OnArmorStripped;
             }
+
+            if (zones == null)
+                return;
+
+            for (int i = 0; i < zones.Length; i++)
+            {
+                if (zones[i] != null)
+                    zones[i].CrackedChanged -= OnZoneCrackedChanged;
+            }
         }
 
         public void ApplyHit(in HitContext context)
@@ -240,13 +313,19 @@ namespace Game.Enemies
             // every point of damage had to come from the counter). Poise, knockback and every
             // piece of hit feedback still land while guarded, so the fight stays interactive —
             // only the health bar waits for the earned counter.
-            bool gateUp = definition.OnlyDamagedBy != null && !damageGateBroken;
-            bool gateKey = gateUp && context.Attack != null && context.Attack.Id == definition.OnlyDamagedBy.Id;
-            if (gateKey)
+            DamageGate.Verdict gate = DamageGate.Resolve(definition.OnlyDamagedBy, damageGateBroken, context.Attack);
+            if (gate.Breaking)
                 damageGateBroken = true;
 
-            bool guarded = gateUp && !gateKey;
+            bool guarded = gate.Guarded;
             float applied = guarded ? 0f : Health.TakeDamage(context.Damage * zone.DamageMultiplier);
+
+            // Fired before the rest of the hit resolves so the sheen's flash and its shatter land
+            // on the same frame as the numbers they are describing.
+            if (guarded)
+                HitRefused?.Invoke();
+            else if (gate.Breaking)
+                GuardBroken?.Invoke();
 
             // Poise only matters to something still standing. Applying it after a lethal hit
             // would open a "punish window" on a corpse, fire Staggered at the controller and
@@ -292,7 +371,7 @@ namespace Game.Enemies
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
                 $"poise {Poise.Poise:0.##}/{definition.PoiseMax:0.##} -> {poiseResult}" +
                 (guarded ? $"  GUARDED - only '{definition.OnlyDamagedBy.Id}' can break the guard" : string.Empty) +
-                (gateKey ? "  GUARD BROKEN - ordinary attacks now damage this enemy" : string.Empty) +
+                (gate.Breaking ? "  GUARD BROKEN - ordinary attacks now damage this enemy" : string.Empty) +
                 (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty) +
                 (zone.IsNeutral ? string.Empty : $"  zone '{zone.Id}' x{zone.DamageMultiplier:0.00}"));
         }
@@ -418,6 +497,8 @@ namespace Game.Enemies
 
             if (flashRemaining > 0f)
                 flashRemaining -= deltaTime;
+            if (crackFlashRemaining > 0f)
+                crackFlashRemaining -= deltaTime;
 
             ApplyKnockback(deltaTime);
             ApplyColor();
@@ -439,6 +520,8 @@ namespace Game.Enemies
 
             if (flashRemaining > 0f)
                 flashRemaining -= deltaTime;
+            if (crackFlashRemaining > 0f)
+                crackFlashRemaining -= deltaTime;
 
             ApplyColor();
 
@@ -461,8 +544,7 @@ namespace Game.Enemies
             // before the counter lands, and a boon's DoT trickling past it would quietly break
             // that promise (burn bypasses the hit resolver, so the ApplyHit gate never sees it).
             // Once the guard is broken, burning works like on anyone else.
-            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive
-                || (definition.OnlyDamagedBy != null && !damageGateBroken))
+            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive || IsGuarded)
             {
                 burnTickRemaining = 0f;
                 return;
@@ -515,12 +597,39 @@ namespace Game.Enemies
             knockbackVelocity *= Mathf.Exp(-knockbackDamping * deltaTime);
         }
 
+        /// <summary>
+        /// What one plated renderer looks like: amber and breathing while the plate is up, dull and
+        /// dead once it is open.
+        ///
+        /// <para>Reads <see cref="DamageZone.IsIntactArmor"/> — the same property the hit pipeline
+        /// reads — so a plate physically cannot look intact while resolving as soft. That is the
+        /// reason cracking is a timer on the zone rather than a second component.</para>
+        /// </summary>
+        Color PlateColor(Color rest, DamageZone plate, float pulse, float crackFlash)
+        {
+            if (plate.IsIntactArmor)
+            {
+                Color amber = TelegraphPalette.Resolve(
+                    platingPalette, TelegraphChannel.HardenedTime, new Color(1f, 0.67f, 0.13f, 1f));
+                amber *= Mathf.Lerp(0.85f, 1f, pulse);
+                amber.a = rest.a;
+                return Color.Lerp(rest, amber, intactPlateBlend);
+            }
+
+            Color open = Color.Lerp(rest, crackedPlateColor, crackedPlateBlend);
+
+            // The break flares white before settling, so the moment the weak point opens is a beat.
+            return crackFlash > 0f ? Color.Lerp(open, Color.white, crackFlash) : open;
+        }
+
         void ApplyColor()
         {
             if (renderers == null)
                 return;
 
             float flash = hitFlashSeconds > 0f ? Mathf.Clamp01(flashRemaining / hitFlashSeconds) : 0f;
+            float platePulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 0.8f * Mathf.PI * 2f);
+            float crackFlash = crackFlashSeconds > 0f ? Mathf.Clamp01(crackFlashRemaining / crackFlashSeconds) : 0f;
 
             for (int i = 0; i < renderers.Length; i++)
             {
@@ -528,6 +637,13 @@ namespace Game.Enemies
                     continue;
 
                 Color color = baseColors[i];
+
+                // Plating is a property of the body's material, so it sits at the bottom of the
+                // stack: a telegraph, a hit flash and a stagger all still read over the top of an
+                // amber plate, exactly as they do over hide.
+                DamageZone plate = plateForRenderer != null ? plateForRenderer[i] : null;
+                if (plate != null)
+                    color = PlateColor(color, plate, platePulse, crackFlash);
 
                 if (TelegraphOverride.HasValue)
                 {

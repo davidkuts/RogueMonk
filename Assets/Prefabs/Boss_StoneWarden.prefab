@@ -228,6 +228,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 11400000, guid: b16f8816b6526d04c9f080aa97954fd4, type: 2}
   deathSequenceSeconds: 2.2
   deathHitstopSeconds: 0.35
@@ -259,6 +264,7 @@ MonoBehaviour:
   maxHazardStepHeight: 1.5
   projectilePrefab: {fileID: 9152557275338150290, guid: d2c3faca7aa1d6e4b9f209750cc746e4, type: 3}
   hazardPrefab: {fileID: 7103169795322314866, guid: 7556f87eaff336142b8fd59b1711e0e0, type: 3}
+  fixedPatternGapDegrees: 70
   hitboxHeightOffset: 1.1
   turnSpeedDegPerSec: 360
   gravity: -25

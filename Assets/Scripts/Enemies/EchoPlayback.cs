@@ -48,6 +48,12 @@ namespace Game.Enemies
         [SerializeField, Tooltip("How brightly the ghost pulses while its own wind-up runs. The echo has to announce itself as loudly as the body did.")]
         [Range(1f, 4f)] float telegraphBoost = 2.2f;
 
+        [SerializeField, Tooltip("How long the ghost takes to resolve into being. Short: it must be fully readable before its wind-up matters.")]
+        float fadeInSeconds = 0.12f;
+
+        [SerializeField, Tooltip("How long the ghost takes to dissolve once its replay is over. ASSETS_BIOME1.md 4.6 wants an echo shader here; this is the same read without one.")]
+        float fadeOutSeconds = 0.2f;
+
         struct PendingEcho
         {
             public IAttackDefinition Attack;
@@ -65,6 +71,12 @@ namespace Game.Enemies
         HitResolver resolver;
         Transform ghost;
         Vector3 ghostVelocity;
+
+        /// <summary>Seconds since the current replay began, for the fade-in.</summary>
+        float replayElapsed;
+
+        /// <summary>Seconds of dissolve left after a replay ends. The ghost outlives its own attack by this much.</summary>
+        float fadeOutRemaining;
 
         /// <summary>Echoes recorded but not yet played. Zero means nothing is owed.</summary>
         public int PendingCount => pending.Count;
@@ -98,6 +110,24 @@ namespace Game.Enemies
         }
 
         /// <summary>
+        /// The dissolve envelope: 0 when the ghost is not there, 1 when it is fully resolved.
+        ///
+        /// <para>Before this the ghost snapped on and off, which read as a duplicate mesh being
+        /// toggled rather than as time replaying itself. Fading is the cheap stand-in for the echo
+        /// shader ASSETS_BIOME1.md § 6 lists, and it costs no clips and no material.</para>
+        /// </summary>
+        float DissolveAlpha
+        {
+            get
+            {
+                if (fadeOutRemaining > 0f && fadeOutSeconds > 0f)
+                    return Mathf.Clamp01(fadeOutRemaining / fadeOutSeconds);
+
+                return fadeInSeconds > 0f ? Mathf.Clamp01(replayElapsed / fadeInSeconds) : 1f;
+            }
+        }
+
+        /// <summary>
         /// Brightens the ghost while its wind-up runs, then settles it back.
         ///
         /// <para>A constant translucent copy is scenery; one that flares as it commits is a threat.
@@ -111,7 +141,7 @@ namespace Game.Enemies
 
             Color tint = TelegraphPalette.Resolve(palette, TelegraphChannel.Echo, new Color(0.78f, 0.95f, 0.98f));
             tint *= intensity;
-            tint.a = Mathf.Clamp01(ghostOpacity * Mathf.Max(1f, intensity));
+            tint.a = Mathf.Clamp01(ghostOpacity * Mathf.Max(1f, intensity)) * DissolveAlpha;
 
             var block = new MaterialPropertyBlock();
             foreach (Renderer renderer in ghost.GetComponentsInChildren<Renderer>(true))
@@ -217,6 +247,12 @@ namespace Game.Enemies
             {
                 TickReplay(deltaTime);
             }
+            else if (fadeOutRemaining > 0f)
+            {
+                // The dissolve outlives the attack. Nothing is queued during it, because starting
+                // the next replay from a half-faded ghost would read as one echo, not two.
+                TickDissolve(deltaTime);
+            }
             else if (pending.Count > 0 && Time.time >= pending[0].DueAt)
             {
                 BeginReplay(pending[0]);
@@ -270,6 +306,9 @@ namespace Game.Enemies
             ghost.SetPositionAndRotation(echo.Position, echo.Rotation);
             ghost.gameObject.SetActive(true);
             ghostVelocity = Vector3.zero;
+            replayElapsed = 0f;
+            fadeOutRemaining = 0f;
+            ApplyGhostTint(1f);
 
             alreadyHit.Clear();
             echoAttacks.TryStart(echo.Attack);
@@ -281,11 +320,28 @@ namespace Game.Enemies
 
         float pendingLunge;
 
+        /// <summary>Fades the ghost out after its replay, then puts it away.</summary>
+        void TickDissolve(float deltaTime)
+        {
+            fadeOutRemaining -= deltaTime;
+
+            if (fadeOutRemaining > 0f)
+            {
+                ApplyGhostTint(1f);
+                return;
+            }
+
+            fadeOutRemaining = 0f;
+            if (ghost != null)
+                ghost.gameObject.SetActive(false);
+        }
+
         void TickReplay(float deltaTime)
         {
             if (ghost == null)
                 return;
 
+            replayElapsed += deltaTime;
             ghost.position += ghostVelocity * deltaTime;
 
             // Flares across its wind-up and peaks on the strike, matching how every other telegraph
@@ -320,7 +376,10 @@ namespace Game.Enemies
             if (decal != null)
                 decal.Hide();
 
-            if (ghost != null)
+            // Dissolves rather than vanishing. The ghost stays active for the fade; TickDissolve
+            // is what finally puts it away.
+            fadeOutRemaining = ghost != null && ghost.gameObject.activeSelf ? fadeOutSeconds : 0f;
+            if (fadeOutRemaining <= 0f && ghost != null)
                 ghost.gameObject.SetActive(false);
         }
 

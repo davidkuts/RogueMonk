@@ -409,6 +409,7 @@ GameObject:
   - component: {fileID: 5807246230326084023}
   - component: {fileID: 5323029113700917858}
   - component: {fileID: 3447315803238689970}
+  - component: {fileID: 1720692689271497222}
   m_Layer: 8
   m_Name: Scrapfeather
   m_TagString: Untagged
@@ -476,6 +477,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 11400000, guid: b16f8816b6526d04c9f080aa97954fd4, type: 2}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -548,3 +554,23 @@ MonoBehaviour:
   fillColor: {r: 0.8, g: 0.25, b: 0.25, a: 1}
   backColor: {r: 0.08, g: 0.08, b: 0.09, a: 1}
   followSpeed: 9
+--- !u!114 &1720692689271497222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435890271187948631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 343375e8d51a4114f966956e626ba6b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DeathPop
+  actor: {fileID: 9089347626303322143}
+  pieceMaterial: {fileID: 2100000, guid: dcb323f81f8109e4ea23bbe9a6621720, type: 2}
+  pieceCount: 7
+  pieceSize: 0.1
+  speed: 3
+  lifetimeSeconds: 0.38
+  burstHeight: 0.3
+  overrideColor: {r: 0, g: 0, b: 0, a: 0}

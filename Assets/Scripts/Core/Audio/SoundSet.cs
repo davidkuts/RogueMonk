@@ -16,6 +16,15 @@ namespace Game.Core.Audio
 
         /// <summary>The counter-attack a perfect dodge unlocks. Deliberately the loudest thing the player can make happen.</summary>
         Riposte = 8,
+
+        /// <summary>A hit turned away by amber. Dead, hard and unsatisfying on purpose — it is the sound of nothing happening.</summary>
+        GuardRefused = 9,
+
+        /// <summary>Solidified time shattering. The second-biggest thing the player can make happen, after the Riposte itself.</summary>
+        GuardBreak = 10,
+
+        /// <summary>One door's incoming signal resolving as the offers are dealt.</summary>
+        DoorReveal = 11,
     }
 
     /// <summary>

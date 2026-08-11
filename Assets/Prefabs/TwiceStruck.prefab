@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 8857212966221729893}
   - component: {fileID: 5576782167069891846}
   - component: {fileID: 2949830532422486811}
+  - component: {fileID: 3345422121046441423}
+  - component: {fileID: 3677125514353702734}
   m_Layer: 8
   m_Name: TwiceStruck
   m_TagString: Untagged
@@ -84,6 +86,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 11400000, guid: b16f8816b6526d04c9f080aa97954fd4, type: 2}
   deathSequenceSeconds: 0.55
   deathHitstopSeconds: 0.1
@@ -140,6 +147,8 @@ MonoBehaviour:
   hitboxHeightOffset: 0.8
   decal: {fileID: 4279726949447008976}
   telegraphBoost: 2.2
+  fadeInSeconds: 0.12
+  fadeOutSeconds: 0.2
 --- !u!114 &5576782167069891846
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -191,6 +200,55 @@ MonoBehaviour:
   fillColor: {r: 0.8, g: 0.25, b: 0.25, a: 1}
   backColor: {r: 0.08, g: 0.08, b: 0.09, a: 1}
   followSpeed: 9
+--- !u!114 &3345422121046441423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368868541844086673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd9ddf48659d32447bc1968a52a7e981, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.AmberSheen
+  actor: {fileID: 6099263629987628807}
+  palette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  sheenMaterial: {fileID: 2100000, guid: dcb323f81f8109e4ea23bbe9a6621720, type: 2}
+  shellScale: 1.06
+  baseAlpha: 0.45
+  pulseHz: 0.8
+  pulseDepth: 0.3
+  refuseFlashSeconds: 0.12
+  refuseFlashAlpha: 0.95
+  shatterSeconds: 0.3
+  shatterEndScale: 1.9
+  shardCount: 12
+  shardSpeed: 4.5
+  shardSize: 0.14
+  shardHeight: 0.9
+  resistFlashSeconds: 0.2
+  resistFlareColor: {r: 1, g: 0.85, b: 0.35, a: 1}
+--- !u!114 &3677125514353702734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368868541844086673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 343375e8d51a4114f966956e626ba6b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DeathPop
+  actor: {fileID: 6099263629987628807}
+  pieceMaterial: {fileID: 2100000, guid: dcb323f81f8109e4ea23bbe9a6621720, type: 2}
+  pieceCount: 14
+  pieceSize: 0.19
+  speed: 3.8
+  lifetimeSeconds: 0.6
+  burstHeight: 1
+  overrideColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!1 &921344482579156006
 GameObject:
   m_ObjectHideFlags: 0

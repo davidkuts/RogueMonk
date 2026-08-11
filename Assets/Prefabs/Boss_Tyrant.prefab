@@ -214,6 +214,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 11400000, guid: b16f8816b6526d04c9f080aa97954fd4, type: 2}
   deathSequenceSeconds: 1.4
   deathHitstopSeconds: 0.3
@@ -258,6 +263,7 @@ MonoBehaviour:
   maxHazardStepHeight: 1.5
   projectilePrefab: {fileID: 0}
   hazardPrefab: {fileID: 8941198793596903259, guid: 556f69e1f0350084884a0402d642ddc6, type: 3}
+  fixedPatternGapDegrees: 70
   hitboxHeightOffset: 1.1
   turnSpeedDegPerSec: 360
   gravity: -25
@@ -286,6 +292,13 @@ MonoBehaviour:
   stutterIntervalSeconds: 2.6
   holdSeconds: 0.16
   warpDistance: 3
+  chargeMoveId: ArenaCharge
+  junkRingStaggerSeconds: 2
+  ringLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  scriptedStaggerColor: {r: 0.55, g: 0.4, b: 1, a: 1}
+  seedJunkOptions: []
 --- !u!114 &4974176884084004242
 MonoBehaviour:
   m_ObjectHideFlags: 0
