@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f91fb744610db1045abec4bc89c77c0f, type: 3}
+  m_Name: TBoon_SkipFrame
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.TransmissionBoonDefinition
+  giver: 5
+  ability: 2
+  displayName: Skip Frame
+  description: Sometimes the Blink costs nothing at all. Dr. Reeve says that is not
+    possible.
+  scaledStat: 10
+  damageBonus: 0
+  poiseBonus: 0
+  status: 1
+  statusSeconds: 0
+  iFrameBonus: 0
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  repeatFraction: 0
+  repeatDelaySeconds: 0
+  repeatEveryNHits: 1
+  repeatAnyAbility: 0
+  procChance: 0
+  procMultiplier: 0
+  procHitstopBonus: 0
+  dashRefundChance: 0.25
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

@@ -13,7 +13,7 @@ namespace Game.Enemies
     /// reads its state to decide whether it may act.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class EnemyActor : MonoBehaviour, IDamageable, IEraTagged
+    public sealed class EnemyActor : MonoBehaviour, IDamageable, IEraTagged, IEchoRepeatTarget
     {
         [SerializeField] EnemyDefinition definition;
 
@@ -384,6 +384,33 @@ namespace Game.Enemies
                 (gate.Breaking ? "  GUARD BROKEN - ordinary attacks now damage this enemy" : string.Empty) +
                 (definition.Tier == StaggerTier.Armored ? $"  armor {Poise.Armor:0.##}" : string.Empty) +
                 (zone.IsNeutral ? string.Empty : $"  zone '{zone.Id}' x{zone.DamageMultiplier:0.00}"));
+        }
+
+        /// <summary>
+        /// Takes an Echo repeat: damage arriving outside the hit resolver, from a hit that already
+        /// landed (Denny's lane, BOONS.md §5).
+        ///
+        /// <para>Refused while the damage gate is up, for exactly the reason burn is: the guard
+        /// promises nothing moves the health bar before the counter lands, and a repeat trickling
+        /// past it would break that promise from a direction the gate never sees.</para>
+        ///
+        /// <para>Poise, knockback and stagger are all deliberately absent. A repeat is an echo of
+        /// damage, not a second swing — giving it poise would let one combo stagger a body twice
+        /// off a single read.</para>
+        /// </summary>
+        public void ApplyEchoRepeat(float damage, DamageType damageType)
+        {
+            if (!IsAlive || IsDying || damage <= 0f || IsGuarded)
+                return;
+
+            float applied = Health.TakeDamage(damage);
+            flashRemaining = hitFlashSeconds;
+
+            DamageResolved?.Invoke(new DamageReport(
+                applied, transform.position + Vector3.up, damageType, false, 0f));
+
+            GameLog.Debug(LogCategory.Enemy,
+                $"echo repeat {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})");
         }
 
         /// <summary>

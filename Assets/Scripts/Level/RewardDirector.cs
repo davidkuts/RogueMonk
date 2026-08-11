@@ -99,7 +99,16 @@ namespace Game.Level
                 stopgapInventory.ClearForNewRun();
 
             if (transmissionBoons != null)
+            {
                 transmissionBoons.ClearForNewRun();
+
+                // Flux rolls get their own stream off the run seed. It must be a DERIVED stream:
+                // how often a crit is rolled depends on how the player fights, so spending run
+                // draws on it would mean the same seed produced a different level for a different
+                // player. Same rule as the reward stream beside it.
+                if (owner != null && owner.Run != null)
+                    transmissionBoons.BindRunStream(owner.Run.DeriveStream());
+            }
         }
 
         /// <summary>Asks the policy asset what greets the player in the run's first room.</summary>

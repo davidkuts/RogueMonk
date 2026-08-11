@@ -48,6 +48,18 @@ namespace Game.Core.Locomotion
         /// </summary>
         public float DodgeGraceMultiplier { get; set; } = 1f;
 
+        /// <summary>
+        /// Flux's Skip Frame: chance a started dash hands its own charge straight back. Zero
+        /// without the boon. Same ownership rule as the multipliers above.
+        /// </summary>
+        public float RefundChance { get; set; }
+
+        /// <summary>
+        /// Where the Skip Frame roll comes from. Never the run stream — how often the player
+        /// dashes would otherwise change what level a quoted seed generates.
+        /// </summary>
+        public Game.Core.Rng.IRandomSource RefundStream { get; set; }
+
         /// <summary>True while the dash's i-frames proper are live.</summary>
         public bool IsInvulnerable =>
             IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction * Mathf.Max(0f, IFrameFractionMultiplier));
@@ -126,8 +138,24 @@ namespace Game.Core.Locomotion
             graceOpen = false;
             graceElapsed = 0f;
             refundedThisDash = false;
+
+            // Skip Frame rolls on the START of the dash, not the end: the player has to know
+            // immediately whether they still hold a charge, because that is what the next half
+            // second of decisions depends on.
+            //
+            // It deliberately does NOT set refundedThisDash — a free dash that also gave up its
+            // perfect-dodge refund would punish the player for the boon proccing.
+            if (RefundChance > 0f && RefundStream != null && RefundStream.NextFloat() < RefundChance)
+            {
+                Charges.Refund();
+                SkipFrames++;
+            }
+
             return true;
         }
+
+        /// <summary>How many times Skip Frame has handed a charge back, for the debug overlay.</summary>
+        public int SkipFrames { get; private set; }
 
         /// <summary>Advances the dash and returns the displacement to apply this frame.</summary>
         public Vector3 Tick(float deltaTime)

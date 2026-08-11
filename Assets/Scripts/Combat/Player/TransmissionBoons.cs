@@ -31,6 +31,31 @@ namespace Game.Combat
         readonly List<OwnedBoon> owned = new List<OwnedBoon>();
         readonly List<TransmissionBoonDefinition> ownedDefinitions = new List<TransmissionBoonDefinition>();
 
+        /// <summary>Echo's owed repeats. One scheduler for the lane, shared by every Echo boon held.</summary>
+        public EchoRepeatScheduler Repeats { get; } = new EchoRepeatScheduler();
+
+        /// <summary>
+        /// Flux's rolls come from here.
+        ///
+        /// <para>Derived off the run rather than being the run stream, and seeded by
+        /// <see cref="BindRunStream"/> when a run begins. How many times Flux rolls is a function
+        /// of how the player fights, so spending run-stream draws on it would mean two players
+        /// quoting the same seed got different levels — the exact failure DESIGN.md guarded the
+        /// boss's move selection against, and M16 guarded reward content against.</para>
+        ///
+        /// <para>Falls back to a fixed-seed source so a scene with no director (the enemy lab,
+        /// tests) still rolls rather than silently never proccing.</para>
+        /// </summary>
+        public Game.Core.Rng.IRandomSource FluxStream { get; private set; } =
+            new Game.Core.Rng.XorShiftRandom(0xF10C5u);
+
+        /// <summary>Hands Flux a stream derived from this run's seed. Called when a run begins.</summary>
+        public void BindRunStream(Game.Core.Rng.IRandomSource stream)
+        {
+            if (stream != null)
+                FluxStream = stream;
+        }
+
         public readonly struct OwnedBoon
         {
             public readonly TransmissionBoonDefinition Definition;
@@ -91,6 +116,23 @@ namespace Game.Combat
                     1f + boon.ScaledVsStatusPoiseBonus(scalar)));
             }
 
+            // Denny's lane: the hit happens again, later, weaker.
+            if (boon.RepeatFraction > 0f)
+            {
+                installed.Add(new EchoRepeatModifier(
+                    boon.Ability, boon.RepeatAnyAbility, boon.ScaledRepeatFraction(scalar),
+                    boon.RepeatDelaySeconds, boon.RepeatEveryNHits, Repeats));
+            }
+
+            // The waveform's lane: sometimes it hits far harder. Rolled from a stream derived off
+            // the run, never the run stream — how often it rolls depends on how the player fights.
+            if (boon.ProcChance > 0f)
+            {
+                installed.Add(new ChanceCritModifier(
+                    boon.Ability, boon.ScaledProcChance(scalar), boon.ProcMultiplier,
+                    boon.ProcHitstopBonus, FluxStream));
+            }
+
             for (int i = 0; i < installed.Count; i++)
                 attacks.Resolver.AddModifier(installed[i]);
 
@@ -122,6 +164,7 @@ namespace Game.Combat
             registered.Clear();
             owned.Clear();
             ownedDefinitions.Clear();
+            Repeats.Clear();
             ApplyDashPatches();
             Changed?.Invoke();
         }
@@ -151,6 +194,19 @@ namespace Game.Combat
             motor.Dash.IFrameFractionMultiplier = iFrames;
             motor.Dash.DodgeGraceMultiplier = grace;
 
+            // Skip Frame: the best owned chance wins rather than the chances compounding, matching
+            // how the shield regen interval resolves. Recomputed wholesale, never incremented.
+            float refundChance = 0f;
+            for (int i = 0; i < owned.Count; i++)
+            {
+                TransmissionBoonDefinition boon = owned[i].Definition;
+                if (boon.DashRefundChance > 0f)
+                    refundChance = Mathf.Max(refundChance, boon.ScaledDashRefundChance(Scalar(owned[i].Tier)));
+            }
+
+            motor.Dash.RefundChance = refundChance;
+            motor.Dash.RefundStream = FluxStream;
+
             // Stay Standing: the shortest owned regen interval wins; if the cadence is the
             // marked stat, rarity divides it.
             shieldRegenInterval = 0f;
@@ -172,12 +228,43 @@ namespace Game.Combat
         float shieldRegenElapsed;
 
         /// <summary>
+        /// Pays out the repeats that have come due.
+        ///
+        /// <para>Damage is applied straight to the target, NOT through the resolver. A repeat is
+        /// the consequence of a hit that already resolved — exactly like a burn tick — and sending
+        /// it back down the pipeline would let <see cref="EchoRepeatModifier"/> schedule a repeat
+        /// from its own repeat, forever. DESIGN.md settled that for DoT in M12.</para>
+        ///
+        /// <para>Each repeat still reports itself, so the player sees a second number arrive and
+        /// can tell the lane is working. A silent repeat would be the invisible-reward mistake the
+        /// empowered strike already taught this project once.</para>
+        /// </summary>
+        void DeliverEchoRepeats()
+        {
+            if (Repeats.PendingCount == 0)
+                return;
+
+            IReadOnlyList<EchoRepeatScheduler.PendingRepeat> due = Repeats.Tick(Time.deltaTime);
+            for (int i = 0; i < due.Count; i++)
+            {
+                EchoRepeatScheduler.PendingRepeat repeat = due[i];
+                if (repeat.Target == null || !repeat.Target.IsAlive)
+                    continue;
+
+                if (repeat.Target is IEchoRepeatTarget echoable)
+                    echoable.ApplyEchoRepeat(repeat.Damage, repeat.DamageType);
+            }
+        }
+
+        /// <summary>
         /// Ward's Stay Standing: counts up only while the shield is down, so "re-arms every
         /// 30s" means thirty seconds of actually being unshielded, and a shield from any other
         /// source (the Gauntlet Buckle, Guard High) resets nothing — it simply pauses the clock.
         /// </summary>
         void Update()
         {
+            DeliverEchoRepeats();
+
             if (shieldRegenInterval <= 0f || health == null || !health.IsAlive)
                 return;
 

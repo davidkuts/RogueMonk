@@ -28,4 +28,17 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8057d965cbe70b74a9d170f01fb3d1f6, type: 2}
   - {fileID: 11400000, guid: 7e6e50d756b0edf4aa2ffb44718ea8f2, type: 2}
   - {fileID: 11400000, guid: b485e72cb7fa0054b9580dc241237e82, type: 2}
+  - {fileID: 11400000, guid: aa95702946ccee745a18781dee87073d, type: 2}
+  - {fileID: 11400000, guid: 34edddc2d62c2ae4e8e5943123c7ff83, type: 2}
+  - {fileID: 11400000, guid: 8db22f15b8c108b48b19ec59124fa0d5, type: 2}
+  - {fileID: 11400000, guid: 2b87398ca1ddb2a498124160b982b739, type: 2}
+  - {fileID: 11400000, guid: 5696aecfdafbadc4ab5aa3fb9f1d1c96, type: 2}
+  - {fileID: 11400000, guid: 6c48a080bca31cc49ba77b37960d7d95, type: 2}
+  - {fileID: 11400000, guid: 4475c1d3353fa964a9c90b302b72a22c, type: 2}
   offerCount: 3
+  normalRarityWeight: 6
+  rareRarityWeight: 3
+  epicRarityWeight: 1
+  eliteNormalRarityWeight: 0
+  eliteRareRarityWeight: 7
+  eliteEpicRarityWeight: 3

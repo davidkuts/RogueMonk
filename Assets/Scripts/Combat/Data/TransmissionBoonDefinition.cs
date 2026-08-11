@@ -48,6 +48,12 @@ namespace Game.Combat
 
         VsStatusDamageBonus = 7,
         VsStatusPoiseBonus = 8,
+
+        /// <summary>Echo's lane: higher rarity makes the repeat hit harder.</summary>
+        RepeatPower = 9,
+
+        /// <summary>Flux's lane: higher rarity makes the roll come up more often.</summary>
+        ProcChance = 10,
     }
 
     /// <summary>
@@ -94,6 +100,26 @@ namespace Game.Combat
         [SerializeField, Tooltip("Ward's Stay Standing: the one-hit shield re-arms this many seconds after it is lost. 0 disables. Rarity divides the interval.")]
         float shieldRegenSeconds;
 
+        [Header("Echo lane — the hit happens again, later, weaker")]
+        [SerializeField, Range(0f, 1f), Tooltip("Power of the repeat as a fraction of what actually landed: 0.4 = 40%. Zero disables the whole Echo lane on this boon.")]
+        float repeatFraction;
+        [SerializeField, Tooltip("How long the repeat is owed for. Long enough to read as a separate beat rather than a double-hit.")]
+        float repeatDelaySeconds = 0.8f;
+        [SerializeField, Tooltip("Cadence: repeat every Nth qualifying hit. 1 repeats every one. The counter runs across the whole fight rather than resetting per combo.")]
+        int repeatEveryNHits = 1;
+        [SerializeField, Tooltip("Standing Wave's lane: count EVERY instance of damage the player deals rather than one ability slot's. Leave off for slot-scoped echoes.")]
+        bool repeatAnyAbility;
+
+        [Header("Flux lane — chance-based, rolled from a stream derived off the run")]
+        [SerializeField, Range(0f, 1f), Tooltip("Chance the slot's hit multiplies. Zero disables the whole Flux lane on this boon.")]
+        float procChance;
+        [SerializeField, Tooltip("What a successful roll multiplies the finished damage by. 3 = Noise Floor's crit.")]
+        float procMultiplier = 3f;
+        [SerializeField, Tooltip("Extra hitstop on a successful roll, so a crit lands like one instead of feeling like a jab that happened to print a big number.")]
+        float procHitstopBonus = 0.05f;
+        [SerializeField, Range(0f, 1f), Tooltip("Skip Frame: chance a Blink refunds its own charge. Not a hit modifier — it patches the dash.")]
+        float dashRefundChance;
+
         [Header("Conditional bonus (vs a status the target carries)")]
         [SerializeField, Tooltip("The status the target must be under for the bonus below. Only read when a bonus is non-zero.")]
         StatusEffect vsStatus = StatusEffect.Burning;
@@ -116,6 +142,38 @@ namespace Game.Combat
         public float DodgeGraceBonus => dodgeGraceBonus;
         public int ShieldEveryNHits => shieldEveryNHits;
         public float ShieldRegenSeconds => shieldRegenSeconds;
+        public float RepeatFraction => repeatFraction;
+        public float RepeatDelaySeconds => repeatDelaySeconds;
+        public int RepeatEveryNHits => Mathf.Max(1, repeatEveryNHits);
+        public bool RepeatAnyAbility => repeatAnyAbility;
+        public float ProcChance => procChance;
+        public float ProcMultiplier => procMultiplier;
+        public float ProcHitstopBonus => procHitstopBonus;
+        public float DashRefundChance => dashRefundChance;
+
+        /// <summary>
+        /// The repeat's power, clamped at 100%.
+        ///
+        /// <para>An echo louder than the sound that made it is wrong twice over. BOONS.md §2 makes
+        /// Echo "weak per-instance, compounding over a fight" — the lane's identity is volume, not
+        /// spikes — and §7 reserves "repeats at 100% power instead of reduced" as the payoff of the
+        /// Mara + Denny Resonance. An Epic that sailed past full power would quietly deliver an
+        /// unbuilt feature's reward.</para>
+        /// </summary>
+        public float ScaledRepeatFraction(float rarityScalar) =>
+            Mathf.Min(1f, Scale(ScaledStat.RepeatPower, repeatFraction, rarityScalar));
+
+        /// <summary>
+        /// The rolled chance. Clamped at 0.9 however high the rarity scalar goes: a Flux boon that
+        /// always procs has stopped being variance and become a flat damage boon, which is
+        /// Overclock's job and would collapse the giver's whole identity.
+        /// </summary>
+        public float ScaledProcChance(float rarityScalar) =>
+            Mathf.Min(0.9f, Scale(ScaledStat.ProcChance, procChance, rarityScalar));
+
+        public float ScaledDashRefundChance(float rarityScalar) =>
+            Mathf.Min(0.9f, Scale(ScaledStat.ProcChance, dashRefundChance, rarityScalar));
+
         public StatusEffect VsStatus => vsStatus;
         public float VsStatusDamageBonus => vsStatusDamageBonus;
         public float VsStatusPoiseBonus => vsStatusPoiseBonus;
@@ -171,8 +229,33 @@ namespace Game.Combat
                     return $"+{Mathf.RoundToInt(Scale(ScaledStat.VsStatusDamageBonus, vsStatusDamageBonus, rarityScalar) * 100f)}% DAMAGE VS {StatusName(vsStatus)}";
                 case ScaledStat.VsStatusPoiseBonus:
                     return $"+{Mathf.RoundToInt(Scale(ScaledStat.VsStatusPoiseBonus, vsStatusPoiseBonus, rarityScalar) * 100f)}% ARMOR BREAK VS {StatusName(vsStatus)}";
+                case ScaledStat.RepeatPower:
+                    return repeatEveryNHits > 1
+                        ? $"EVERY {Ordinal(repeatEveryNHits)} HIT REPEATS AT {Mathf.RoundToInt(ScaledRepeatFraction(rarityScalar) * 100f)}%"
+                        : $"REPEATS AT {Mathf.RoundToInt(ScaledRepeatFraction(rarityScalar) * 100f)}%";
+                case ScaledStat.ProcChance:
+                    // Flux must telegraph its odds on the card (BOONS.md §5) — a variance giver
+                    // whose distribution is invisible is just a worse damage giver.
+                    return dashRefundChance > 0f
+                        ? $"{Mathf.RoundToInt(ScaledDashRefundChance(rarityScalar) * 100f)}% CHANCE TO REFUND THE BLINK"
+                        : $"{Mathf.RoundToInt(ScaledProcChance(rarityScalar) * 100f)}% CHANCE OF {procMultiplier:0.#}x DAMAGE";
                 default:
                     return string.Empty;
+            }
+        }
+
+        /// <summary>"3rd", not "3th". A card the player reads has to read like English.</summary>
+        static string Ordinal(int n)
+        {
+            if (n % 100 >= 11 && n % 100 <= 13)
+                return n + "th";
+
+            switch (n % 10)
+            {
+                case 1: return n + "st";
+                case 2: return n + "nd";
+                case 3: return n + "rd";
+                default: return n + "th";
             }
         }
 
