@@ -109,6 +109,34 @@ namespace Game.Core.Player
         /// </summary>
         public void ApplyExternalSpeedMultiplier(float multiplier) => speedFields.Report(multiplier);
 
+        /// <summary>
+        /// Moves the body somewhere instantly, for the Stored Rewind Stopgap.
+        ///
+        /// <para>The CharacterController caches its own position and overwrites the transform on
+        /// its next Move, so writing <c>transform.position</c> alone gets silently undone within a
+        /// frame. Disabling it across the write is the documented way to relocate one, and it is
+        /// why this is a method here rather than a line at the call site.</para>
+        ///
+        /// <para>Vertical speed is cleared too: arriving with the accumulated fall of wherever the
+        /// player was would slam them into the floor on landing.</para>
+        /// </summary>
+        public void Teleport(Vector3 position)
+        {
+            if (controller != null)
+            {
+                bool wasEnabled = controller.enabled;
+                controller.enabled = false;
+                transform.position = position;
+                controller.enabled = wasEnabled;
+            }
+            else
+            {
+                transform.position = position;
+            }
+
+            verticalSpeed = 0f;
+        }
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();

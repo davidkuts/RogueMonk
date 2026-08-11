@@ -20,6 +20,12 @@ namespace Game.Core.Player
         const string RiposteActionName = "Riposte";
         const string VortexActionName = "Vortex";
         const string InteractActionName = "Interact";
+        const string StopgapActionName = "Stopgap";
+
+        // Binding groups as named in MonkControls.inputactions. Prompts resolve through these so
+        // the glyph matches the device actually in the player's hands.
+        const string GamepadSchemeGroup = "Gamepad";
+        const string KeyboardSchemeGroup = "Keyboard&Mouse";
 
         [SerializeField] InputActionAsset actions;
 
@@ -30,6 +36,7 @@ namespace Game.Core.Player
         InputAction riposteAction;
         InputAction vortexAction;
         InputAction interactAction;
+        InputAction stopgapAction;
 
         /// <summary>
         /// True while a menu owns the screen and gameplay must not read the pad.
@@ -73,6 +80,67 @@ namespace Game.Core.Player
         public bool InteractPressedThisFrame =>
             interactAction != null && !GameplayInputSuspended && interactAction.WasPressedThisFrame();
 
+        /// <summary>
+        /// True on the frame the Stopgap button went down (D-pad up, or R).
+        ///
+        /// <para>The D-pad was reserved for this in M16 and left unbound until the effects
+        /// existed. ⚠️ REWARDS.md §11 open decision 2 — WHICH d-pad direction — is answered as Up
+        /// here; the other three stay free for the rest of the consumable slots if they arrive.</para>
+        /// </summary>
+        public bool StopgapPressedThisFrame =>
+            stopgapAction != null && !GameplayInputSuspended && stopgapAction.WasPressedThisFrame();
+
+        /// <summary>
+        /// True when a pad was the last thing the player touched.
+        ///
+        /// <para>Decided by comparing device update times rather than by a PlayerInput component,
+        /// because the whole input layer here is the raw asset — and it means a player who picks
+        /// up the pad mid-run sees pad glyphs on the very next prompt, with no event plumbing.</para>
+        /// </summary>
+        public static bool UsingGamepad
+        {
+            get
+            {
+                Gamepad pad = Gamepad.current;
+                if (pad == null)
+                    return false;
+
+                Keyboard keyboard = Keyboard.current;
+                Mouse mouse = Mouse.current;
+
+                double keyboardTime = keyboard != null ? keyboard.lastUpdateTime : double.NegativeInfinity;
+                double mouseTime = mouse != null ? mouse.lastUpdateTime : double.NegativeInfinity;
+
+                return pad.lastUpdateTime >= System.Math.Max(keyboardTime, mouseTime);
+            }
+        }
+
+        /// <summary>
+        /// What the Interact button is actually called on the device in the player's hands.
+        ///
+        /// <para>The whole Interact path has been rebinding-safe since M16 — everything reads the
+        /// action, never a physical button — but the PROMPT was a hardcoded "R1 / F", which made
+        /// it the one part of the system that could lie. This asks the binding, so a rebind or a
+        /// device swap can no longer put a false instruction on screen.</para>
+        /// </summary>
+        public string InteractDisplayString
+        {
+            get
+            {
+                if (interactAction == null)
+                    return string.Empty;
+
+                string group = UsingGamepad ? GamepadSchemeGroup : KeyboardSchemeGroup;
+                string display = interactAction.GetBindingDisplayString(
+                    InputBinding.DisplayStringOptions.DontUseShortDisplayNames, group);
+
+                // A scheme with no binding for this action would otherwise print an empty box.
+                return string.IsNullOrWhiteSpace(display)
+                    ? interactAction.GetBindingDisplayString()
+                    : display;
+            }
+        }
+
         void Awake()
         {
             if (actions == null)
@@ -89,6 +157,7 @@ namespace Game.Core.Player
             riposteAction = playerMap.FindAction(RiposteActionName, throwIfNotFound: true);
             vortexAction = playerMap.FindAction(VortexActionName, throwIfNotFound: true);
             interactAction = playerMap.FindAction(InteractActionName, throwIfNotFound: true);
+            stopgapAction = playerMap.FindAction(StopgapActionName, throwIfNotFound: true);
         }
 
         void OnEnable() => playerMap?.Enable();

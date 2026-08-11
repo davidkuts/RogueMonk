@@ -137,6 +137,14 @@ namespace Game.Level.Tests
                         Assert.That(elite.Value, Is.LessThanOrEqualTo(1),
                             $"seed {seed} level {level}: '{elite.Key}' appears {elite.Value} times, max is once per biome");
 
+                    // EXACTLY one elite per level. Two independent 50/50 slots used to give a
+                    // distribution nobody chose — a quarter of runs met no elite and a quarter met
+                    // two. The duel is a set piece, so the seed decides WHICH one the player
+                    // fights, never whether they fight one at all.
+                    int elitesThisLevel = eliteCounts.Values.Sum();
+                    Assert.That(elitesThisLevel, Is.EqualTo(1),
+                        $"seed {seed} level {level}: expected exactly one elite, found {elitesThisLevel}");
+
                     // The boss room is the Tyrant, solo, on the designated point.
                     RoomPlan boss = plan.FinalRoom;
                     Assert.That(boss.Waves.Count, Is.EqualTo(1), $"seed {seed} level {level}: boss room is one wave");
@@ -145,6 +153,39 @@ namespace Game.Level.Tests
                     Assert.That(boss.Waves[0].Spawns[0].SpawnPointIndex, Is.EqualTo(LevelGenerator.BossSpawnPointIndex));
                 }
             }
+        }
+
+        [Test]
+        public void BothElitesStayReachableAcrossSeeds()
+        {
+            // The count test alone would pass a generator that always picked the Ambershell.
+            // What the quota is meant to buy is variety in WHICH duel you get, so both have to
+            // actually show up.
+            LevelGenerationSettings settings = LoadSettings();
+            var generator = new LevelGenerator(settings);
+            var seen = new Dictionary<string, int>();
+
+            for (uint seed = 1; seed <= 120; seed++)
+            {
+                LevelPlan plan = generator.Generate(new RunContext(seed), 0);
+
+                foreach (RoomPlan room in plan.Rooms)
+                foreach (WavePlan wave in room.Waves)
+                foreach (SpawnAssignment spawn in wave.Spawns)
+                {
+                    if (EliteIds.Contains(spawn.ArchetypeId))
+                        seen[spawn.ArchetypeId] = seen.TryGetValue(spawn.ArchetypeId, out int c) ? c + 1 : 1;
+                }
+            }
+
+            foreach (string elite in EliteIds)
+            {
+                Assert.That(seen.ContainsKey(elite), Is.True,
+                    $"'{elite}' never appeared across 120 seeds — the quota has collapsed onto one duel");
+            }
+
+            Assert.That(seen.Values.Sum(), Is.EqualTo(120),
+                "every seed should have produced exactly one elite");
         }
 
         [Test]

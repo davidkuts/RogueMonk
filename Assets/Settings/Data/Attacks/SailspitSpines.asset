@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d361a0db8a4f7e94f9a66db167da2127, type: 3}
   m_Name: SailspitSpines
   m_EditorClassIdentifier: Game.Combat::Game.Combat.AttackDefinition
+  ability: 0
   windupSeconds: 0.55
   activeSeconds: 0.1
   recoverySeconds: 0.6
@@ -28,10 +29,13 @@ MonoBehaviour:
   poiseDamage: 0
   knockback: 2
   hitstopSeconds: 0.05
+  hitStaggerSeconds: 0
+  playerKnockback: 0
   autoAimConeDegrees: 0
   autoAimRangeMeters: 0
   aimSnapSpeedDegPerSec: 0
   moveSpeedMultiplier: 0
+  threat: 1
   telegraphChannel: 2
   telegraphColor: {r: 1, g: 0.25, b: 0.2, a: 1}
   telegraphEmphasis: 1.3

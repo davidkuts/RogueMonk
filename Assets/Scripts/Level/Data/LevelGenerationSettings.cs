@@ -25,6 +25,10 @@ namespace Game.Level
     {
         [Tooltip("Author note only — which §5 lesson this composition teaches.")]
         public string note;
+
+        [Tooltip("Tick for the slot's elite duel. A level places EXACTLY ONE elite variant across all its slots: the seed decides which one, never whether there is one.")]
+        public bool isElite;
+
         public List<ScriptedWave> waves = new List<ScriptedWave>();
     }
 
@@ -185,10 +189,14 @@ namespace Game.Level
         {
             readonly List<IReadOnlyList<ScriptedSpawn>> waves = new List<IReadOnlyList<ScriptedSpawn>>();
 
+            public bool IsElite { get; }
+
             public RoomScriptVariantView(ScriptedRoomVariant variant)
             {
                 if (variant == null || variant.waves == null)
                     return;
+
+                IsElite = variant.isElite;
 
                 for (int w = 0; w < variant.waves.Count; w++)
                 {

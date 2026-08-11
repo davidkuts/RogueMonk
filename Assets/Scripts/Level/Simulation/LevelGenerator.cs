@@ -26,6 +26,7 @@ namespace Game.Level
 
         readonly List<float> weightScratch = new List<float>();
         readonly List<int> spawnPointScratch = new List<int>();
+        readonly List<IRoomScriptVariant> variantScratch = new List<IRoomScriptVariant>();
 
         public LevelGenerator(ILevelGenerationSettings settings)
         {
@@ -147,15 +148,40 @@ namespace Game.Level
             var rooms = new List<RoomPlan>(standardRooms + 1);
             IRoomTemplate previous = null;
 
+            // Exactly one elite duel per level. Two independent coin-flip slots produced a
+            // distribution nobody chose — a quarter of runs met no elite and a quarter met two —
+            // so the quota is spent here instead: the seed decides WHICH elite the player fights,
+            // never whether they fight one.
+            int eliteSlotsRemaining = CountEliteSlots(standardRooms);
+            bool elitePlaced = false;
+
             for (int index = 0; index < standardRooms; index++)
             {
                 IRoomTemplate template = PickTemplate(random, previous, RoomRole.Standard);
                 previous = template;
 
                 IRoomScript script = FindRoomScript(index);
-                List<WavePlan> waves = script != null
-                    ? BuildScriptedWaves(random, template, script)
-                    : BuildWaves(random, template, index, levelBudgetBonus);
+
+                EliteRequirement requirement = EliteRequirement.Free;
+                if (script != null && HasEliteVariant(script))
+                {
+                    eliteSlotsRemaining--;
+                    requirement =
+                        elitePlaced ? EliteRequirement.Forbidden
+                        : eliteSlotsRemaining == 0 ? EliteRequirement.Required
+                        : EliteRequirement.Free;
+                }
+
+                List<WavePlan> waves;
+                if (script != null)
+                {
+                    waves = BuildScriptedWaves(random, template, script, requirement, out bool tookElite);
+                    elitePlaced |= tookElite;
+                }
+                else
+                {
+                    waves = BuildWaves(random, template, index, levelBudgetBonus);
+                }
 
                 bool bossIsNext = index == standardRooms - 1;
                 rooms.Add(new RoomPlan(
@@ -272,6 +298,37 @@ namespace Game.Level
             return waves;
         }
 
+        /// <summary>True when any of this slot's variants is the elite duel.</summary>
+        static bool HasEliteVariant(IRoomScript script)
+        {
+            IReadOnlyList<IRoomScriptVariant> variants = script.Variants;
+            for (int i = 0; i < variants.Count; i++)
+            {
+                if (variants[i].IsElite)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// How many of this level's slots could host the elite. Counted before the walk so the
+        /// last one can be told it is the last chance — which is what turns "maybe an elite"
+        /// into "exactly one".
+        /// </summary>
+        int CountEliteSlots(int standardRooms)
+        {
+            int count = 0;
+            for (int index = 0; index < standardRooms; index++)
+            {
+                IRoomScript script = FindRoomScript(index);
+                if (script != null && HasEliteVariant(script))
+                    count++;
+            }
+
+            return count;
+        }
+
         /// <summary>The authored script covering a standard-room slot, or null for the budget path.</summary>
         IRoomScript FindRoomScript(int roomIndex)
         {
@@ -289,10 +346,39 @@ namespace Game.Level
         /// composition rules (vocabulary → sentence → elite) are honoured literally rather than
         /// hoped for from a budget roll.
         /// </summary>
-        List<WavePlan> BuildScriptedWaves(IRandomSource random, IRoomTemplate template, IRoomScript script)
+        List<WavePlan> BuildScriptedWaves(
+            IRandomSource random, IRoomTemplate template, IRoomScript script,
+            EliteRequirement requirement, out bool tookElite)
         {
             IReadOnlyList<IRoomScriptVariant> variants = script.Variants;
-            IRoomScriptVariant variant = variants[variants.Count == 1 ? 0 : random.NextInt(0, variants.Count)];
+
+            // Narrow to what the level's elite quota still permits, then draw among those. The
+            // draw stays a single seeded pick either way, so a slot always costs one decision.
+            variantScratch.Clear();
+            for (int i = 0; i < variants.Count; i++)
+            {
+                IRoomScriptVariant candidate = variants[i];
+                bool allowed =
+                    requirement == EliteRequirement.Free
+                    || (requirement == EliteRequirement.Required && candidate.IsElite)
+                    || (requirement == EliteRequirement.Forbidden && !candidate.IsElite);
+
+                if (allowed)
+                    variantScratch.Add(candidate);
+            }
+
+            // A slot with nothing left to offer falls back to the full list rather than producing
+            // an empty room: a content set that cannot satisfy the quota should still be playable,
+            // and the soak test is what catches it.
+            if (variantScratch.Count == 0)
+            {
+                for (int i = 0; i < variants.Count; i++)
+                    variantScratch.Add(variants[i]);
+            }
+
+            IRoomScriptVariant variant =
+                variantScratch[variantScratch.Count == 1 ? 0 : random.NextInt(0, variantScratch.Count)];
+            tookElite = variant.IsElite;
 
             var waves = new List<WavePlan>(variant.Waves.Count);
             for (int w = 0; w < variant.Waves.Count; w++)

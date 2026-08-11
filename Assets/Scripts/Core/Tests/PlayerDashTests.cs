@@ -266,6 +266,83 @@ namespace Game.Core.Tests
             return new PlayerDash(settings);
         }
 
+        // --- Per-threat grace ---------------------------------------------------------------
+        //
+        // "Perfect-dodging a projectile is far too easy" at one shared window: a travelling hitbox
+        // is caught by ANY instant of the protection, where a melee swing also demands the player
+        // still be standing in the arc. Melee keeps the generous window; projectiles get less.
+
+        static PlayerDash WithSplitGrace(out FakeDashSettings settings, float melee, float projectile)
+        {
+            settings = new FakeDashSettings
+            {
+                PerfectDodgeGraceSeconds = melee,
+                ProjectileDodgeGraceSeconds = projectile,
+            };
+            return new PlayerDash(settings);
+        }
+
+        [Test]
+        public void Grace_ProjectilesGetLessOfItThanMelee()
+        {
+            PlayerDash dash = WithSplitGrace(out _, melee: 0.20f, projectile: 0.05f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Melee), Is.True);
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Projectile), Is.True,
+                "both windows are open the instant the i-frames close");
+
+            dash.Tick(0.08f);   // past the projectile allowance, inside the melee one
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Projectile), Is.False,
+                "the bolt should already have been the player's problem");
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Melee), Is.True,
+                "the swing is still covered");
+
+            dash.Tick(0.15f);
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Melee), Is.False, "but not forever");
+        }
+
+        [Test]
+        public void Grace_TheShorterWindowClosingDoesNotCloseTheLonger()
+        {
+            // One timer backs both windows. If it were retired when the FIRST allowance ran out,
+            // a projectile dodge expiring would silently strip the melee protection too.
+            PlayerDash dash = WithSplitGrace(out _, melee: 0.20f, projectile: 0.02f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+
+            dash.Tick(0.05f);
+            Assert.That(dash.IsProtectedAgainst(ThreatType.Projectile), Is.False);
+            Assert.That(dash.IsInDodgeGrace, Is.True, "the melee window is still running");
+            Assert.That(dash.DodgeGraceRemaining, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void Grace_APerfectDodgeIsJudgedAgainstTheThreatThatArrived()
+        {
+            PlayerDash dash = WithSplitGrace(out _, melee: 0.20f, projectile: 0.02f);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+            dash.Tick(0.05f);
+
+            Assert.That(dash.TryRegisterPerfectDodge(ThreatType.Projectile), Is.False,
+                "too late for the bolt — it should land");
+            Assert.That(dash.TryRegisterPerfectDodge(ThreatType.Melee), Is.True,
+                "still in time for the swing");
+        }
+
+        [Test]
+        public void Grace_TheBoonMultiplierScalesBothWindows()
+        {
+            // Ward's Read the Room widens the dodge; it must not quietly widen only one half of it.
+            PlayerDash dash = WithSplitGrace(out _, melee: 0.10f, projectile: 0.04f);
+            dash.DodgeGraceMultiplier = 2f;
+
+            Assert.That(dash.GraceSecondsFor(ThreatType.Melee), Is.EqualTo(0.20f).Within(1e-4f));
+            Assert.That(dash.GraceSecondsFor(ThreatType.Projectile), Is.EqualTo(0.08f).Within(1e-4f));
+        }
+
         [Test]
         public void Grace_OpensWhenTheIFramesClose()
         {

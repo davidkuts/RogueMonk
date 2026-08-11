@@ -104,6 +104,7 @@ GameObject:
   - component: {fileID: 6503881209744027138}
   - component: {fileID: 1194770382655891043}
   - component: {fileID: 4058916273120558904}
+  - component: {fileID: 6368251961461388277}
   m_Layer: 8
   m_Name: Boss_StoneWarden
   m_TagString: Untagged
@@ -271,6 +272,23 @@ MonoBehaviour:
   groundedStickSpeed: 2
   decal: {fileID: 3502987916825860125}
   phaseTransitionColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+--- !u!114 &6368251961461388277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7412009853317744621}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe94622f9498d4b9c74f0e12b348b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DamageNumberEmitter
+  actor: {fileID: 1194770382655891043}
+  palette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  heavyHitstopThreshold: 0.08
+  heavyScale: 1.45
+  showRefusedHits: 1
 --- !u!1 &7549166713131080004
 GameObject:
   m_ObjectHideFlags: 0

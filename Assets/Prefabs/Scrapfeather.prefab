@@ -410,6 +410,7 @@ GameObject:
   - component: {fileID: 5323029113700917858}
   - component: {fileID: 3447315803238689970}
   - component: {fileID: 1720692689271497222}
+  - component: {fileID: 2673842959530119867}
   m_Layer: 8
   m_Name: Scrapfeather
   m_TagString: Untagged
@@ -574,3 +575,20 @@ MonoBehaviour:
   lifetimeSeconds: 0.38
   burstHeight: 0.3
   overrideColor: {r: 0, g: 0, b: 0, a: 0}
+--- !u!114 &2673842959530119867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435890271187948631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe94622f9498d4b9c74f0e12b348b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DamageNumberEmitter
+  actor: {fileID: 9089347626303322143}
+  palette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  heavyHitstopThreshold: 0.08
+  heavyScale: 1.45
+  showRefusedHits: 1

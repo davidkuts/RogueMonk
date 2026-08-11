@@ -32,17 +32,16 @@ namespace Game.Combat
         [SerializeField] AttackDefinition riposte;
 
         [Header("Elements")]
-        [SerializeField, Tooltip("Spark colour per damage type, indexed by the DamageType enum. Physical falls through to the light/heavy colours above.")]
-        Color[] elementColors =
-        {
-            new Color(1f, 0.85f, 0.45f, 0.9f),   // Physical (unused — falls through)
-            new Color(1f, 0.45f, 0.15f, 1f),     // Fire
-            new Color(0.45f, 0.8f, 1f, 1f),      // Ice
-            new Color(0.7f, 0.95f, 0.9f, 1f),    // Wind
-            new Color(0.85f, 0.7f, 0.45f, 1f),   // Earth
-            new Color(0.5f, 0.85f, 0.35f, 1f),   // Nature
-            new Color(1f, 0.85f, 0.35f, 1f),     // Force
-        };
+        [SerializeField, Tooltip("ONE asset holding what each damage type looks like, shared with the floating damage numbers so a spark and its number can never disagree about what just landed. Leaving it empty falls back to the light/heavy colours above.")]
+        DamageTypePalette damageTypePalette;
+
+        [Header("Damage numbers")]
+        [SerializeField, Tooltip("Fallback colour for damage the player takes, used when no palette is assigned.")]
+        Color hurtNumberColor = new Color(1f, 0.32f, 0.30f, 1f);
+        [SerializeField, Tooltip("How much bigger the player's own damage number is. Your health moving matters more than anyone else's.")]
+        float playerNumberScale = 1.5f;
+        [SerializeField, Tooltip("How far above the player the number starts, so it clears the body and the health bar.")]
+        float playerNumberHeight = 2.1f;
 
         [Header("Rumble")]
         [SerializeField, Tooltip("Hitstop above this counts as a heavy hit for feedback purposes.")]
@@ -142,15 +141,8 @@ namespace Game.Combat
             SpawnSpark(context.Point, -context.Direction, tint, heavy ? 1.4f : 1f);
         }
 
-        Color ResolveSparkColor(DamageType type, bool heavy)
-        {
-            int index = (int)type;
-            if (type != DamageType.Physical && elementColors != null &&
-                index >= 0 && index < elementColors.Length)
-                return elementColors[index];
-
-            return heavy ? heavyHitColor : lightHitColor;
-        }
+        Color ResolveSparkColor(DamageType type, bool heavy) =>
+            DamageTypePalette.Resolve(damageTypePalette, type, heavy, heavy ? heavyHitColor : lightHitColor);
 
         void OnWhiff(IAttackDefinition attack) => AudioDirector.PlaySound(GameSound.Whiff);
 
@@ -165,6 +157,12 @@ namespace Game.Combat
         {
             AudioDirector.PlaySound(GameSound.PlayerHurt);
             RumbleDirector.Rumble(hurtRumble.x, hurtRumble.y);
+
+            // Negative, so damage taken reads as a subtraction at a glance and can never be
+            // mistaken for damage dealt — the two are the same glyphs a metre apart.
+            Color color = damageTypePalette != null ? damageTypePalette.PlayerDamage : hurtNumberColor;
+            DamageNumberDirector.Show(
+                transform.position + Vector3.up * playerNumberHeight, -amount, color, playerNumberScale);
         }
 
         void OnPerfectDodge()

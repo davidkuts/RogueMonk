@@ -59,6 +59,16 @@ namespace Game.Combat
 
         public float CooldownRemaining => ability != null ? ability.CooldownRemaining : 0f;
 
+        /// <summary>
+        /// Hands the Undertow straight back. The Wound Spring Stopgap's whole effect.
+        ///
+        /// <para>⚠️ With the shipped cooldown at 0 (the vortex is deliberately spammable, governed
+        /// by the pull-immunity window instead), this currently has nothing to undo. It is built
+        /// correctly against the cooldown machinery, which is intact and re-enabled by putting a
+        /// non-zero number back in the asset.</para>
+        /// </summary>
+        public void RefreshCooldown() => ability?.Refresh();
+
         /// <summary>True while the pull window is open — the gameplay half of the move.</summary>
         public bool IsSpinning => spinning;
 

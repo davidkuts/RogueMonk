@@ -48,6 +48,28 @@ namespace Game.Combat
             return true;
         }
 
+        /// <summary>
+        /// Spends the oldest carried Stopgap. First in, first out: the player picked them up in an
+        /// order and a panic press should not have to guess which one it will burn.
+        /// </summary>
+        public bool TryConsume(out StopgapDefinition stopgap)
+        {
+            stopgap = null;
+            if (carried.Count == 0)
+                return false;
+
+            stopgap = carried[0];
+            carried.RemoveAt(0);
+
+            GameLog.Info(LogCategory.Combat,
+                $"STOPGAP spent  {stopgap.DisplayName} ({carried.Count}/{CarryCap} left)");
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>What the next press would spend, for the HUD. Null when nothing is carried.</summary>
+        public StopgapDefinition Next => carried.Count > 0 ? carried[0] : null;
+
         public void ClearForNewRun()
         {
             carried.Clear();

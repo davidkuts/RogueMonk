@@ -58,6 +58,10 @@ namespace Game.Combat
         [SerializeField, Range(0f, 1f), Tooltip("Walk speed while this attack runs. 0 roots the attacker.")]
         float moveSpeedMultiplier;
 
+        [Header("Threat")]
+        [SerializeField, Tooltip("What KIND of threat this is, for the perfect-dodge grace. Projectiles get the shorter window because a travelling hitbox is caught by any instant of it, where a melee swing also demands the player be standing in the arc. Set Projectile on anything a projectile carries as its payload.")]
+        Game.Core.Locomotion.ThreatType threat = Game.Core.Locomotion.ThreatType.Melee;
+
         [Header("Telegraph")]
         [SerializeField, Tooltip("What this telegraph MEANS. Anything but Custom resolves its colour from the TelegraphPalette, so the 'same colour = same threat' rule is enforced in one place instead of per asset.")]
         TelegraphChannel telegraphChannel = TelegraphChannel.Custom;
@@ -84,6 +88,14 @@ namespace Game.Combat
         public float AutoAimRangeMeters => autoAimRangeMeters;
         public float AimSnapSpeedDegPerSec => aimSnapSpeedDegPerSec;
         public float MoveSpeedMultiplier => moveSpeedMultiplier;
+
+        /// <summary>
+        /// The threat class this attack presents, for the perfect-dodge grace. Not part of
+        /// <see cref="IAttackDefinition"/> for the same reason <c>HitStaggerSeconds</c> and
+        /// <c>PlayerKnockback</c> are not: it is a player-facing rule read off the concrete asset,
+        /// and putting it on the interface would force it onto every enemy test double for nothing.
+        /// </summary>
+        public Game.Core.Locomotion.ThreatType Threat => threat;
 
         /// <summary>Wind-up telegraph colour. Not part of <see cref="IAttackDefinition"/> — presentation, not simulation.</summary>
         public Color TelegraphColor => telegraphColor;

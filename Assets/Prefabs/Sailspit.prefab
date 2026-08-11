@@ -556,6 +556,7 @@ GameObject:
   - component: {fileID: 4207831414465080219}
   - component: {fileID: -4906919447294401279}
   - component: {fileID: 9158502589277705367}
+  - component: {fileID: 2088659229143892370}
   m_Layer: 8
   m_Name: Sailspit
   m_TagString: Untagged
@@ -733,6 +734,23 @@ MonoBehaviour:
   lifetimeSeconds: 0.45
   burstHeight: 0.7
   overrideColor: {r: 0, g: 0, b: 0, a: 0}
+--- !u!114 &2088659229143892370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7244785236773632690}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe94622f9498d4b9c74f0e12b348b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DamageNumberEmitter
+  actor: {fileID: 3967294992480968847}
+  palette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  heavyHitstopThreshold: 0.08
+  heavyScale: 1.45
+  showRefusedHits: 1
 --- !u!1 &7994343053237849033
 GameObject:
   m_ObjectHideFlags: 0

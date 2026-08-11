@@ -685,6 +685,7 @@ GameObject:
   - component: {fileID: 7209544837783861014}
   - component: {fileID: -6615132052012015311}
   - component: {fileID: 4732885099407396502}
+  - component: {fileID: 6856283420713353916}
   m_Layer: 8
   m_Name: Cerashorn
   m_TagString: Untagged
@@ -874,6 +875,23 @@ MonoBehaviour:
   lifetimeSeconds: 0.55
   burstHeight: 0.85
   overrideColor: {r: 0, g: 0, b: 0, a: 0}
+--- !u!114 &6856283420713353916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6908010922901766939}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe94622f9498d4b9c74f0e12b348b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DamageNumberEmitter
+  actor: {fileID: 6466599666010823524}
+  palette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  heavyHitstopThreshold: 0.08
+  heavyScale: 1.45
+  showRefusedHits: 1
 --- !u!1 &7818940784567541633
 GameObject:
   m_ObjectHideFlags: 0

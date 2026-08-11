@@ -146,6 +146,7 @@ GameObject:
   - component: {fileID: 1559120985800547507}
   - component: {fileID: 5480627583023032294}
   - component: {fileID: 4974176884084004242}
+  - component: {fileID: 3038854158978579663}
   m_Layer: 8
   m_Name: Boss_Tyrant
   m_TagString: Untagged
@@ -311,6 +312,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1969f09253d895540abb181c64feee95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Combat::Game.Combat.ZonedBody
+--- !u!114 &3038854158978579663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1265441236269280034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe94622f9498d4b9c74f0e12b348b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Enemies::Game.Enemies.DamageNumberEmitter
+  actor: {fileID: 777540776052454306}
+  palette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  heavyHitstopThreshold: 0.08
+  heavyScale: 1.45
+  showRefusedHits: 1
 --- !u!1 &1626745321061632807
 GameObject:
   m_ObjectHideFlags: 0

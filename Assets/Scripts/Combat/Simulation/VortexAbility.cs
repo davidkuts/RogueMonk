@@ -58,6 +58,22 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Makes the ability available immediately, whatever it had left. The Wound Spring
+        /// Stopgap (REWARDS.md §5) is "instant Vortex recharge" and this is that instant.
+        ///
+        /// <para>Fires <see cref="BecameReady"/> like an ordinary recharge would, so the readiness
+        /// cue the player has learned means the same thing however the vortex came back.</para>
+        /// </summary>
+        public void Refresh()
+        {
+            if (remaining <= 0f)
+                return;
+
+            remaining = 0f;
+            BecameReady?.Invoke();
+        }
+
         /// <summary>Spends the ability. False when it is still recharging.</summary>
         public bool TryConsume()
         {

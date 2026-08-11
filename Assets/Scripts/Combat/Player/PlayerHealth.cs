@@ -1,5 +1,6 @@
 using System;
 using Game.Core.Diagnostics;
+using Game.Core.Locomotion;
 using Game.Core.Player;
 using UnityEngine;
 
@@ -118,9 +119,17 @@ namespace Game.Combat
                 return;
 
             // Dash i-frames come first: a strict overlap is a perfect dodge, and refunds the charge.
-            if (motor != null && motor.Dash != null && motor.Dash.IsProtected)
+            //
+            // The threat class decides how much grace applies. A projectile gets the shorter
+            // window because its hitbox travels into the player, so any instant of the protection
+            // catches it; a melee swing also demands the player still be standing in the arc.
+            ThreatType threat = context.Attack is AttackDefinition threatAsset
+                ? threatAsset.Threat
+                : ThreatType.Melee;
+
+            if (motor != null && motor.Dash != null && motor.Dash.IsProtectedAgainst(threat))
             {
-                if (motor.Dash.TryRegisterPerfectDodge())
+                if (motor.Dash.TryRegisterPerfectDodge(threat))
                 {
                     GameLog.Info(LogCategory.Combat,
                         $"PERFECT DODGE  {context.Attack.Id} phased through dash i-frames - charge refunded");
@@ -214,6 +223,43 @@ namespace Game.Combat
 
         /// <summary>Disarms the shield without consuming it — for the Stray that granted it being replaced.</summary>
         public void RevokeOneHitShield() => HasOneHitShield = false;
+
+        /// <summary>
+        /// Rewinds the body to a state it was actually in moments ago — the Stored Rewind Stopgap
+        /// (REWARDS.md §5), position handled by the caller and health handled here.
+        ///
+        /// <para>⚠️ This is the SECOND sanctioned exception to DESIGN.md's "no healing at all",
+        /// after the Splice. It is a narrower one: it cannot invent health, only restore a value
+        /// this body genuinely held inside the rewind window, and it is gated behind a consumable
+        /// capped at two. Recorded rather than hidden — DESIGN.md § Player health still has not
+        /// been reconciled with REWARDS.md and this makes the gap one item wider.</para>
+        ///
+        /// <para>Never raises the ceiling: a rewind to a moment when the player was healthier than
+        /// their maximum is impossible by construction, and a rewind DOWN is refused because a
+        /// panic button that could hurt you is a trap rather than a tool.</para>
+        /// </summary>
+        public void RewindTo(float recordedHealth)
+        {
+            if (!IsAlive)
+                return;
+
+            float target = Mathf.Clamp(recordedHealth, 0f, maxHealth);
+            if (target <= CurrentHealth)
+            {
+                GameLog.Info(LogCategory.Combat,
+                    $"REWIND  health unchanged ({CurrentHealth:0.##}) - the recorded state was no healthier");
+                return;
+            }
+
+            float before = CurrentHealth;
+            CurrentHealth = target;
+            healFlashRemaining = healFlashSeconds;
+
+            GameLog.Info(LogCategory.Combat,
+                $"REWIND  +{CurrentHealth - before:0.##} hp ({before:0.##} -> {CurrentHealth:0.##}/{maxHealth:0.##})");
+
+            Healed?.Invoke(CurrentHealth - before);
+        }
 
         /// <summary>
         /// DEBUG ONLY: a flat heal that ignores the Splice's biome-entry ceiling, so long runs

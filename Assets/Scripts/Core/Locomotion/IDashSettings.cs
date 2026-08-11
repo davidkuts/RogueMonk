@@ -23,8 +23,21 @@ namespace Game.Core.Locomotion
         /// travels toward the player, so any instant of the i-frame window can catch it; a melee
         /// swing is live for barely a tenth of a second and the player has to still be standing in
         /// it. Without this, one is comfortable and the other is frame-perfect.
+        ///
+        /// <para>This is the MELEE window — the generous one. See
+        /// <see cref="ProjectileDodgeGraceSeconds"/> for why there are two.</para>
         /// </summary>
         float PerfectDodgeGraceSeconds { get; }
+
+        /// <summary>
+        /// The grace against a hitbox that travels to the player, which is the easier of the two
+        /// to dodge and therefore gets the shorter window.
+        ///
+        /// <para>One number for both was the original shipping compromise and it broke the wrong
+        /// way: sized for melee to be fair, it made projectiles trivial. Splitting it is what lets
+        /// the melee window stay generous without a bolt becoming free.</para>
+        /// </summary>
+        float ProjectileDodgeGraceSeconds { get; }
 
         /// <summary>Number of charges the player holds.</summary>
         int MaxCharges { get; }

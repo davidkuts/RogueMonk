@@ -423,7 +423,15 @@ namespace Game.Level
             if (index >= 0 && builtExits[index].Blocker != null)
             {
                 if (doorPrompt == null)
+                {
                     doorPrompt = InteractPrompt.Build(transform, Vector3.zero);
+
+                    // The room already knows which reader owns the Interact action, so hand it
+                    // over rather than making the label go looking for one.
+                    var promptLabel = doorPrompt.GetComponent<InteractPromptLabel>();
+                    if (promptLabel != null)
+                        promptLabel.Bind(interactInput);
+                }
 
                 doorPrompt.transform.position =
                     builtExits[index].Blocker.transform.position + Vector3.up * 1.6f;

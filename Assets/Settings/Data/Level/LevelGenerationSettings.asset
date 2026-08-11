@@ -42,6 +42,7 @@ MonoBehaviour:
   - note: 'Room 1 - vocabulary: the Swiftjaw pack. NEVER an elite (human call 2026-08-09)'
     variants:
     - note: Pairs first, then the bigger pack
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
@@ -52,6 +53,7 @@ MonoBehaviour:
   - note: 'Room 2 - vocabulary: one new verb + Swiftjaws'
     variants:
     - note: Sailspit intro - close distance under fire, gently
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -64,6 +66,7 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
           count: 2
     - note: Cerashorn intro - bait the charge
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -78,6 +81,7 @@ MonoBehaviour:
   - note: 'Room 3 - sentence: the Scrapfeather swarm debuts, never alone'
     variants:
     - note: Your dodge lanes are owned
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -90,6 +94,7 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
           count: 6
     - note: Artillery behind a carpet
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -108,11 +113,13 @@ MonoBehaviour:
       mix'
     variants:
     - note: Ambershell duel, alone - riposte breaks the guard
+      isElite: 1
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 6d10f57cffd046feb2d3207481e4f388, type: 2}
           count: 1
     - note: Close distance under fire
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -129,6 +136,7 @@ MonoBehaviour:
   - note: 'Room 5 - sentence: full mixed compositions'
     variants:
     - note: Charge lanes through a carpet
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -141,6 +149,7 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
           count: 1
     - note: Artillery line, then a carpet with a horn
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -156,11 +165,13 @@ MonoBehaviour:
       so it appears at most once per biome, and never the same elite twice'
     variants:
     - note: Twice-Struck echo duel, alone - riposte breaks the guard
+      isElite: 1
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: c93cf791488c4181b182c8d996da2ad5, type: 2}
           count: 1
     - note: Chargers through the carpet, then artillery
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -176,6 +187,7 @@ MonoBehaviour:
       not an elite'
     variants:
     - note: Everything under fire
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 90951310f1244522bc8a21a9f7c41ea9, type: 2}
@@ -188,6 +200,7 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: f5d6941579e148c1a8530439e5e71d86, type: 2}
           count: 6
     - note: The pack returns, grown up
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -202,6 +215,7 @@ MonoBehaviour:
   - note: 'Room 8 - overtime: only exists on escalated later levels, no elites'
     variants:
     - note: Chargers, then artillery
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: 12e6136a367c44499d9ff1310f1df997, type: 2}
@@ -214,6 +228,7 @@ MonoBehaviour:
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}
           count: 2
     - note: The pack, then a carpet
+      isElite: 0
       waves:
       - entries:
         - archetype: {fileID: 11400000, guid: eda9f77ae30544168153a3be280bcb7c, type: 2}

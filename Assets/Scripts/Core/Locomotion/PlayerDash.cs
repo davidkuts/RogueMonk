@@ -17,7 +17,10 @@ namespace Game.Core.Locomotion
 
         float elapsed;
         float travelled;
-        float graceRemaining;
+
+        /// <summary>Seconds since the grace opened. Compared against each threat's own allowance.</summary>
+        float graceElapsed;
+        bool graceOpen;
         bool refundedThisDash;
 
         public DashCharges Charges { get; }
@@ -50,20 +53,46 @@ namespace Game.Core.Locomotion
             IsDashing && NormalizedTime <= Mathf.Clamp01(settings.IFrameFraction * Mathf.Max(0f, IFrameFractionMultiplier));
 
         /// <summary>
-        /// True during the trailing grace that follows the i-frames. Kept separate from
-        /// <see cref="IsInvulnerable"/> so the two can be read and tuned independently, even though
-        /// both protect the player.
+        /// The grace this threat class gets, after the boon multiplier. Melee is the generous
+        /// window; a projectile, which any instant of the window would catch, gets the short one.
         /// </summary>
-        public bool IsInDodgeGrace => graceRemaining > 0f;
+        public float GraceSecondsFor(ThreatType threat)
+        {
+            float authored = threat == ThreatType.Projectile
+                ? settings.ProjectileDodgeGraceSeconds
+                : settings.PerfectDodgeGraceSeconds;
+
+            return Mathf.Max(0f, authored * Mathf.Max(0f, DodgeGraceMultiplier));
+        }
 
         /// <summary>
-        /// The window that actually matters to combat: i-frames plus grace. Anything asking
-        /// "can this hit the player right now" wants this, not the raw i-frames.
+        /// True during the trailing grace against <paramref name="threat"/>. Kept separate from
+        /// <see cref="IsInvulnerable"/> so the two can be read and tuned independently, even though
+        /// both protect the player.
+        ///
+        /// <para>ONE timer backs both windows rather than two running in parallel: the grace opens
+        /// once, when the i-frames close, and each threat class simply has a different allowance
+        /// against the same elapsed clock. Two timers would let a dash be simultaneously inside and
+        /// outside its own grace depending on who asked.</para>
         /// </summary>
-        public bool IsProtected => IsInvulnerable || IsInDodgeGrace;
+        public bool IsInDodgeGraceFor(ThreatType threat) =>
+            graceOpen && graceElapsed < GraceSecondsFor(threat);
 
-        /// <summary>Seconds of grace left, for the debug overlay.</summary>
-        public float DodgeGraceRemaining => graceRemaining;
+        /// <summary>The generous window, for callers with no threat to name (the debug overlay, HUD).</summary>
+        public bool IsInDodgeGrace => IsInDodgeGraceFor(ThreatType.Melee);
+
+        /// <summary>
+        /// The window that actually matters to combat: i-frames plus the grace for this threat.
+        /// Anything asking "can this hit the player right now" wants this, not the raw i-frames.
+        /// </summary>
+        public bool IsProtectedAgainst(ThreatType threat) => IsInvulnerable || IsInDodgeGraceFor(threat);
+
+        /// <summary>The most protective reading, for display and for callers with no threat in hand.</summary>
+        public bool IsProtected => IsProtectedAgainst(ThreatType.Melee);
+
+        /// <summary>Seconds of melee grace left, for the debug overlay.</summary>
+        public float DodgeGraceRemaining =>
+            graceOpen ? Mathf.Max(0f, GraceSecondsFor(ThreatType.Melee) - graceElapsed) : 0f;
 
         /// <summary>True when a dash could be started right now.</summary>
         public bool CanStart => !IsDashing && Charges.HasCharge;
@@ -94,7 +123,8 @@ namespace Game.Core.Locomotion
 
             // A fresh dash owns the protection outright; leftover grace from the previous one
             // would let a second dash inherit a window it did not earn.
-            graceRemaining = 0f;
+            graceOpen = false;
+            graceElapsed = 0f;
             refundedThisDash = false;
             return true;
         }
@@ -105,8 +135,17 @@ namespace Game.Core.Locomotion
             Charges.Tick(deltaTime);
 
             // Runs whether or not a dash is live: the grace deliberately outlasts the dash itself.
-            if (deltaTime > 0f && graceRemaining > 0f)
-                graceRemaining = Mathf.Max(0f, graceRemaining - deltaTime);
+            // Closed once the LONGEST allowance has run out, so the shorter one expiring first
+            // does not take the other down with it.
+            if (deltaTime > 0f && graceOpen)
+            {
+                graceElapsed += deltaTime;
+
+                float longest = Mathf.Max(
+                    GraceSecondsFor(ThreatType.Melee), GraceSecondsFor(ThreatType.Projectile));
+                if (graceElapsed >= longest)
+                    graceOpen = false;
+            }
 
             if (!IsDashing || deltaTime <= 0f)
                 return Vector3.zero;
@@ -135,7 +174,10 @@ namespace Game.Core.Locomotion
             // dash simply ended. Opening it here rather than at dash start means the two windows
             // are contiguous and the total is exactly i-frames + grace.
             if (wasInvulnerable && !IsInvulnerable)
-                graceRemaining = Mathf.Max(0f, settings.PerfectDodgeGraceSeconds * Mathf.Max(0f, DodgeGraceMultiplier));
+            {
+                graceOpen = true;
+                graceElapsed = 0f;
+            }
 
             return step;
         }
@@ -145,9 +187,9 @@ namespace Game.Core.Locomotion
         /// charge once per dash — a multi-hit attack cannot farm charges.
         /// Returns true if this call was the refunding one.
         /// </summary>
-        public bool TryRegisterPerfectDodge()
+        public bool TryRegisterPerfectDodge(ThreatType threat = ThreatType.Melee)
         {
-            if (!IsProtected || refundedThisDash)
+            if (!IsProtectedAgainst(threat) || refundedThisDash)
                 return false;
 
             refundedThisDash = true;
@@ -162,7 +204,8 @@ namespace Game.Core.Locomotion
             IsDashing = false;
             elapsed = 0f;
             travelled = 0f;
-            graceRemaining = 0f;
+            graceOpen = false;
+            graceElapsed = 0f;
         }
     }
 }

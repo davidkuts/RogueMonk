@@ -29,6 +29,17 @@ namespace Game.Level
     public interface IRoomScriptVariant
     {
         IReadOnlyList<IReadOnlyList<ScriptedSpawn>> Waves { get; }
+
+        /// <summary>
+        /// True when this variant is the slot's elite duel.
+        ///
+        /// <para>Authored rather than inferred. The generator could look for an archetype with no
+        /// budget weight and guess, but "is this the elite fight" is a composition decision the
+        /// author already made when they wrote the variant — and a guess would silently change
+        /// meaning the first time some other archetype was given weight 0 for an unrelated
+        /// reason.</para>
+        /// </summary>
+        bool IsElite { get; }
     }
 
     /// <summary>
@@ -40,5 +51,25 @@ namespace Game.Level
     public interface IRoomScript
     {
         IReadOnlyList<IRoomScriptVariant> Variants { get; }
+    }
+
+    /// <summary>
+    /// What the level still owes in elites when a slot is drawn.
+    ///
+    /// <para>Exists because two independent 50/50 slots gave a distribution nobody asked for:
+    /// 25% of runs met no elite at all and 25% met two. The elite duel is a set piece — the one
+    /// fight in a biome that is a duel rather than a crowd — so a run should reliably contain
+    /// exactly one, with the seed deciding WHICH rather than whether.</para>
+    /// </summary>
+    public enum EliteRequirement
+    {
+        /// <summary>Either variant is allowed; the draw is free.</summary>
+        Free = 0,
+
+        /// <summary>The level has not placed its elite and this is the last slot that can.</summary>
+        Required = 1,
+
+        /// <summary>The level already has its elite; this slot must draw an ordinary fight.</summary>
+        Forbidden = 2,
     }
 }

@@ -25,6 +25,8 @@ namespace Game.Core.Locomotion
         float iFrameFraction = 0.85f;
         [SerializeField, Tooltip("Extra protection after the i-frames end, still counting as a perfect dodge. Exists because a melee swing is only live for a tenth of a second, so without it a melee perfect dodge is frame-perfect while a projectile one is comfortable.")]
         float perfectDodgeGraceSeconds = 0.09f;
+        [SerializeField, Tooltip("The same protection against a hitbox that TRAVELS to you. Shorter on purpose: a projectile is caught by any instant of the window, where a melee swing also demands you be standing in the arc. One number for both made projectiles trivial.")]
+        float projectileDodgeGraceSeconds = 0.05f;
 
         [Header("Charges")]
         [SerializeField, Tooltip("Charges held at once. Two pips on the HUD.")]
@@ -40,6 +42,7 @@ namespace Game.Core.Locomotion
         public float DurationSeconds => durationSeconds;
         public float IFrameFraction => iFrameFraction;
         public float PerfectDodgeGraceSeconds => perfectDodgeGraceSeconds;
+        public float ProjectileDodgeGraceSeconds => projectileDodgeGraceSeconds;
         public int MaxCharges => maxCharges;
         public float RechargeSeconds => rechargeSeconds;
         public float BufferSeconds => bufferSeconds;

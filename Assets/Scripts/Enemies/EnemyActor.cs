@@ -189,6 +189,13 @@ namespace Game.Enemies
         /// </summary>
         public event Action GuardBroken;
 
+        /// <summary>
+        /// Raised with what the hit actually cost this body — after zone reduction and the damage
+        /// gate, never with what the attacker intended. A floating number quoting the intended
+        /// damage over an enemy that took none would be a lie in the one place the player looks.
+        /// </summary>
+        public event Action<DamageReport> DamageResolved;
+
         /// <summary>Raised the moment health reaches zero, before the death beat plays out.</summary>
         public event Action DeathSequenceStarted;
 
@@ -366,6 +373,9 @@ namespace Game.Enemies
                 ApplyStagger(definition.WindupInterruptStaggerSeconds);
 
             flashRemaining = hitFlashSeconds;
+
+            DamageResolved?.Invoke(new DamageReport(
+                applied, context.Point, context.DamageType, guarded, context.HitstopSeconds));
 
             GameLog.Info(LogCategory.Enemy,
                 $"hit {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
@@ -558,6 +568,11 @@ namespace Game.Enemies
 
             float applied = Health.TakeDamage(statusSettings.BurnDamagePerTick);
             flashRemaining = hitFlashSeconds;
+
+            // Ticks get their own number for the same reason they are discrete at all: a smooth
+            // drain would be invisible, and so would a burn that never showed a figure.
+            DamageResolved?.Invoke(new DamageReport(
+                applied, transform.position + Vector3.up, DamageType.Fire, false, 0f));
 
             GameLog.Debug(LogCategory.Enemy,
                 $"burn {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +

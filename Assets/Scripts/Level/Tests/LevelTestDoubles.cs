@@ -67,6 +67,8 @@ namespace Game.Level.Tests
     {
         public List<IReadOnlyList<ScriptedSpawn>> Waves { get; set; } = new List<IReadOnlyList<ScriptedSpawn>>();
 
+        public bool IsElite { get; set; }
+
         IReadOnlyList<IReadOnlyList<ScriptedSpawn>> IRoomScriptVariant.Waves => Waves;
     }
 

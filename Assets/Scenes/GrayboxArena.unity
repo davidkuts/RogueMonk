@@ -512,6 +512,7 @@ GameObject:
   - component: {fileID: 209475370}
   - component: {fileID: 209475372}
   - component: {fileID: 209475371}
+  - component: {fileID: 209475373}
   m_Layer: 0
   m_Name: Diagnostics
   m_TagString: Untagged
@@ -654,6 +655,26 @@ MonoBehaviour:
   sounds: {fileID: 11400000, guid: 69bde257463bd2648be409d6466bcf9b, type: 2}
   voiceCount: 12
   masterVolume: 0.8
+--- !u!114 &209475373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48e7ed560ee98214a89e162469e22274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Core::Game.Core.Feedback.DamageNumberDirector
+  digitMaterial: {fileID: 2100000, guid: de95067059b774247a41a3d2557cb675, type: 2}
+  poolSize: 24
+  scale: 0.34
+  lifetimeSeconds: 0.75
+  riseSpeed: 2.4
+  spread: 0.9
+  heightOffset: 0.35
+  arcGravity: 2.2
 --- !u!1 &261461479
 GameObject:
   m_ObjectHideFlags: 0
@@ -2960,6 +2981,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -3255,13 +3281,6 @@ MonoBehaviour:
   normalBorder: {r: 0.45, g: 0.48, b: 0.55, a: 1}
   rareBorder: {r: 0.25, g: 0.5, b: 1, a: 1}
   epicBorder: {r: 0.65, g: 0.3, b: 0.95, a: 1}
-  giverColors:
-  - {r: 0.95, g: 0.5, b: 0.22, a: 1}
-  - {r: 0.45, g: 0.78, b: 0.55, a: 1}
-  - {r: 0.65, g: 0.88, b: 1, a: 1}
-  - {r: 0.95, g: 0.88, b: 0.5, a: 1}
-  - {r: 0.85, g: 0.68, b: 0.4, a: 1}
-  - {r: 0.78, g: 0.7, b: 0.9, a: 1}
   giverBackgroundTint: 0.12
   rarityScalars: {fileID: 11400000, guid: a93ed432c06f9bf44ac42abdcb5819eb, type: 2}
   selectedScale: 1.06
@@ -5781,6 +5800,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -7007,6 +7031,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -7121,6 +7150,7 @@ GameObject:
   - component: {fileID: 1949805148}
   - component: {fileID: 1949805147}
   - component: {fileID: 1949805146}
+  - component: {fileID: 1949805150}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7375,14 +7405,10 @@ MonoBehaviour:
   riposteHitColor: {r: 1, g: 0.9, b: 0.4, a: 1}
   riposteSparkScale: 2.6
   riposte: {fileID: 11400000, guid: b83f1e02a7c94d5689e34b071fa2c6de, type: 2}
-  elementColors:
-  - {r: 1, g: 0.85, b: 0.45, a: 0.9}
-  - {r: 1, g: 0.45, b: 0.15, a: 1}
-  - {r: 0.45, g: 0.8, b: 1, a: 1}
-  - {r: 0.7, g: 0.95, b: 0.9, a: 1}
-  - {r: 0.85, g: 0.7, b: 0.45, a: 1}
-  - {r: 0.5, g: 0.85, b: 0.35, a: 1}
-  - {r: 1, g: 0.85, b: 0.35, a: 1}
+  damageTypePalette: {fileID: 11400000, guid: a5132e6853d0e5b4d9a5cfeb66454d78, type: 2}
+  hurtNumberColor: {r: 1, g: 0.32, b: 0.3, a: 1}
+  playerNumberScale: 1.5
+  playerNumberHeight: 2.1
   heavyHitstopThreshold: 0.08
   lightRumble: {x: 0.25, y: 0.45}
   heavyRumble: {x: 0.6, y: 0.8}
@@ -7472,6 +7498,7 @@ MonoBehaviour:
   endWidth: 0.02
   smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
   minVertexDistance: 0.02
+  reachFraction: 0.85
 --- !u!114 &1949805146
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7527,6 +7554,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb2b28fcac4579846a2e2971613c0b50, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Core::Game.Core.Economy.PlayerWallet
+--- !u!114 &1949805150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d83111d88629d784aa68c53fe5c14f6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.PlayerStopgaps
+  inventory: {fileID: 1949805147}
+  input: {fileID: 1949805132}
+  health: {fileID: 1949805137}
+  motor: {fileID: 1949805131}
+  vortex: {fileID: 1949805144}
+  rewindWindowSeconds: 3
+  rewindSampleIntervalSeconds: 0.05
+  freezeRadiusMeters: 6
+  freezeLayers:
+    serializedVersion: 2
+    m_Bits: 256
+  spentTextColor: {r: 0.55, g: 0.9, b: 1, a: 1}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

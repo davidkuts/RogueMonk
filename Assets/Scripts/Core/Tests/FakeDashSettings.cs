@@ -14,6 +14,15 @@ namespace Game.Core.Tests
         // 0 by default so the existing i-frame tests keep asserting on the i-frames alone; the
         // grace tests opt in.
         public float PerfectDodgeGraceSeconds { get; set; }
+
+        // Defaults to the melee window unless a test sets it, so every pre-split grace test keeps
+        // asserting exactly what it always did.
+        float? projectileGrace;
+        public float ProjectileDodgeGraceSeconds
+        {
+            get => projectileGrace ?? PerfectDodgeGraceSeconds;
+            set => projectileGrace = value;
+        }
         public int MaxCharges { get; set; } = 2;
         public float RechargeSeconds { get; set; } = 2.5f;
         public float BufferSeconds { get; set; } = 0.15f;
