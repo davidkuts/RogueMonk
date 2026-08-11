@@ -28,12 +28,36 @@ namespace Game.Combat
     }
 
     /// <summary>
-    /// One transmission boon: a stat patch on one ability slot, offered in the 3-choice draft
-    /// a Transmission reward opens. Capsule-phase scaffolding — only stat modifiers riding the
-    /// existing hit pipeline (plus the Ward i-frame patch, which rides the dash instead).
+    /// Which of a boon's numbers its rarity scales. Every boon marks exactly ONE (human rule
+    /// 2026-08-11): the quality upgrade does not care what the boon is — it multiplies the
+    /// marked stat by the rarity scalar (×1 / ×1.5 / ×2 of base) and touches nothing else.
+    /// </summary>
+    public enum ScaledStat
+    {
+        DamageBonus = 0,
+        PoiseBonus = 1,
+        StatusSeconds = 2,
+        IFrameBonus = 3,
+        DodgeGraceBonus = 4,
+
+        /// <summary>Guard High's cadence: higher rarity divides the hits-per-shield count.</summary>
+        ShieldProcRate = 5,
+
+        /// <summary>Stay Standing's cadence: higher rarity divides the regen interval.</summary>
+        ShieldRegenRate = 6,
+
+        VsStatusDamageBonus = 7,
+        VsStatusPoiseBonus = 8,
+    }
+
+    /// <summary>
+    /// One transmission boon: a stat patch on one ability slot, offered in the draft a
+    /// Transmission reward opens. Capsule-phase scaffolding — only stat modifiers riding the
+    /// existing hit pipeline (plus the Ward patches, which ride the dash and the shield).
     ///
-    /// <para>All numbers are the NORMAL-tier values; the offer's tier scales them through
-    /// <see cref="RarityScalarSettings"/> at grant time — rarity scales numbers, never
+    /// <para>All numbers are the NORMAL-tier values. The offer's rolled rarity scales the ONE
+    /// stat marked by <see cref="ScaledStat"/> through <see cref="RarityScalarSettings"/> at
+    /// grant time; every other number stays at base — rarity scales the marked number, never
     /// mechanics. Budget rule (BOONS.md §3): a rider costs 30–50% of the damage portion, which
     /// is why a statusless Overclock ATK is +40% while Stasis ATK is +20% + slow.</para>
     /// </summary>
@@ -45,6 +69,8 @@ namespace Game.Combat
         AbilityId ability = AbilityId.ATK;
         [SerializeField] string displayName = "Boon";
         [SerializeField, TextArea(2, 3)] string description = "";
+        [SerializeField, Tooltip("The ONE stat this boon's rarity scales. Everything else stays at its base value whatever the quality.")]
+        ScaledStat scaledStat = ScaledStat.DamageBonus;
 
         [Header("Hit pipeline (Normal-tier values, scaled by rarity)")]
         [SerializeField, Tooltip("Added damage fraction on the slot's hits: 0.4 = +40%.")]
@@ -81,6 +107,7 @@ namespace Game.Combat
         public string Id => name;
         public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
         public string Description => description;
+        public ScaledStat Scaled => scaledStat;
         public float DamageBonus => damageBonus;
         public float PoiseBonus => poiseBonus;
         public StatusEffect Status => status;
@@ -93,18 +120,43 @@ namespace Game.Combat
         public float VsStatusDamageBonus => vsStatusDamageBonus;
         public float VsStatusPoiseBonus => vsStatusPoiseBonus;
 
-        /// <summary>Builds the runtime hit modifier at a tier, or null for a boon with no hit-side effect.</summary>
+        /// <summary>The marked stat gets the scalar; every other number is handed back at base.</summary>
+        float Scale(ScaledStat stat, float value, float rarityScalar) =>
+            scaledStat == stat ? value * rarityScalar : value;
+
+        public float ScaledIFrameBonus(float rarityScalar) => Scale(ScaledStat.IFrameBonus, iFrameBonus, rarityScalar);
+
+        public float ScaledDodgeGraceBonus(float rarityScalar) => Scale(ScaledStat.DodgeGraceBonus, dodgeGraceBonus, rarityScalar);
+
+        public float ScaledVsStatusDamageBonus(float rarityScalar) => Scale(ScaledStat.VsStatusDamageBonus, vsStatusDamageBonus, rarityScalar);
+
+        public float ScaledVsStatusPoiseBonus(float rarityScalar) => Scale(ScaledStat.VsStatusPoiseBonus, vsStatusPoiseBonus, rarityScalar);
+
+        /// <summary>Cadence stat: rarity DIVIDES the count so a better card shields more often.</summary>
+        public int ScaledShieldEveryNHits(float rarityScalar) =>
+            scaledStat == ScaledStat.ShieldProcRate
+                ? Mathf.Max(2, Mathf.RoundToInt(shieldEveryNHits / Mathf.Max(0.01f, rarityScalar)))
+                : shieldEveryNHits;
+
+        /// <summary>Cadence stat: rarity DIVIDES the interval so a better card re-arms sooner.</summary>
+        public float ScaledShieldRegenSeconds(float rarityScalar) =>
+            scaledStat == ScaledStat.ShieldRegenRate
+                ? shieldRegenSeconds / Mathf.Max(0.01f, rarityScalar)
+                : shieldRegenSeconds;
+
+        /// <summary>Builds the runtime hit modifier at a rarity, or null for a boon with no hit-side effect.</summary>
         public AbilityScopedModifier CreateModifier(float rarityScalar)
         {
             if (damageBonus <= 0f && poiseBonus <= 0f && statusSeconds <= 0f)
                 return null;
 
+            float seconds = Scale(ScaledStat.StatusSeconds, statusSeconds, rarityScalar);
             return new AbilityScopedModifier(
                 ability,
-                1f + damageBonus * rarityScalar,
-                1f + poiseBonus * rarityScalar,
-                statusSeconds > 0f ? status : (StatusEffect?)null,
-                statusSeconds * rarityScalar);
+                1f + Scale(ScaledStat.DamageBonus, damageBonus, rarityScalar),
+                1f + Scale(ScaledStat.PoiseBonus, poiseBonus, rarityScalar),
+                seconds > 0f ? status : (StatusEffect?)null,
+                seconds);
         }
     }
 }

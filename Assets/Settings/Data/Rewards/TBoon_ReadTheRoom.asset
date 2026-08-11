@@ -16,6 +16,7 @@ MonoBehaviour:
   ability: 4
   displayName: Read the Room
   description: Split Second timing window +35%.
+  scaledStat: 4
   damageBonus: 0
   poiseBonus: 0
   status: 1
@@ -23,3 +24,7 @@ MonoBehaviour:
   iFrameBonus: 0
   dodgeGraceBonus: 0.35
   shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

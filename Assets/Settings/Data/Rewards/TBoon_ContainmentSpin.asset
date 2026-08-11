@@ -16,6 +16,7 @@ MonoBehaviour:
   ability: 3
   displayName: Containment Spin
   description: Vortex ticks chill for 2s - what it gathers, stays gathered.
+  scaledStat: 2
   damageBonus: 0
   poiseBonus: 0
   status: 2
@@ -23,3 +24,7 @@ MonoBehaviour:
   iFrameBonus: 0
   dodgeGraceBonus: 0
   shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

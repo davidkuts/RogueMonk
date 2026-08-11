@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Combat::Game.Combat.RarityScalarSettings
   normalScalar: 1
   rareScalar: 1.5
-  epicScalar: 2.25
+  epicScalar: 2

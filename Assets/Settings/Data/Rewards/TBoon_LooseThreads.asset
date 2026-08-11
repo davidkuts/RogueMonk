@@ -16,8 +16,15 @@ MonoBehaviour:
   ability: 1
   displayName: Loose Threads
   description: +10% combo damage; hits fray the target's timeline (burn) for 3s.
+  scaledStat: 2
   damageBonus: 0.1
   poiseBonus: 0
   status: 1
   statusSeconds: 3
   iFrameBonus: 0
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

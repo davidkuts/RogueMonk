@@ -16,8 +16,15 @@ MonoBehaviour:
   ability: 2
   displayName: Slip the Punch
   description: Blink i-frames cover 40% more of the dash.
+  scaledStat: 3
   damageBonus: 0
   poiseBonus: 0
   status: 1
   statusSeconds: 0
   iFrameBonus: 0.4
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

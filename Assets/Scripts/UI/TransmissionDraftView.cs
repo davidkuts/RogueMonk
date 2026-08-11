@@ -31,6 +31,20 @@ namespace Game.UI
         [SerializeField] Color rareBorder = new Color(0.25f, 0.5f, 1f);
         [SerializeField] Color epicBorder = new Color(0.65f, 0.3f, 0.95f);
 
+        [Header("Giver identity (indexed by GiverId; BOONS.md §8 materials)")]
+        [SerializeField, Tooltip("Overclock/Mara: hot brass. Fray/Reeve: oxidizing patina. Stasis/Percy: frosted silver. Echo/Denny: double-tick ivory. Ward/Frank: heavy casing. Flux: the impossible signal.")]
+        Color[] giverColors =
+        {
+            new Color(0.95f, 0.50f, 0.22f),  // Overclock — ember brass
+            new Color(0.45f, 0.78f, 0.55f),  // Fray — verdigris
+            new Color(0.65f, 0.88f, 1.00f),  // Stasis — frost
+            new Color(0.95f, 0.88f, 0.50f),  // Echo — ivory tick
+            new Color(0.85f, 0.68f, 0.40f),  // Ward — sandstone casing
+            new Color(0.78f, 0.70f, 0.90f),  // Flux — off-spectrum
+        };
+        [SerializeField, Range(0f, 0.3f), Tooltip("How far each card's dark background leans toward its giver's colour. Subtle — the rarity border must stay the loudest signal.")]
+        float giverBackgroundTint = 0.12f;
+
         [Header("Selection")]
         [SerializeField, Range(1f, 1.3f), Tooltip("Scale of the focused card.")]
         float selectedScale = 1.06f;
@@ -54,8 +68,17 @@ namespace Game.UI
         {
             public GameObject Root;
             public Image Frame;
+            public Image Inner;
             public Text Name;
             public Text Body;
+        }
+
+        Color GiverColor(GiverId giver)
+        {
+            int index = (int)giver;
+            return giverColors != null && index >= 0 && index < giverColors.Length
+                ? giverColors[index]
+                : Color.white;
         }
 
         public bool IsShowing { get; private set; }
@@ -99,6 +122,7 @@ namespace Game.UI
                 title.text = twoGivers
                     ? "TWO SIGNALS ON THE CHANNEL — CHOOSE"
                     : $"INCOMING TRANSMISSION — {offer[0].Definition.Giver.ToString().ToUpperInvariant()}";
+                title.color = twoGivers ? new Color(0.3f, 0.9f, 1f) : GiverColor(offer[0].Definition.Giver);
             }
 
             BindCards();
@@ -181,10 +205,10 @@ namespace Game.UI
                 rect.anchoredPosition = new Vector2((i - 1) * 440f, -40f);
                 rect.sizeDelta = new Vector2(400f, 420f);
 
-                var inner = new GameObject("Inner").AddComponent<Image>();
-                inner.transform.SetParent(card.Root.transform, false);
-                inner.color = new Color(0.07f, 0.09f, 0.13f, 1f);
-                Stretch((RectTransform)inner.transform, 6f);
+                card.Inner = new GameObject("Inner").AddComponent<Image>();
+                card.Inner.transform.SetParent(card.Root.transform, false);
+                card.Inner.color = new Color(0.07f, 0.09f, 0.13f, 1f);
+                Stretch((RectTransform)card.Inner.transform, 6f);
 
                 card.Name = MakeText(card.Root.transform, 30, Color.white, TextAnchor.UpperCenter);
                 var nameRect = (RectTransform)card.Name.transform;
@@ -255,7 +279,14 @@ namespace Game.UI
                 rect.anchoredPosition = new Vector2((i - (offer.Count - 1) * 0.5f) * 440f, -40f);
 
                 TransmissionOffer o = offer[i];
+                Color giver = GiverColor(o.Definition.Giver);
+
+                // The giver reads at a glance: their colour on the name, a breath of it behind
+                // the card. Kept subtle so the rarity border stays the loudest signal.
                 card.Name.text = o.Definition.DisplayName.ToUpperInvariant();
+                card.Name.color = giver;
+                if (card.Inner != null)
+                    card.Inner.color = Color.Lerp(new Color(0.07f, 0.09f, 0.13f, 1f), giver, giverBackgroundTint);
 
                 string rarityLine = o.Rarity == RewardTier.Normal
                     ? string.Empty

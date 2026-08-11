@@ -76,21 +76,19 @@ namespace Game.Combat
             if (modifier != null)
                 installed.Add(modifier);
 
-            // Guard High: rarity divides the hit count, so a Rare shields more often — the
-            // number scales, the mechanic does not.
+            // Guard High: if the cadence is the marked stat, rarity divides the hit count so a
+            // better card shields more often — the number scales, the mechanic does not.
             if (boon.ShieldEveryNHits > 0 && health != null)
-            {
-                int hits = Mathf.Max(2, Mathf.RoundToInt(boon.ShieldEveryNHits / Mathf.Max(0.01f, scalar)));
-                installed.Add(new ShieldProcModifier(boon.Ability, hits, health.GrantOneHitShield));
-            }
+                installed.Add(new ShieldProcModifier(
+                    boon.Ability, boon.ScaledShieldEveryNHits(scalar), health.GrantOneHitShield));
 
             // Entropy Field's lane: bonus against targets already under a status.
             if (boon.VsStatusDamageBonus > 0f || boon.VsStatusPoiseBonus > 0f)
             {
                 installed.Add(new StatusConditionalModifier(
                     boon.Ability, boon.VsStatus,
-                    1f + boon.VsStatusDamageBonus * scalar,
-                    1f + boon.VsStatusPoiseBonus * scalar));
+                    1f + boon.ScaledVsStatusDamageBonus(scalar),
+                    1f + boon.ScaledVsStatusPoiseBonus(scalar)));
             }
 
             for (int i = 0; i < installed.Count; i++)
@@ -145,15 +143,16 @@ namespace Game.Combat
                 TransmissionBoonDefinition boon = owned[i].Definition;
                 float scalar = Scalar(owned[i].Tier);
                 if (boon.IFrameBonus > 0f)
-                    iFrames *= 1f + boon.IFrameBonus * scalar;
+                    iFrames *= 1f + boon.ScaledIFrameBonus(scalar);
                 if (boon.DodgeGraceBonus > 0f)
-                    grace *= 1f + boon.DodgeGraceBonus * scalar;
+                    grace *= 1f + boon.ScaledDodgeGraceBonus(scalar);
             }
 
             motor.Dash.IFrameFractionMultiplier = iFrames;
             motor.Dash.DodgeGraceMultiplier = grace;
 
-            // Stay Standing: the shortest owned regen interval wins; rarity divides it.
+            // Stay Standing: the shortest owned regen interval wins; if the cadence is the
+            // marked stat, rarity divides it.
             shieldRegenInterval = 0f;
             for (int i = 0; i < owned.Count; i++)
             {
@@ -161,7 +160,7 @@ namespace Game.Combat
                 if (boon.ShieldRegenSeconds <= 0f)
                     continue;
 
-                float interval = boon.ShieldRegenSeconds / Mathf.Max(0.01f, Scalar(owned[i].Tier));
+                float interval = boon.ScaledShieldRegenSeconds(Scalar(owned[i].Tier));
                 if (shieldRegenInterval <= 0f || interval < shieldRegenInterval)
                     shieldRegenInterval = interval;
             }

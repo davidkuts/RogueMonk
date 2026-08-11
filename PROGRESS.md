@@ -88,7 +88,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 16.1 | First reward playtest pass: icons on clear, proportional kill drops, 13-boon catalog, giver-claims-a-slot rule, draft centering | ✅ **done** |
 | 16.2 | Second pass: combo/riposte cancel wind-ups (tiers respected), Interact-confirmed doors with focus preview, L1/H debug heal, 15-boon pool | ✅ **done** |
 | 16.3 | Third pass: boss room ends at a consistent level-exit door (Interact-gated), bosses drop Hours+Amber on kill, drafts prefer full 3-card givers | ✅ **done** |
-| 16.4 | Fourth pass: quality bands decide door kinds (Basic/Valuable/Boon/EliteBoon), per-card boon rarity with blue/purple borders, two-giver elite draft, elemental boon screen retired | ✅ **done — awaiting playtest** |
+| 16.4 | Fourth pass: quality bands decide door kinds (Basic/Valuable/Boon/EliteBoon), per-card boon rarity with blue/purple borders, two-giver elite draft, elemental boon screen retired | ✅ **done** |
+| 16.5 | Fifth pass: rarity scales one marked stat per boon at ×1/×1.5/×2 of base, per-giver identity colours in the draft | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -100,6 +101,12 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.5: rarity scales one marked stat, and the givers get their colours
+- **Rarity scaling is now the human's exact rule: ×1 / ×1.5 / ×2 of BASE** (20% → 30% → 40%; an Epic is always double, each step +50% of base). `RarityScalarSettings` epic 2.25 → **2.0**.
+- **Each boon marks exactly ONE stat, and rarity scales only that** — new `ScaledStat` on `TransmissionBoonDefinition` (damage / poise / status duration / i-frames / grace / shield cadence / regen cadence / vs-status bonuses). The quality upgrade does not care what the boon is; it multiplies the marked number and touches nothing else — a Rare Drag Coefficient is +30% damage with the SAME 2 s chill. Cadence stats divide instead (an Epic Guard High shields every 5th hit, not every 20th). Marked per asset: the Overclock lane + Drag Coefficient scale damage; the Fray/Stasis riders scale their status durations; Deep Fracture scales armor decay; Ward's four scale i-frames / grace / proc / regen; Entropy Field scales its vs-frayed poise bonus. **Pinned by `ScaledStatTests`, including the literal 20→40-at-Epic worked example and unmarked-rider immobility.**
+- **Givers are now tellable at a glance** (the human's "hard to distinguish"): a per-giver colour set on the draft view (inspector-tunable, BOONS.md §8 materials — Overclock ember brass, Fray verdigris, Stasis frost, Echo ivory, Ward sandstone, Flux off-spectrum) colours the card NAME, breathes 12% into the card background, and colours the title on single-giver drafts. Deliberately subtle so the rarity border stays the loudest signal. **Verified live: a Fray draft reads verdigris under a blue Rare border.**
+- **547/547 EditMode tests.** Rebuilt.
 
 ### 2026-08-11 — M16.4: quality becomes bands, boons get rarity borders, the boss exit stops paying twice
 - **The between-levels elemental boon screen is retired** (the human's "boss room should not give any kind of boon"): stepping through the level-exit door now goes straight into the next era. Transmissions ARE the boon system; the M12 elemental screen and `PlayerBoons` remain in code but nothing reaches them any more — flag for a future cleanup or repurposing pass. **Verified live: level exit → LEVEL 2 ROOM 1, no screen, unpaused, enemies fighting.**

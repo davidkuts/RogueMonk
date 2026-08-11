@@ -16,6 +16,7 @@ MonoBehaviour:
   ability: 1
   displayName: Guard High
   description: Every 10th combo hit grants a one-hit shield.
+  scaledStat: 5
   damageBonus: 0
   poiseBonus: 0
   status: 1
@@ -23,3 +24,7 @@ MonoBehaviour:
   iFrameBonus: 0
   dodgeGraceBonus: 0
   shieldEveryNHits: 10
+  shieldRegenSeconds: 0
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0
