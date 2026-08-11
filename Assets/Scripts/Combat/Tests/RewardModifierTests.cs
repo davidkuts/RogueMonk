@@ -138,6 +138,44 @@ namespace Game.Combat.Tests
             Assert.That(armed, Is.EqualTo(2), "vortex hits do not feed an ATK-scoped counter (2 of 3 so far)");
         }
 
+        [Test]
+        public void StatusConditionalBonusPaysOnlyWhileTheStatusIsLive()
+        {
+            var resolver = new HitResolver();
+            resolver.AddModifier(new StatusConditionalModifier(AbilityId.None, StatusEffect.Burning, 1f, 1.3f));
+
+            var target = new FakeDamageable();
+
+            var cleanHit = Context(new FakeAttack { PoiseDamage = 10f }, target);
+            resolver.Resolve(ref cleanHit);
+            Assert.That(cleanHit.PoiseDamage, Is.EqualTo(10f).Within(0.001f), "no status, no bonus");
+
+            target.Statuses.Apply(StatusEffect.Burning, 3f);
+            var frayedHit = Context(new FakeAttack { PoiseDamage = 10f }, target);
+            resolver.Resolve(ref frayedHit);
+            Assert.That(frayedHit.PoiseDamage, Is.EqualTo(13f).Within(0.001f), "+30% armor-break while frayed");
+        }
+
+        [Test]
+        public void StatusConditionalRunsAfterStatusAppliers()
+        {
+            // A boon that inflicts the status (Order 50) must run before the bonus reads it,
+            // so the very hit that frays a clean target already profits.
+            var applier = new AbilityScopedModifier(AbilityId.ATK, 1f, 1f, StatusEffect.Burning, 3f);
+            var conditional = new StatusConditionalModifier(AbilityId.None, StatusEffect.Burning, 1.5f, 1f);
+            Assert.That(conditional.Order, Is.GreaterThan(applier.Order));
+
+            var resolver = new HitResolver();
+            resolver.AddModifier(conditional);
+            resolver.AddModifier(applier);
+
+            var target = new FakeDamageable();
+            var context = Context(new FakeAttack { Ability = AbilityId.ATK, Damage = 10f }, target);
+            resolver.Resolve(ref context);
+            Assert.That(context.Damage, Is.EqualTo(15f).Within(0.001f),
+                "the fraying hit itself lands on an already-frayed target");
+        }
+
         /// <summary>An attack with no ability tag at all — enemy attacks look like this.</summary>
         sealed class UntaggedAttack : IAttackDefinition
         {

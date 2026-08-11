@@ -35,6 +35,7 @@ namespace Game.Level
         PlayerAttackController playerAttacks;
         PlayerHealth playerHealth;
         PlayerBoons playerBoons;
+        Game.Core.Player.PlayerInputReader playerInput;
         CinemachineConfiner3D confiner;
         CinemachineFollow follow;
         BoxCollider confinerVolume;
@@ -155,6 +156,7 @@ namespace Game.Level
             playerAttacks = player.GetComponent<PlayerAttackController>();
             playerHealth = player.GetComponent<PlayerHealth>();
             playerBoons = player.GetComponent<PlayerBoons>();
+            playerInput = player.GetComponent<Game.Core.Player.PlayerInputReader>();
 
             if (playerAttacks != null)
                 playerAttacks.Hit += OnPlayerDealtDamage;
@@ -329,7 +331,10 @@ namespace Game.Level
             // exactly one boss-marked door when the boss is next (elites are Standard rooms and
             // do not count), none for the final room — clearing it ends the level with no door.
             if (roomPlan.ExitDoorCount > 0)
+            {
                 currentRoom.ConfigureExits(roomPlan.ExitRewards, settings.RewardConfigAsset);
+                currentRoom.BindDoorInteraction(player, playerInput);
+            }
 
             RoomEntered?.Invoke(roomPlan);
 

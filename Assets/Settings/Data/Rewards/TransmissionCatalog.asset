@@ -26,4 +26,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ce5b9272ac8339347b1f0755622455da, type: 2}
   - {fileID: 11400000, guid: 2d17010a0ca18af41b4b3dcf8df8abb9, type: 2}
   - {fileID: 11400000, guid: 8057d965cbe70b74a9d170f01fb3d1f6, type: 2}
+  - {fileID: 11400000, guid: 7e6e50d756b0edf4aa2ffb44718ea8f2, type: 2}
+  - {fileID: 11400000, guid: b485e72cb7fa0054b9580dc241237e82, type: 2}
   offerCount: 3

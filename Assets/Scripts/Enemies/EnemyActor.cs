@@ -271,6 +271,15 @@ namespace Game.Enemies
             else if (resistsPull)
                 PullResisted?.Invoke();
 
+            // A combo or riposte hit landing INSIDE a wind-up cancels it (human call
+            // 2026-08-11): reading a tell and answering with your own attack is the reward.
+            // ApplyStagger still owns the tier questions — Immune bosses ignore this, an
+            // Armored body with its plating intact shrugs it off, and a hit on an intact amber
+            // zone was already filtered by the rule.
+            if (Health.IsAlive &&
+                WindupInterrupt.ShouldInterrupt(context.Attack, TelegraphOverride.HasValue, zone.BlocksStagger))
+                ApplyStagger(definition.WindupInterruptStaggerSeconds);
+
             flashRemaining = hitFlashSeconds;
 
             GameLog.Info(LogCategory.Enemy,

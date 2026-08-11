@@ -67,36 +67,8 @@ namespace Game.Level
             return pickup;
         }
 
-        /// <summary>
-        /// A placeholder button prompt above the icon. uGUI on a world-space canvas rather than
-        /// a TextMesh: the legacy 3D text font material is exactly the kind of built-in shader
-        /// URP strips from builds, while canvas UI ships its own path.
-        /// </summary>
-        void BuildPrompt()
-        {
-            prompt = new GameObject("Prompt");
-            prompt.transform.SetParent(transform, false);
-            prompt.transform.localPosition = new Vector3(0f, 2.3f, 0f);
-
-            var canvas = prompt.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            var rect = (RectTransform)canvas.transform;
-            rect.sizeDelta = new Vector2(220f, 60f);
-            prompt.transform.localScale = Vector3.one * 0.012f;
-
-            var textGo = new GameObject("Text");
-            textGo.transform.SetParent(prompt.transform, false);
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 34;
-            text.fontStyle = FontStyle.Bold;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = new Color(0.98f, 0.96f, 0.88f);
-            text.text = "R1 / F";
-            ((RectTransform)textGo.transform).sizeDelta = new Vector2(220f, 60f);
-
-            prompt.SetActive(false);
-        }
+        void BuildPrompt() =>
+            prompt = InteractPrompt.Build(transform, new Vector3(0f, 2.3f, 0f));
 
         void Update()
         {

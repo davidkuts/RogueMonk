@@ -216,6 +216,27 @@ namespace Game.Combat
         public void RevokeOneHitShield() => HasOneHitShield = false;
 
         /// <summary>
+        /// DEBUG ONLY: a flat heal that ignores the Splice's biome-entry ceiling, so long runs
+        /// can be tested without health pressure while god mode stays off. Never wire this to
+        /// gameplay — the Splice is the one sanctioned in-run heal.
+        /// </summary>
+        public void DebugHeal(float amount)
+        {
+            if (!IsAlive || amount <= 0f)
+                return;
+
+            float before = CurrentHealth;
+            CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
+            healFlashRemaining = healFlashSeconds;
+
+            GameLog.Warn(LogCategory.Combat,
+                $"DEBUG HEAL  +{CurrentHealth - before:0.##} hp ({before:0.##} -> {CurrentHealth:0.##}/{maxHealth:0.##})");
+
+            if (CurrentHealth > before)
+                Healed?.Invoke(CurrentHealth - before);
+        }
+
+        /// <summary>
         /// The Splice (REWARDS.md §3): rewinds the body toward a less-injured state, never past
         /// the biome-entry snapshot. This is the ONE exception to no-healing — sanctioned by
         /// the rewards spec, gated behind a room reward, and clamped so it can never undo more

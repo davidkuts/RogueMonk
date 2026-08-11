@@ -84,6 +84,15 @@ namespace Game.Combat
                 installed.Add(new ShieldProcModifier(boon.Ability, hits, health.GrantOneHitShield));
             }
 
+            // Entropy Field's lane: bonus against targets already under a status.
+            if (boon.VsStatusDamageBonus > 0f || boon.VsStatusPoiseBonus > 0f)
+            {
+                installed.Add(new StatusConditionalModifier(
+                    boon.Ability, boon.VsStatus,
+                    1f + boon.VsStatusDamageBonus * scalar,
+                    1f + boon.VsStatusPoiseBonus * scalar));
+            }
+
             for (int i = 0; i < installed.Count; i++)
                 attacks.Resolver.AddModifier(installed[i]);
 
@@ -143,6 +152,48 @@ namespace Game.Combat
 
             motor.Dash.IFrameFractionMultiplier = iFrames;
             motor.Dash.DodgeGraceMultiplier = grace;
+
+            // Stay Standing: the shortest owned regen interval wins; rarity divides it.
+            shieldRegenInterval = 0f;
+            for (int i = 0; i < owned.Count; i++)
+            {
+                TransmissionBoonDefinition boon = owned[i].Definition;
+                if (boon.ShieldRegenSeconds <= 0f)
+                    continue;
+
+                float interval = boon.ShieldRegenSeconds / Mathf.Max(0.01f, Scalar(owned[i].Tier));
+                if (shieldRegenInterval <= 0f || interval < shieldRegenInterval)
+                    shieldRegenInterval = interval;
+            }
+
+            shieldRegenElapsed = 0f;
+        }
+
+        float shieldRegenInterval;
+        float shieldRegenElapsed;
+
+        /// <summary>
+        /// Ward's Stay Standing: counts up only while the shield is down, so "re-arms every
+        /// 30s" means thirty seconds of actually being unshielded, and a shield from any other
+        /// source (the Gauntlet Buckle, Guard High) resets nothing — it simply pauses the clock.
+        /// </summary>
+        void Update()
+        {
+            if (shieldRegenInterval <= 0f || health == null || !health.IsAlive)
+                return;
+
+            if (health.HasOneHitShield)
+            {
+                shieldRegenElapsed = 0f;
+                return;
+            }
+
+            shieldRegenElapsed += Time.deltaTime;
+            if (shieldRegenElapsed < shieldRegenInterval)
+                return;
+
+            shieldRegenElapsed = 0f;
+            health.GrantOneHitShield();
         }
     }
 }

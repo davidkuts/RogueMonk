@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f91fb744610db1045abec4bc89c77c0f, type: 3}
+  m_Name: TBoon_StayStanding
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.TransmissionBoonDefinition
+  giver: 4
+  ability: 0
+  displayName: Stay Standing
+  description: A one-hit shield re-arms every 30 seconds you spend unshielded.
+  damageBonus: 0
+  poiseBonus: 0
+  status: 1
+  statusSeconds: 0
+  iFrameBonus: 0
+  dodgeGraceBonus: 0
+  shieldEveryNHits: 0
+  shieldRegenSeconds: 30
+  vsStatus: 1
+  vsStatusDamageBonus: 0
+  vsStatusPoiseBonus: 0

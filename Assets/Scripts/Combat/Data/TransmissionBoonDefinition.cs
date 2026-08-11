@@ -65,6 +65,16 @@ namespace Game.Combat
         [Header("Shield proc (Ward's lane — a counter on the pipeline)")]
         [SerializeField, Tooltip("Every Nth landed hit of this boon's slot arms the one-hit shield. 0 disables. Rarity divides N (a Rare shields more often).")]
         int shieldEveryNHits;
+        [SerializeField, Tooltip("Ward's Stay Standing: the one-hit shield re-arms this many seconds after it is lost. 0 disables. Rarity divides the interval.")]
+        float shieldRegenSeconds;
+
+        [Header("Conditional bonus (vs a status the target carries)")]
+        [SerializeField, Tooltip("The status the target must be under for the bonus below. Only read when a bonus is non-zero.")]
+        StatusEffect vsStatus = StatusEffect.Burning;
+        [SerializeField, Tooltip("Added damage fraction against targets under vsStatus. Fray's Entropy Field lane.")]
+        float vsStatusDamageBonus;
+        [SerializeField, Tooltip("Added poise/armor-break fraction against targets under vsStatus.")]
+        float vsStatusPoiseBonus;
 
         public GiverId Giver => giver;
         public AbilityId Ability => ability;
@@ -78,6 +88,10 @@ namespace Game.Combat
         public float IFrameBonus => iFrameBonus;
         public float DodgeGraceBonus => dodgeGraceBonus;
         public int ShieldEveryNHits => shieldEveryNHits;
+        public float ShieldRegenSeconds => shieldRegenSeconds;
+        public StatusEffect VsStatus => vsStatus;
+        public float VsStatusDamageBonus => vsStatusDamageBonus;
+        public float VsStatusPoiseBonus => vsStatusPoiseBonus;
 
         /// <summary>Builds the runtime hit modifier at a tier, or null for a boon with no hit-side effect.</summary>
         public AbilityScopedModifier CreateModifier(float rarityScalar)

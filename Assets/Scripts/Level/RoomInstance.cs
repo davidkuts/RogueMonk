@@ -89,6 +89,31 @@ namespace Game.Level
         readonly List<ExitMarkerView> exitMarkers = new List<ExitMarkerView>();
         bool doorOpen;
 
+        [SerializeField, Tooltip("How close the player must stand to a door for the Interact press to choose it. The nearest door inside this range is the focused one.")]
+        float doorInteractRange = 3f;
+        [SerializeField, Tooltip("Interact is ignored on the doors for this long after they unlock. The collect that unlocked them is the same button — without this, one press could take the reward AND walk through a door beside it.")]
+        float doorSelectLockoutSeconds = 0.3f;
+        float doorUnlockedAtUnscaled = float.NegativeInfinity;
+
+        Transform interactPlayer;
+        Game.Core.Player.PlayerInputReader interactInput;
+        GameObject doorPrompt;
+        Camera doorPromptView;
+        int focusedExit = -1;
+        Color blockerBaseColor = Color.white;
+        static readonly int DoorBaseColorId = Shader.PropertyToID("_BaseColor");
+
+        /// <summary>
+        /// Hands the room what door choice needs: who is choosing and which action confirms.
+        /// Called by the director when the room is built; without it the built doors simply
+        /// cannot be walked through, which is the safe failure.
+        /// </summary>
+        public void BindDoorInteraction(Transform player, Game.Core.Player.PlayerInputReader input)
+        {
+            interactPlayer = player;
+            interactInput = input;
+        }
+
         [Header("Boss signalling")]
         [SerializeField, Tooltip("Tint applied to the room's geometry when it hosts the boss, so the space itself reads as different before anything attacks. Deliberately a cold desaturated slate: the boss's melee telegraph is red, and a red room would swallow it (CLAUDE.md rule 7 reserves saturated hues for gameplay information).")]
         Color bossTint = new Color(0.20f, 0.21f, 0.27f);
@@ -150,18 +175,36 @@ namespace Game.Level
 
         public void SetDoorOpen(bool open)
         {
+            if (open && !doorOpen)
+                doorUnlockedAtUnscaled = Time.unscaledTime;
+
             doorOpen = open;
 
             if (builtExits.Count > 0)
             {
+                // Built doors are chosen with the Interact press, never by touch — so the
+                // blocker STAYS, sealing the doorway against a walk into the void, and only
+                // its tint changes: lit means "press to enter", dark means locked.
                 for (int i = 0; i < builtExits.Count; i++)
                 {
-                    if (builtExits[i].Blocker != null)
-                        builtExits[i].Blocker.SetActive(!open);
+                    GameObject blocker = builtExits[i].Blocker;
+                    if (blocker == null)
+                        continue;
 
-                    if (builtExits[i].Trigger != null)
-                        builtExits[i].Trigger.enabled = open;
+                    var renderer = blocker.GetComponent<MeshRenderer>();
+                    if (renderer == null)
+                        continue;
+
+                    var block = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(block);
+                    block.SetColor(DoorBaseColorId, open
+                        ? Color.Lerp(blockerBaseColor, Color.white, 0.55f)
+                        : blockerBaseColor);
+                    renderer.SetPropertyBlock(block);
                 }
+
+                if (!open)
+                    ClearDoorFocus();
 
                 return;
             }
@@ -188,8 +231,6 @@ namespace Game.Level
                 return;
 
             Transform blockerT = doorBlocker.transform;
-            Transform triggerT = exitTrigger.transform;
-
             // The pitch shrinks when the wall cannot seat the cluster at full spacing, rather
             // than pushing the outer doors through the side walls.
             float pitch = Mathf.Max(1f, exitDoorPitch);
@@ -202,7 +243,11 @@ namespace Game.Level
             Material markerMaterial = null;
             var blockerRenderer = doorBlocker.GetComponent<MeshRenderer>();
             if (blockerRenderer != null)
+            {
                 markerMaterial = blockerRenderer.sharedMaterial;
+                if (markerMaterial != null && markerMaterial.HasProperty(DoorBaseColorId))
+                    blockerBaseColor = markerMaterial.GetColor(DoorBaseColorId);
+            }
 
             for (int i = 0; i < count; i++)
             {
@@ -213,17 +258,8 @@ namespace Game.Level
                 blocker.name = $"DoorBlocker_Exit{i + 1}";
                 blocker.SetActive(true);
 
-                GameObject triggerGo = Instantiate(exitTrigger.gameObject, triggerT.position + shift, triggerT.rotation, triggerT.parent);
-                triggerGo.name = $"ExitTrigger_Exit{i + 1}";
-                triggerGo.SetActive(true);
-                var trigger = triggerGo.GetComponent<Collider>();
-
-                // The trigger remembers which offer it is, so stepping through it can name the
-                // reward the player just chose.
-                var forwarder = triggerGo.GetComponent<RoomExitTrigger>();
-                if (forwarder != null)
-                    forwarder.ExitIndex = i;
-
+                // No touch trigger is cloned: built doors are chosen with the Interact press,
+                // and the blocker doubles as the thing that keeps the doorway solid.
                 RewardChoice choice = rewards[i];
                 RewardDefinition definition = null;
                 Color tierTint = Color.white;
@@ -244,7 +280,7 @@ namespace Game.Level
                 marker.gameObject.SetActive(false);
                 exitMarkers.Add(marker);
 
-                builtExits.Add(new BuiltExit { Blocker = blocker, Trigger = trigger });
+                builtExits.Add(new BuiltExit { Blocker = blocker });
             }
 
             // The authored door becomes a dormant template; the built exits are the room's
@@ -270,10 +306,100 @@ namespace Game.Level
             }
         }
 
-        /// <summary>Called by the trigger's forwarder when the player steps into a cleared exit.</summary>
+        /// <summary>
+        /// Drives door choice: the nearest unlocked door inside the interact range is focused
+        /// (its icon grows, the prompt appears over it), and the Interact press walks through
+        /// it. Touch never advances a built door — a choice this permanent deserves a confirm,
+        /// and a dash past the doorway must not eat it.
+        /// </summary>
+        void Update()
+        {
+            if (!doorOpen || builtExits.Count == 0 || interactPlayer == null)
+            {
+                ClearDoorFocus();
+                return;
+            }
+
+            int nearest = -1;
+            float bestDistance = float.MaxValue;
+            Vector3 player = interactPlayer.position;
+
+            for (int i = 0; i < builtExits.Count; i++)
+            {
+                GameObject blocker = builtExits[i].Blocker;
+                if (blocker == null)
+                    continue;
+
+                Vector3 door = blocker.transform.position;
+                float dx = door.x - player.x;
+                float dz = door.z - player.z;
+                float distance = Mathf.Sqrt(dx * dx + dz * dz);
+                if (distance <= doorInteractRange && distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    nearest = i;
+                }
+            }
+
+            SetDoorFocus(nearest);
+
+            bool lockedOut = Time.unscaledTime < doorUnlockedAtUnscaled + doorSelectLockoutSeconds;
+            if (focusedExit >= 0 && !lockedOut && interactInput != null && interactInput.InteractPressedThisFrame)
+                NotifyExitReached(focusedExit);
+        }
+
+        void SetDoorFocus(int index)
+        {
+            focusedExit = index;
+
+            for (int i = 0; i < exitMarkers.Count; i++)
+            {
+                if (exitMarkers[i] != null)
+                    exitMarkers[i].SetFocused(i == index);
+            }
+
+            if (index >= 0 && builtExits[index].Blocker != null)
+            {
+                if (doorPrompt == null)
+                    doorPrompt = InteractPrompt.Build(transform, Vector3.zero);
+
+                doorPrompt.transform.position =
+                    builtExits[index].Blocker.transform.position + Vector3.up * 1.6f;
+                doorPrompt.SetActive(true);
+            }
+            else if (doorPrompt != null)
+            {
+                doorPrompt.SetActive(false);
+            }
+        }
+
+        void ClearDoorFocus()
+        {
+            if (focusedExit != -1)
+                SetDoorFocus(-1);
+            else if (doorPrompt != null && doorPrompt.activeSelf)
+                doorPrompt.SetActive(false);
+        }
+
+        void LateUpdate()
+        {
+            if (doorPrompt == null || !doorPrompt.activeSelf)
+                return;
+
+            if (doorPromptView == null)
+                doorPromptView = Camera.main;
+
+            if (doorPromptView != null)
+                doorPrompt.transform.rotation = doorPromptView.transform.rotation;
+        }
+
+        /// <summary>
+        /// The moment a door is chosen — by the Interact press on a built door, or by the
+        /// legacy touch trigger on an authored single-door room.
+        /// </summary>
         internal void NotifyExitReached(int exitIndex)
         {
-            GameLog.Info(LogCategory.Level, $"exit {exitIndex} reached in {name}");
+            GameLog.Info(LogCategory.Level, $"exit {exitIndex} chosen in {name}");
             ExitChosen?.Invoke(exitIndex);
             ExitReached?.Invoke();
         }

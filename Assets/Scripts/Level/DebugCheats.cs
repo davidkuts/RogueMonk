@@ -39,6 +39,14 @@ namespace Game.Level
         [SerializeField, Tooltip("Also bound to the gamepad right trigger (R2).")]
         bool useRightTrigger = true;
 
+        [Header("Debug heal")]
+        [SerializeField, Tooltip("Keyboard shortcut for a flat test heal (ignores the Splice ceiling).")]
+        Key healKey = Key.H;
+        [SerializeField, Tooltip("Also bound to the gamepad left shoulder (L1). R2 was requested but already toggles god mode; L1 was the free button.")]
+        bool useLeftShoulder = true;
+        [SerializeField, Tooltip("Health restored per press.")]
+        float healAmount = 50f;
+
         bool triggerWasDown;
         bool rightTriggerWasDown;
         PlayerHealth playerHealth;
@@ -59,6 +67,9 @@ namespace Game.Level
             // Also ahead of the director guard, so god mode works in the lab too.
             if (WasGodTogglePressed())
                 ToggleGodMode();
+
+            if (WasHealPressed())
+                DebugHeal();
 
             if (director == null || director.CurrentRoom == null)
                 return;
@@ -161,6 +172,28 @@ namespace Game.Level
             bool pressed = down && !rightTriggerWasDown;
             rightTriggerWasDown = down;
             return pressed;
+        }
+
+        void DebugHeal()
+        {
+            if (playerHealth == null)
+                playerHealth = FindAnyObjectByType<PlayerHealth>();
+
+            if (playerHealth != null)
+                playerHealth.DebugHeal(healAmount);
+        }
+
+        bool WasHealPressed()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard[healKey].wasPressedThisFrame)
+                return true;
+
+            if (!useLeftShoulder)
+                return false;
+
+            Gamepad pad = Gamepad.current;
+            return pad != null && pad.leftShoulder.wasPressedThisFrame;
         }
 
         bool WasClearPressed()

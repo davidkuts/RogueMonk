@@ -37,6 +37,8 @@ namespace Game.Enemies
         float armorMax = 40f;
         [SerializeField, Tooltip("How long a poise break keeps the enemy helpless — the punish window.")]
         float staggerDurationSeconds = 1.2f;
+        [SerializeField, Tooltip("Stagger applied when a player combo/riposte hit lands DURING this enemy's wind-up, cancelling the attack. Shorter than a poise break — an interrupt, not a punish window. Tier rules still apply: Immune ignores it, intact armour shrugs it off. 0 opts this enemy out.")]
+        float windupInterruptStaggerSeconds = 0.45f;
 
         [Header("Movement / AI")]
         [SerializeField] float moveSpeed = 3.2f;
@@ -81,6 +83,9 @@ namespace Game.Enemies
         public float PoiseRegenRate => poiseRegenRate;
         public float ArmorMax => armorMax;
         public float StaggerDurationSeconds => staggerDurationSeconds;
+
+        /// <summary>Interrupt stagger for a hit landed inside this enemy's wind-up. Not on the interface — only the actor reads it.</summary>
+        public float WindupInterruptStaggerSeconds => Mathf.Max(0f, windupInterruptStaggerSeconds);
         public float MoveSpeed => moveSpeed;
         public float AggroRange => aggroRange;
         public float AttackRange => attackRange;

@@ -24,6 +24,21 @@ namespace Game.Level
 
         Transform iconRoot;
         Camera view;
+        bool focused;
+
+        /// <summary>
+        /// Marks this door as the one the Interact press would choose: the icon grows so the
+        /// preview itself answers "which one am I about to pick".
+        /// </summary>
+        public void SetFocused(bool value)
+        {
+            if (focused == value)
+                return;
+
+            focused = value;
+            if (iconRoot != null)
+                iconRoot.localScale = Vector3.one * (value ? 1.35f : 1f);
+        }
 
         /// <summary>
         /// Builds a marker beside/above a doorway. <paramref name="anchor"/> is the blocker's
