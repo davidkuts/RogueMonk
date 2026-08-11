@@ -56,14 +56,16 @@ namespace Game.Combat
         public IReadOnlyList<TransmissionBoonDefinition> Boons => boons;
 
         /// <summary>
-        /// Rolls the ordinary draft: a random giver among those with at least one offerable
-        /// boon, then up to <see cref="offerCount"/> of their boons, each card rolling its own
-        /// rarity. Offerable means not owned AND allowed by
-        /// <see cref="TransmissionDraftRules"/> — a slot claimed by one giver never shows
-        /// another giver's boon for it again. Empty when nothing is offerable.
+        /// Rolls the ordinary draft: a giver, then up to <see cref="offerCount"/> of their
+        /// boons, each card rolling its own rarity. A door pinned to a giver passes them as
+        /// <paramref name="preferredGiver"/> and the draft honours the pin whenever that giver
+        /// still has anything offerable — the door's colour must not lie. Offerable means not
+        /// owned AND allowed by <see cref="TransmissionDraftRules"/>. Empty when nothing is
+        /// offerable at all.
         /// </summary>
         public List<TransmissionOffer> RollDraft(
-            IRandomSource random, IReadOnlyList<TransmissionBoonDefinition> owned)
+            IRandomSource random, IReadOnlyList<TransmissionBoonDefinition> owned,
+            GiverId? preferredGiver = null)
         {
             var offer = new List<TransmissionOffer>();
             if (random == null)
@@ -100,8 +102,16 @@ namespace Game.Combat
             if (giverScratch.Count == 0)
                 return offer;
 
-            List<GiverId> pickFrom = fullGiverScratch.Count > 0 ? fullGiverScratch : giverScratch;
-            GiverId giver = pickFrom[random.NextInt(0, pickFrom.Count)];
+            GiverId giver;
+            if (preferredGiver.HasValue && giverScratch.Contains(preferredGiver.Value))
+            {
+                giver = preferredGiver.Value;
+            }
+            else
+            {
+                List<GiverId> pickFrom = fullGiverScratch.Count > 0 ? fullGiverScratch : giverScratch;
+                giver = pickFrom[random.NextInt(0, pickFrom.Count)];
+            }
 
             boonScratch.Clear();
             for (int i = 0; i < boons.Count; i++)

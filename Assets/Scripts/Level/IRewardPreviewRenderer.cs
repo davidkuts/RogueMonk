@@ -37,6 +37,11 @@ namespace Game.Level
                 return;
             }
 
+            // A pinned boon door wears its GIVER's colour — the same hue the draft's card
+            // header will show — so the player reads WHO is calling before entering the room.
+            if (choice.HasPinnedGiver)
+                tierTint = Game.Combat.GiverPalette.ColorOf(choice.PinnedGiver);
+
             RewardIconShape shape = definition != null ? definition.IconShape : RewardIconShape.Coin;
             RewardIconBuilder.Build(anchor, shape, tierTint, material);
         }

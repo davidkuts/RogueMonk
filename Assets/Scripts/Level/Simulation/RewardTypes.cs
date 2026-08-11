@@ -72,12 +72,34 @@ namespace Game.Level
         public readonly bool IsBossDoor;
         public readonly bool IsLevelExit;
 
+        /// <summary>
+        /// For boon doors: WHICH giver's transmission waits behind this one, decided at
+        /// generation so the door can wear the giver's colour and the choice is readable
+        /// before entering (REWARDS.md §8's "readable WHICH giver"). The draft honours the
+        /// pin unless that giver has nothing left to offer.
+        /// </summary>
+        public readonly Game.Combat.GiverId PinnedGiver;
+
+        public readonly bool HasPinnedGiver;
+
         public RewardChoice(RewardType type, RewardBand band)
         {
             Type = type;
             Band = band;
             IsBossDoor = false;
             IsLevelExit = false;
+            PinnedGiver = default;
+            HasPinnedGiver = false;
+        }
+
+        public RewardChoice(RewardType type, RewardBand band, Game.Combat.GiverId pinnedGiver)
+        {
+            Type = type;
+            Band = band;
+            IsBossDoor = false;
+            IsLevelExit = false;
+            PinnedGiver = pinnedGiver;
+            HasPinnedGiver = true;
         }
 
         RewardChoice(bool isBossDoor, bool isLevelExit)
@@ -86,6 +108,8 @@ namespace Game.Level
             Band = default;
             IsBossDoor = isBossDoor;
             IsLevelExit = isLevelExit;
+            PinnedGiver = default;
+            HasPinnedGiver = false;
         }
 
         public static RewardChoice BossDoor => new RewardChoice(true, false);
@@ -93,7 +117,10 @@ namespace Game.Level
         public static RewardChoice LevelExit => new RewardChoice(false, true);
 
         public override string ToString() =>
-            IsBossDoor ? "BossDoor" : IsLevelExit ? "LevelExit" : $"{Type}({Band})";
+            IsBossDoor ? "BossDoor"
+            : IsLevelExit ? "LevelExit"
+            : HasPinnedGiver ? $"{Type}({Band}/{PinnedGiver})"
+            : $"{Type}({Band})";
     }
 
     /// <summary>One reward type's generator knobs, as the engine-free roller sees them.</summary>
@@ -121,5 +148,11 @@ namespace Game.Level
 
         /// <summary>All reward types the generator knows, with their band, enable flag and weight.</summary>
         IReadOnlyList<RewardTypeOption> TypeOptions { get; }
+
+        /// <summary>
+        /// The givers a boon door may be pinned to — the implemented ones. A boon fork offers
+        /// at least two doors, each pinned to a different giver from this list.
+        /// </summary>
+        IReadOnlyList<Game.Combat.GiverId> BoonGivers { get; }
     }
 }

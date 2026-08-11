@@ -16,7 +16,7 @@ namespace Game.Level.Tests
             new RewardRoller(config ?? new FakeRewardConfig());
 
         [Test]
-        public void AForkSharesOneBandAndNeverRepeatsAType()
+        public void AForkSharesOneBandAndNeverRepeatsAChoice()
         {
             var roller = Roller();
             var random = new XorShiftRandom(123u);
@@ -28,8 +28,13 @@ namespace Game.Level.Tests
                 Assert.That(choices.Count, Is.GreaterThan(0));
                 Assert.That(choices.Select(c => c.Band).Distinct().Count(), Is.EqualTo(1),
                     "one quality band per fork — the band IS the quality");
-                Assert.That(choices.Select(c => c.Type).Distinct().Count(), Is.EqualTo(choices.Count),
-                    "no duplicate types on one fork");
+
+                if (choices[0].Band == RewardBand.Boon)
+                    Assert.That(choices.Select(c => c.PinnedGiver).Distinct().Count(), Is.EqualTo(choices.Count),
+                        "a boon fork's doors differ by GIVER, never repeating one");
+                else
+                    Assert.That(choices.Select(c => c.Type).Distinct().Count(), Is.EqualTo(choices.Count),
+                        "no duplicate types on one fork");
             }
         }
 
@@ -65,7 +70,7 @@ namespace Game.Level.Tests
         }
 
         [Test]
-        public void BoonBandsAreASingleDoor()
+        public void ABoonForkOffersTwoGiversAndAnEliteForkOneDoor()
         {
             var roller = Roller();
             var random = new XorShiftRandom(31u);
@@ -73,11 +78,22 @@ namespace Game.Level.Tests
             for (int fork = 0; fork < 500; fork++)
             {
                 List<RewardChoice> choices = roller.RollFork(random, 4);
-                if (choices[0].Band == RewardBand.Boon || choices[0].Band == RewardBand.EliteBoon)
+
+                if (choices[0].Band == RewardBand.Boon)
+                {
+                    Assert.That(choices.Count, Is.EqualTo(2),
+                        "a boon fork is always a choice of at least two givers (human rule)");
+                    Assert.That(choices.All(c => c.Type == RewardType.Transmission), Is.True);
+                    Assert.That(choices.All(c => c.HasPinnedGiver), Is.True,
+                        "every boon door names its giver so the door can wear their colour");
+                    Assert.That(choices[0].PinnedGiver, Is.Not.EqualTo(choices[1].PinnedGiver),
+                        "the two doors are two different givers");
+                }
+                else if (choices[0].Band == RewardBand.EliteBoon)
                 {
                     Assert.That(choices.Count, Is.EqualTo(1),
-                        "when the fork rolls boons, boons are the only option");
-                    Assert.That(choices[0].Type, Is.EqualTo(RewardType.Transmission));
+                        "the elite fork is one door - its two-giver choice happens inside the draft");
+                    Assert.That(choices[0].HasPinnedGiver, Is.False);
                 }
             }
         }

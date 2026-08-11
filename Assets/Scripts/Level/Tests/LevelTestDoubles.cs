@@ -35,6 +35,16 @@ namespace Game.Level.Tests
         }
 
         public IReadOnlyList<RewardTypeOption> TypeOptions => Options;
+
+        public List<Game.Combat.GiverId> Givers = new List<Game.Combat.GiverId>
+        {
+            Game.Combat.GiverId.Overclock,
+            Game.Combat.GiverId.Fray,
+            Game.Combat.GiverId.Stasis,
+            Game.Combat.GiverId.Ward,
+        };
+
+        public IReadOnlyList<Game.Combat.GiverId> BoonGivers => Givers;
     }
 
     internal sealed class FakeRoomTemplate : IRoomTemplate

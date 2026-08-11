@@ -37,7 +37,12 @@ namespace Game.Combat
         [SerializeField, Tooltip("Distance the foot must move before a new point is laid down. Small, so a fast sweep still draws a smooth arc.")]
         float minVertexDistance = 0.02f;
 
+        [Header("Reach")]
+        [SerializeField, Range(0f, 1f), Tooltip("How far out the ribbon sweeps, as a fraction of the vortex's ACTUAL pull radius. The feet alone sweep a leg's length while the pull reaches metres — projecting the ribbon outward along each foot's direction makes the kick itself show the range, arc-style, without drawing a full circle. 0 keeps the ribbon on the foot.")]
+        float reachFraction = 0.85f;
+
         TrailRenderer[] trails;
+        Transform[] anchors;
         bool wasSpinning;
 
         void Awake()
@@ -55,8 +60,12 @@ namespace Game.Combat
             }
 
             trails = new TrailRenderer[emitters.Length];
+            anchors = new Transform[emitters.Length];
             for (int i = 0; i < emitters.Length; i++)
+            {
                 trails[i] = CreateTrail(emitters[i]);
+                anchors[i] = trails[i].transform;
+            }
         }
 
         /// <summary>Both feet, by bone name. The planted foot pivots and the kicking foot sweeps wide, so the pair self-balances.</summary>
@@ -74,9 +83,12 @@ namespace Game.Combat
 
         TrailRenderer CreateTrail(Transform bone)
         {
+            // Parented to the player root, not the bone: the emitter is projected OUTWARD
+            // along the foot's direction each frame (see LateUpdate), so the ribbon sweeps
+            // near the pull's real radius instead of a leg's length.
             var go = new GameObject("VortexSmear");
-            go.transform.SetParent(bone, false);
-            go.transform.localPosition = Vector3.zero;
+            go.transform.SetParent(transform, false);
+            go.transform.position = bone.position;
 
             var trail = go.AddComponent<TrailRenderer>();
             trail.time = trailSeconds;
@@ -137,6 +149,44 @@ namespace Game.Combat
                 GameLog.Debug(LogCategory.Combat, $"vortex smear   {trails.Length} ribbon(s) emitting");
 
             wasSpinning = spinning;
+        }
+
+        /// <summary>
+        /// Projects each emitter outward along its foot's planar direction so the ribbon
+        /// sweeps a circle near the ACTUAL pull radius — the kick itself becomes the range
+        /// indicator, as an arc rather than a drawn circle. After the animation has posed the
+        /// bones, which is what LateUpdate is for.
+        /// </summary>
+        void LateUpdate()
+        {
+            if (!wasSpinning || anchors == null || vortex.Definition == null)
+                return;
+
+            float radius = vortex.Definition.RadiusMeters * Mathf.Clamp01(reachFraction);
+
+            for (int i = 0; i < emitters.Length; i++)
+            {
+                if (emitters[i] == null || anchors[i] == null)
+                    continue;
+
+                Vector3 bonePos = emitters[i].position;
+                Vector3 planar = bonePos - transform.position;
+                planar.y = 0f;
+
+                // A foot directly under the root has no direction to project along; the
+                // anchor keeps its last position for that frame rather than snapping to zero.
+                if (planar.sqrMagnitude < 0.0004f || radius <= 0f)
+                {
+                    anchors[i].position = bonePos;
+                    continue;
+                }
+
+                Vector3 direction = planar.normalized;
+                anchors[i].position = new Vector3(
+                    transform.position.x + direction.x * radius,
+                    bonePos.y,
+                    transform.position.z + direction.z * radius);
+            }
         }
     }
 }

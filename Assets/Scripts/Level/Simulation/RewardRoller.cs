@@ -18,6 +18,7 @@ namespace Game.Level
         readonly IRewardConfig config;
         readonly List<float> weightScratch = new List<float>();
         readonly List<RewardType> usedScratch = new List<RewardType>();
+        readonly List<Game.Combat.GiverId> giverScratch = new List<Game.Combat.GiverId>();
 
         public RewardRoller(IRewardConfig config)
         {
@@ -50,9 +51,34 @@ namespace Game.Level
 
             RewardBand band = RollBand(random);
 
-            // Boon forks are exclusive by design: one door, one draft behind it. The elite
-            // band keeps the transmission TYPE — what differs is the draft it opens.
-            if (band == RewardBand.Boon || band == RewardBand.EliteBoon)
+            // A boon fork offers a CHOICE of givers (human rule 2026-08-11: always at least
+            // two boon options): each door is a Transmission pinned to a different giver, and
+            // the door wears that giver's colour. The elite band stays a single door — the
+            // two-giver choice happens inside its draft.
+            if (band == RewardBand.Boon)
+            {
+                IReadOnlyList<Game.Combat.GiverId> givers = config.BoonGivers;
+                if (givers == null || givers.Count == 0)
+                {
+                    choices.Add(new RewardChoice(RewardType.Transmission, band));
+                    return choices;
+                }
+
+                giverScratch.Clear();
+                for (int i = 0; i < givers.Count; i++)
+                    giverScratch.Add(givers[i]);
+                random.Shuffle(giverScratch);
+
+                // Exactly two whenever two givers exist — a real choice without diluting the
+                // fork into a boon buffet.
+                int boonDoors = System.Math.Min(2, giverScratch.Count);
+                for (int i = 0; i < boonDoors; i++)
+                    choices.Add(new RewardChoice(RewardType.Transmission, band, giverScratch[i]));
+
+                return choices;
+            }
+
+            if (band == RewardBand.EliteBoon)
             {
                 choices.Add(new RewardChoice(RewardType.Transmission, band));
                 return choices;

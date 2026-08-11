@@ -117,9 +117,14 @@ namespace Game.Level.Tests
                                 $"seed {seed} level {level} room {room.Index}: door count out of range");
                             Assert.That(room.ExitRewards.All(r => !r.IsBossDoor), Is.True,
                                 $"seed {seed} level {level} room {room.Index}: the boss mark stays on the boss's own door");
-                            Assert.That(room.ExitRewards.Select(r => r.Type).Distinct().Count(),
-                                Is.EqualTo(room.ExitDoorCount),
-                                $"seed {seed} level {level} room {room.Index}: no duplicate reward types on one fork");
+                            if (room.ExitRewards[0].Band == RewardBand.Boon)
+                                Assert.That(room.ExitRewards.Select(r => r.PinnedGiver).Distinct().Count(),
+                                    Is.EqualTo(room.ExitDoorCount),
+                                    $"seed {seed} level {level} room {room.Index}: boon doors offer distinct givers");
+                            else
+                                Assert.That(room.ExitRewards.Select(r => r.Type).Distinct().Count(),
+                                    Is.EqualTo(room.ExitDoorCount),
+                                    $"seed {seed} level {level} room {room.Index}: no duplicate reward types on one fork");
                             Assert.That(room.ExitRewards.Select(r => r.Band).Distinct().Count(), Is.EqualTo(1),
                                 $"seed {seed} level {level} room {room.Index}: band parity - every door on a fork shares one quality band");
                         }

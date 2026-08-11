@@ -1,25 +1,30 @@
-{
-    "name": "Game.Level.Tests",
-    "rootNamespace": "Game.Level.Tests",
-    "references": [
-        "Game.Level",
-        "Game.Core",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": true,
-    "precompiledReferences": [
-        "nunit.framework.dll"
-    ],
-    "autoReferenced": false,
-    "defineConstraints": [
-        "UNITY_INCLUDE_TESTS"
-    ],
-    "versionDefines": [],
-    "noEngineReferences": false
+﻿{
+    "name":  "Game.Level.Tests",
+    "rootNamespace":  "Game.Level.Tests",
+    "references":  [
+                       "Game.Level",
+                       "Game.Core",
+                       "UnityEngine.TestRunner",
+                       "UnityEditor.TestRunner",
+                       "Game.Combat"
+                   ],
+    "includePlatforms":  [
+                             "Editor"
+                         ],
+    "excludePlatforms":  [
+
+                         ],
+    "allowUnsafeCode":  false,
+    "overrideReferences":  true,
+    "precompiledReferences":  [
+                                  "nunit.framework.dll"
+                              ],
+    "autoReferenced":  false,
+    "defineConstraints":  [
+                              "UNITY_INCLUDE_TESTS"
+                          ],
+    "versionDefines":  [
+
+                       ],
+    "noEngineReferences":  false
 }

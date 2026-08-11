@@ -39,8 +39,15 @@ namespace Game.Level.Tests
                         continue; // covered by TheDoorToTheBossIsAlwaysAloneAndMarked
 
                     Assert.That(room.ExitDoorCount, Is.InRange(1, LevelGenerator.MaxExitDoors), $"seed {seed} room {r}");
-                    Assert.That(room.ExitRewards.Select(c => c.Type).Distinct().Count(), Is.EqualTo(room.ExitDoorCount),
-                        $"seed {seed} room {r}: reward types on one fork must be distinct");
+
+                    if (room.ExitRewards[0].Band == RewardBand.Boon)
+                        Assert.That(room.ExitRewards.Select(c => c.PinnedGiver).Distinct().Count(),
+                            Is.EqualTo(room.ExitDoorCount),
+                            $"seed {seed} room {r}: boon doors must offer distinct givers");
+                    else
+                        Assert.That(room.ExitRewards.Select(c => c.Type).Distinct().Count(), Is.EqualTo(room.ExitDoorCount),
+                            $"seed {seed} room {r}: reward types on one fork must be distinct");
+
                     Assert.That(room.ExitRewards.All(c => !c.IsBossDoor), Is.True,
                         $"seed {seed} room {r}: ordinary doors never carry the boss mark");
                 }
@@ -59,13 +66,17 @@ namespace Game.Level.Tests
                     Assert.That(room.ExitRewards.Select(c => c.Band).Distinct().Count(), Is.EqualTo(1),
                         $"seed {seed} room {r}: every door on a fork shares one quality band");
 
-                    if (room.ExitRewards[0].Band == RewardBand.Boon ||
-                        room.ExitRewards[0].Band == RewardBand.EliteBoon)
+                    if (room.ExitRewards[0].Band == RewardBand.Boon)
+                    {
+                        Assert.That(room.ExitDoorCount, Is.EqualTo(2),
+                            $"seed {seed} room {r}: a boon fork is a choice of two givers");
+                        Assert.That(room.ExitRewards.All(c => c.Type == RewardType.Transmission), Is.True,
+                            $"seed {seed} room {r}");
+                    }
+                    else if (room.ExitRewards[0].Band == RewardBand.EliteBoon)
                     {
                         Assert.That(room.ExitDoorCount, Is.EqualTo(1),
-                            $"seed {seed} room {r}: a boon fork offers only the boon door");
-                        Assert.That(room.ExitRewards[0].Type, Is.EqualTo(RewardType.Transmission),
-                            $"seed {seed} room {r}");
+                            $"seed {seed} room {r}: the elite fork is one door");
                     }
                 }
             }
@@ -155,6 +166,7 @@ namespace Game.Level.Tests
                         Assert.That(b.Rooms[r].ExitRewards[d].Band, Is.EqualTo(a.Rooms[r].ExitRewards[d].Band), $"seed {seed} room {r} door {d}");
                         Assert.That(b.Rooms[r].ExitRewards[d].IsBossDoor, Is.EqualTo(a.Rooms[r].ExitRewards[d].IsBossDoor), $"seed {seed} room {r} door {d}");
                         Assert.That(b.Rooms[r].ExitRewards[d].IsLevelExit, Is.EqualTo(a.Rooms[r].ExitRewards[d].IsLevelExit), $"seed {seed} room {r} door {d}");
+                        Assert.That(b.Rooms[r].ExitRewards[d].PinnedGiver, Is.EqualTo(a.Rooms[r].ExitRewards[d].PinnedGiver), $"seed {seed} room {r} door {d}");
                     }
                 }
             }

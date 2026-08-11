@@ -90,7 +90,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 16.3 | Third pass: boss room ends at a consistent level-exit door (Interact-gated), bosses drop Hours+Amber on kill, drafts prefer full 3-card givers | ✅ **done** |
 | 16.4 | Fourth pass: quality bands decide door kinds (Basic/Valuable/Boon/EliteBoon), per-card boon rarity with blue/purple borders, two-giver elite draft, elemental boon screen retired | ✅ **done** |
 | 16.5 | Fifth pass: rarity scales one marked stat per boon at ×1/×1.5/×2 of base, per-giver identity colours in the draft | ✅ **done** |
-| 16.6 | Sixth pass: giver header bands + saturated palette, rarity-correct highlighted stat lines, vortex radius 2.2→4.5 with an honest range ring | ✅ **done — awaiting playtest** |
+| 16.6 | Sixth pass: giver header bands + saturated palette, rarity-correct highlighted stat lines, vortex radius 2.2→4.5 with an honest range ring | ✅ **done** |
+| 16.7 | Seventh pass: giver-pinned two-door boon forks with GiverPalette-tinted icons/pickups, vortex at 4.0 with ring removed and smear ribbons swept to ~true radius | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -102,6 +103,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.7: boon doors wear their giver, boon forks are a choice, the kick shows its reach
+- **Boon doors are giver-coloured and giver-true.** A Boon-band fork now offers **two Transmission doors pinned to two different givers at generation** (`RewardChoice.PinnedGiver`; the implemented-giver list lives on the config as `boonGivers`), each door's waveform icon and its room's pickup tinted with that giver's colour from the new **`GiverPalette`** — ONE static source shared by door icons, pickups and the draft card headers, so a door can never disagree with the card it opens. The draft honours the pin whenever that giver still has anything offerable (loudly logged fallback otherwise). REWARDS.md §8's "readable WHICH giver" finally exists. **Verified live: a fork showed ice-Stasis beside green-Fray waveforms, and the Stasis door delivered a Stasis-tinted pickup opening a pure-Stasis draft.**
+- **"When there's a boon option there are always at least two"** (human rule): the boon fork is exactly two giver-doors; the elite fork stays one door because its two-giver choice happens inside the draft; the run's first-room transmission stays single by design (the stated exception). The draft view's serialized colour array was removed in favour of the shared palette.
+- **The Undertow settles at radius 4.0** (the DESIGN.md value; the human called 4.5 too big) and the **expanding range ring is deleted** on request. Instead the foot-traced smear ribbons are **projected outward along each foot's direction to ~85% of the actual pull radius** (`VortexSmear.reachFraction`, SO-tunable): the blue arc the kick already draws now sweeps near the true range — an arc that moves like a spinning kick, not a drawn circle — and it reads `RadiusMeters` from the same definition the overlap query uses.
+- **547/547 EditMode tests** (roller/plan tests updated: boon forks are two distinct-giver doors, pinned givers replay from the seed; `Game.Level.Tests` now references `Game.Combat` for `GiverId`).
+- Known issues / TODO next: smear reach fraction 0.85 is a feel guess — iterate in the build; a pinned giver exhausted between door-reveal and collect falls back with a log (rare; only another transmission collected in between can cause it).
 
 ### 2026-08-11 — M16.6: louder givers, honest card numbers, and the Undertow gets its reach back
 - **Cards now quote the marked stat at the value the ROLLED rarity actually delivers**, in a dedicated highlighted line — a Rare card was quoting the Normal number in its description, which is exactly the drift the marked-stat system exists to prevent. `TransmissionBoonDefinition.ScaledStatLabel(scalar)` formats the line beside the data so label and effect cannot diverge; the draft view renders it white at Normal and in the rarity's colour (blue/purple) above it. All 15 descriptions rewritten to flavour + unmarked numbers only. **Verified live: Normal +35% window / Epic +80% i-frames (double base) / Rare shield-every-20s (30 ÷ 1.5).**

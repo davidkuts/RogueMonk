@@ -39,6 +39,16 @@ namespace Game.Level
         [Header("Reward types")]
         [SerializeField] List<TypeEntry> types = new List<TypeEntry>();
 
+        [Header("Boon doors")]
+        [SerializeField, Tooltip("Givers a boon door can be pinned to — the ones with implemented boons. A boon fork offers two doors from this list, each wearing its giver's colour.")]
+        List<Game.Combat.GiverId> boonGivers = new List<Game.Combat.GiverId>
+        {
+            Game.Combat.GiverId.Overclock,
+            Game.Combat.GiverId.Fray,
+            Game.Combat.GiverId.Stasis,
+            Game.Combat.GiverId.Ward,
+        };
+
         [Header("Band presentation (brass / silver / gold / purple)")]
         [SerializeField] Color basicTint = new Color(0.78f, 0.58f, 0.30f);
         [SerializeField] Color valuableTint = new Color(0.80f, 0.84f, 0.90f);
@@ -80,6 +90,8 @@ namespace Game.Level
                 default: return basicTint;
             }
         }
+
+        public IReadOnlyList<Game.Combat.GiverId> BoonGivers => boonGivers;
 
         public IReadOnlyList<RewardTypeOption> TypeOptions
         {

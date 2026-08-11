@@ -240,7 +240,9 @@ namespace Game.Level
             }
 
             RewardDefinition definition = config != null ? config.FindDefinition(choice.Type) : null;
-            Color tint = config != null ? config.BandTint(choice.Band) : Color.white;
+            Color tint = choice.HasPinnedGiver
+                ? GiverPalette.ColorOf(choice.PinnedGiver)
+                : config != null ? config.BandTint(choice.Band) : Color.white;
 
             activePickup = RewardPickup.Spawn(
                 currentRoom.RewardSpawnPosition, choice, definition, tint,
@@ -354,7 +356,10 @@ namespace Game.Level
                 }
 
                 case RewardType.Transmission:
-                    BeginTransmissionDraft(choice.Band == RewardBand.EliteBoon, stream, onComplete);
+                    BeginTransmissionDraft(
+                        choice.Band == RewardBand.EliteBoon,
+                        choice.HasPinnedGiver ? choice.PinnedGiver : (GiverId?)null,
+                        stream, onComplete);
                     break;
 
                 default:
@@ -393,7 +398,7 @@ namespace Game.Level
             return candidates[index];
         }
 
-        void BeginTransmissionDraft(bool elite, IRandomSource stream, Action onComplete)
+        void BeginTransmissionDraft(bool elite, GiverId? pinnedGiver, IRandomSource stream, Action onComplete)
         {
             if (transmissionCatalog == null || transmissionBoons == null)
             {
@@ -404,7 +409,11 @@ namespace Game.Level
 
             var offer = elite
                 ? transmissionCatalog.RollEliteDraft(stream, transmissionBoons.OwnedDefinitions)
-                : transmissionCatalog.RollDraft(stream, transmissionBoons.OwnedDefinitions);
+                : transmissionCatalog.RollDraft(stream, transmissionBoons.OwnedDefinitions, pinnedGiver);
+
+            if (pinnedGiver.HasValue && offer.Count > 0 && offer[0].Definition.Giver != pinnedGiver.Value)
+                GameLog.Warn(LogCategory.Level,
+                    $"the {pinnedGiver.Value} door's channel was exhausted - {offer[0].Definition.Giver} answered instead");
 
             if (offer.Count == 0)
             {

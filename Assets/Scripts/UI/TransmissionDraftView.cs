@@ -31,18 +31,8 @@ namespace Game.UI
         [SerializeField] Color rareBorder = new Color(0.25f, 0.5f, 1f);
         [SerializeField] Color epicBorder = new Color(0.65f, 0.3f, 0.95f);
 
-        [Header("Giver identity (indexed by GiverId; BOONS.md §8 materials, pushed loud)")]
-        [SerializeField, Tooltip("Overclock/Mara: hot brass. Fray/Reeve: oxidizing patina. Stasis/Percy: frost. Echo/Denny: double-tick gold. Ward/Frank: heavy steel casing. Flux: the impossible signal. Saturated on purpose — the first pass was too subtle to tell apart.")]
-        Color[] giverColors =
-        {
-            new Color(1.00f, 0.45f, 0.15f),  // Overclock — hot ember
-            new Color(0.30f, 0.85f, 0.40f),  // Fray — verdigris green
-            new Color(0.30f, 0.90f, 1.00f),  // Stasis — ice
-            new Color(1.00f, 0.88f, 0.25f),  // Echo — tick gold
-            new Color(0.65f, 0.72f, 0.82f),  // Ward — steel casing
-            new Color(0.92f, 0.40f, 1.00f),  // Flux — off-spectrum
-        };
-        [SerializeField, Range(0f, 0.5f), Tooltip("How far each card's dark background leans toward its giver's colour.")]
+        [Header("Giver identity")]
+        [SerializeField, Range(0f, 0.5f), Tooltip("How far each card's dark background leans toward its giver's colour. The colours themselves live in GiverPalette — one source shared with the door icons and pickups, so a door can never disagree with the card it opens.")]
         float giverBackgroundTint = 0.22f;
 
         [Header("Rarity scalars (for the stat line — must match RarityScalars.asset)")]
@@ -92,13 +82,7 @@ namespace Game.UI
             }
         }
 
-        Color GiverColor(GiverId giver)
-        {
-            int index = (int)giver;
-            return giverColors != null && index >= 0 && index < giverColors.Length
-                ? giverColors[index]
-                : Color.white;
-        }
+        static Color GiverColor(GiverId giver) => GiverPalette.ColorOf(giver);
 
         public bool IsShowing { get; private set; }
 
