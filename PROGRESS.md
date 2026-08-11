@@ -91,7 +91,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 16.4 | Fourth pass: quality bands decide door kinds (Basic/Valuable/Boon/EliteBoon), per-card boon rarity with blue/purple borders, two-giver elite draft, elemental boon screen retired | ✅ **done** |
 | 16.5 | Fifth pass: rarity scales one marked stat per boon at ×1/×1.5/×2 of base, per-giver identity colours in the draft | ✅ **done** |
 | 16.6 | Sixth pass: giver header bands + saturated palette, rarity-correct highlighted stat lines, vortex radius 2.2→4.5 with an honest range ring | ✅ **done** |
-| 16.7 | Seventh pass: giver-pinned two-door boon forks with GiverPalette-tinted icons/pickups, vortex at 4.0 with ring removed and smear ribbons swept to ~true radius | ✅ **done — awaiting playtest** |
+| 16.7 | Seventh pass: giver-pinned two-door boon forks with GiverPalette-tinted icons/pickups, vortex at 4.0 with ring removed and smear ribbons swept to ~true radius | ✅ **done** |
+| 16.8 | Eighth pass (tuning): vortex radius 3.0 + arrival stagger off (combo is the stagger tool), kick 20→25 as the combo payoff | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -103,6 +104,12 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.8: combat tuning — the combo is the stagger tool, the finisher is the payoff
+- **Vortex radius 4.0 → 3.0** (human call after playing 4.0). The smear arc follows automatically (it reads the same `RadiusMeters`).
+- ⚠️ **The Undertow's arrival stagger is OFF** (`arrivalStaggerSeconds` 0.4 → 0, human call: "the spinning kick does not stagger — the attack and combo does"). **This overrides DESIGN.md's "the arrival stagger is non-negotiable"** — recorded as sanctioned drift; the doc's worry (dragged enemies arriving mid-wind-up at hug range) is now live, so watch for it in play. Tick poise damage (4/tick) still contributes to ordinary poise breaks; zero it too if the intent was "never any stagger from the spin". The combo's stagger tools are untouched: punches/kick deal poise and ATK/SPLIT hits still cancel wind-ups.
+- **Kick damage 20 → 25**: the finisher is now worth a whole punch pair (combo totals 10+12+25 = 47), so landing the full string beats hit-and-run spam.
+- **547/547 EditMode tests** (data-only change). Rebuilt, committed and pushed.
 
 ### 2026-08-11 — M16.7: boon doors wear their giver, boon forks are a choice, the kick shows its reach
 - **Boon doors are giver-coloured and giver-true.** A Boon-band fork now offers **two Transmission doors pinned to two different givers at generation** (`RewardChoice.PinnedGiver`; the implemented-giver list lives on the config as `boonGivers`), each door's waveform icon and its room's pickup tinted with that giver's colour from the new **`GiverPalette`** — ONE static source shared by door icons, pickups and the draft card headers, so a door can never disagree with the card it opens. The draft honours the pin whenever that giver still has anything offerable (loudly logged fallback otherwise). REWARDS.md §8's "readable WHICH giver" finally exists. **Verified live: a fork showed ice-Stasis beside green-Fray waveforms, and the Stasis door delivered a Stasis-tinted pickup opening a pure-Stasis draft.**

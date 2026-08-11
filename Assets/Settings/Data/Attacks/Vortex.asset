@@ -16,7 +16,7 @@ MonoBehaviour:
   windupSeconds: 0.1
   activeSeconds: 0.22
   recoverySeconds: 0.1
-  radiusMeters: 4
+  radiusMeters: 3
   innerRingMeters: 1.1
   pullImpulsePerMeter: 8
   maxPullImpulse: 40
@@ -29,7 +29,7 @@ MonoBehaviour:
   tickHitstopSeconds: 0.02
   spinRevolutions: 1
   spinClockwise: 1
-  arrivalStaggerSeconds: 0.4
+  arrivalStaggerSeconds: 0
   cooldownSeconds: 0
   perHitRefundSeconds: 0
   moveSpeedMultiplier: 0.6
