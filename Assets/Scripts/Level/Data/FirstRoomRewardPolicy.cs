@@ -18,9 +18,9 @@ namespace Game.Level
     {
         [SerializeField, Tooltip("Reward type waiting in the run's first room.")]
         RewardType type = RewardType.Transmission;
-        [SerializeField, Tooltip("Its tier. The tier-parity generator is bypassed here by design.")]
-        RewardTier tier = RewardTier.Normal;
+        [SerializeField, Tooltip("Its quality band. The band generator is bypassed here by design.")]
+        RewardBand band = RewardBand.Boon;
 
-        public virtual RewardChoice Decide(IRandomSource random) => new RewardChoice(type, tier);
+        public virtual RewardChoice Decide(IRandomSource random) => new RewardChoice(type, band);
     }
 }

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Reward_Transmission
   m_EditorClassIdentifier: Game.Level::Game.Level.RewardDefinition
   type: 0
+  band: 2
   payloadNormal: 0
   payloadRare: 0
   payloadEpic: 0

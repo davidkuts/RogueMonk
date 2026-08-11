@@ -182,9 +182,9 @@ namespace Game.Level
         /// <summary>
         /// Decides a cleared room's doors: when the boss is next there is exactly one, carrying
         /// the boss mark — the boss is never optional and never a surprise. Otherwise a seeded
-        /// 1–4 doors rolled by the tier-parity generator (one tier for the fork, a distinct
-        /// reward type per door). With no reward config the fork degrades to one door with a
-        /// Normal Minutes cache rather than failing generation.
+        /// 1–4 doors rolled band-first (the band decides what kinds appear; boon bands are a
+        /// single door). With no reward config the fork degrades to one Basic Minutes cache
+        /// rather than failing generation.
         /// </summary>
         List<RewardChoice> DrawExitRewards(IRandomSource random, bool bossIsNext)
         {
@@ -196,12 +196,12 @@ namespace Game.Level
             if (rewardRoller == null)
                 return new List<RewardChoice>(1)
                 {
-                    new RewardChoice(RewardType.MinutesCache, Game.Core.Economy.RewardTier.Normal),
+                    new RewardChoice(RewardType.MinutesCache, RewardBand.Basic),
                 };
 
             List<RewardChoice> fork = rewardRoller.RollFork(random, doors);
             if (fork.Count == 0)
-                fork.Add(new RewardChoice(RewardType.MinutesCache, Game.Core.Economy.RewardTier.Normal));
+                fork.Add(new RewardChoice(RewardType.MinutesCache, RewardBand.Basic));
 
             return fork;
         }

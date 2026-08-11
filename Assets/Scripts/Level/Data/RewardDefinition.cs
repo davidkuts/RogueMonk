@@ -46,12 +46,18 @@ namespace Game.Level
     public sealed class RewardDefinition : ScriptableObject
     {
         [SerializeField] RewardType type = RewardType.MinutesCache;
+        [SerializeField, Tooltip("The quality band this type belongs to (human redesign 2026-08-11): Basic = healing/run currency/consumables, Valuable = meta currency/Strays, Boon = the transmission draft. A fork rolls a band, then offers only that band's types.")]
+        RewardBand band = RewardBand.Basic;
 
-        [Header("Payload per tier (meaning depends on type)")]
-        [SerializeField, Tooltip("Normal-tier payload. Minutes / Hours amount for caches, heal fraction of max HP for Splice.")]
+        [Header("Payload (meaning depends on type)")]
+        [SerializeField, Tooltip("Minutes / Hours amount for caches, heal fraction of max HP for Splice. One number — value differences between rewards are the BAND system's job now, not per-door scaling.")]
         float payloadNormal = 25f;
-        [SerializeField] float payloadRare = 40f;
-        [SerializeField] float payloadEpic = 60f;
+#pragma warning disable 0414 // Serialized for the inspector; nothing reads them since the band redesign.
+        [SerializeField, Tooltip("Unused since the band redesign; retained so old assets keep their values visible.")]
+        float payloadRare = 40f;
+        [SerializeField, Tooltip("Unused since the band redesign.")]
+        float payloadEpic = 60f;
+#pragma warning restore 0414
 
         [Header("Presentation (capsule phase)")]
         [SerializeField, Tooltip("Placeholder icon silhouette shown over doors and on the pickup.")]
@@ -62,18 +68,12 @@ namespace Game.Level
         GameObject spawnPrefab;
 
         public RewardType Type => type;
+        public RewardBand Band => band;
         public RewardIconShape IconShape => iconShape;
         public Sprite IconSprite => iconSprite;
         public GameObject SpawnPrefab => spawnPrefab;
 
-        public float PayloadFor(RewardTier tier)
-        {
-            switch (tier)
-            {
-                case RewardTier.Epic: return payloadEpic;
-                case RewardTier.Rare: return payloadRare;
-                default: return payloadNormal;
-            }
-        }
+        /// <summary>The one payload number. What it means depends on the type.</summary>
+        public float Payload => payloadNormal;
     }
 }

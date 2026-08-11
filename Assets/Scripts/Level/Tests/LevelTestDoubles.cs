@@ -6,29 +6,31 @@ namespace Game.Level.Tests
 {
     internal sealed class FakeRewardConfig : IRewardConfig
     {
-        public float NormalWeight = 6f;
-        public float RareWeight = 3f;
-        public float EpicWeight = 1f;
+        public float BasicWeight = 5f;
+        public float ValuableWeight = 3f;
+        public float BoonWeight = 3f;
+        public float EliteBoonWeight = 1f;
 
         public List<RewardTypeOption> Options = new List<RewardTypeOption>
         {
-            new RewardTypeOption(RewardType.Transmission, true, 3f),
-            new RewardTypeOption(RewardType.MinutesCache, true, 3f),
-            new RewardTypeOption(RewardType.HoursCache, true, 1f),
-            new RewardTypeOption(RewardType.Splice, true, 2f),
-            new RewardTypeOption(RewardType.Stray, true, 2f),
-            new RewardTypeOption(RewardType.Stopgap, true, 2f),
-            new RewardTypeOption(RewardType.Recalibration, false, 1f),
-            new RewardTypeOption(RewardType.SupplyDrop, false, 1f),
+            new RewardTypeOption(RewardType.Splice, RewardBand.Basic, true, 2f),
+            new RewardTypeOption(RewardType.MinutesCache, RewardBand.Basic, true, 3f),
+            new RewardTypeOption(RewardType.Stopgap, RewardBand.Basic, true, 2f),
+            new RewardTypeOption(RewardType.HoursCache, RewardBand.Valuable, true, 1f),
+            new RewardTypeOption(RewardType.Stray, RewardBand.Valuable, true, 2f),
+            new RewardTypeOption(RewardType.Transmission, RewardBand.Boon, true, 3f),
+            new RewardTypeOption(RewardType.Recalibration, RewardBand.Valuable, false, 1f),
+            new RewardTypeOption(RewardType.SupplyDrop, RewardBand.Basic, false, 1f),
         };
 
-        public float TierWeight(RewardTier tier)
+        public float BandWeight(RewardBand band)
         {
-            switch (tier)
+            switch (band)
             {
-                case RewardTier.Epic: return EpicWeight;
-                case RewardTier.Rare: return RareWeight;
-                default: return NormalWeight;
+                case RewardBand.EliteBoon: return EliteBoonWeight;
+                case RewardBand.Boon: return BoonWeight;
+                case RewardBand.Valuable: return ValuableWeight;
+                default: return BasicWeight;
             }
         }
 

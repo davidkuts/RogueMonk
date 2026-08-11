@@ -266,7 +266,7 @@ namespace Game.Level
                 if (rewardConfig != null)
                 {
                     definition = rewardConfig.FindDefinition(choice.Type);
-                    tierTint = rewardConfig.TierTint(choice.Tier);
+                    tierTint = rewardConfig.BandTint(choice.Band);
                 }
 
                 ExitMarkerView marker = ExitMarkerView.Build(

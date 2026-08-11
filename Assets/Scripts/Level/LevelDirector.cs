@@ -76,11 +76,9 @@ namespace Game.Level
 
         public RoomRunner CurrentRoom => currentRunner;
 
-        /// <summary>
-        /// Raised when a level's final room is cleared and another level follows. The boon screen
-        /// listens for this; the run is paused until it answers with <see cref="ContinueToNextLevel"/>.
-        /// </summary>
-        public event Action<int> LevelCleared;
+        // The LevelCleared event and its boon-screen handshake were removed 2026-08-11 with the
+        // between-levels elemental boon screen: the level-exit door leads straight into the next
+        // era, and transmissions are the boon system.
 
         /// <summary>Raised when the whole run is won — the last boss of the last level.</summary>
         public event Action LevelCompleted;
@@ -292,13 +290,15 @@ namespace Game.Level
 
                 if (!OnFinalLevel)
                 {
-                    // The level is over but the run is not. Hand off to the boon screen and stop;
-                    // ContinueToNextLevel resumes once the player has chosen.
+                    // Straight into the next era. The between-levels elemental boon screen is
+                    // retired (human call 2026-08-11): transmissions ARE the boon system, the
+                    // boss already paid its currency, and the level-exit door was the beat —
+                    // stacking a second reward screen on top of it double-paid the boss.
                     Run.RecordLevelCleared();
-                    awaitingLevelAdvance = true;
                     GameLog.Info(LogCategory.Level,
-                        $"LEVEL {CurrentLevelNumber}/{LevelsPerRun} CLEARED in {Run.ElapsedSeconds:0.0}s - offering a boon");
-                    LevelCleared?.Invoke(CurrentLevelNumber);
+                        $"LEVEL {CurrentLevelNumber}/{LevelsPerRun} CLEARED in {Run.ElapsedSeconds:0.0}s - onward");
+                    levelIndex++;
+                    BuildLevel();
                     return;
                 }
 

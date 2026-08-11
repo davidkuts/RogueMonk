@@ -26,18 +26,24 @@ namespace Game.Level
             public float weight = 1f;
         }
 
-        [Header("Tier weights (one roll per fork — REWARDS.md §8)")]
-        [SerializeField] float normalWeight = 6f;
-        [SerializeField] float rareWeight = 3f;
-        [SerializeField] float epicWeight = 1f;
+        [Header("Band weights (one roll per fork — the band decides what KIND of doors appear)")]
+        [SerializeField, Tooltip("Healing / run currency / consumables.")]
+        float basicWeight = 5f;
+        [SerializeField, Tooltip("Meta currency and Strays.")]
+        float valuableWeight = 3f;
+        [SerializeField, Tooltip("A transmission draft — the only door on its fork.")]
+        float boonWeight = 3f;
+        [SerializeField, Tooltip("The two-giver, higher-rarity draft. Deliberately rare.")]
+        float eliteBoonWeight = 1f;
 
         [Header("Reward types")]
         [SerializeField] List<TypeEntry> types = new List<TypeEntry>();
 
-        [Header("Tier presentation (brass / silver / gold)")]
-        [SerializeField] Color normalTint = new Color(0.78f, 0.58f, 0.30f);
-        [SerializeField] Color rareTint = new Color(0.80f, 0.84f, 0.90f);
-        [SerializeField] Color epicTint = new Color(1.00f, 0.84f, 0.25f);
+        [Header("Band presentation (brass / silver / gold / purple)")]
+        [SerializeField] Color basicTint = new Color(0.78f, 0.58f, 0.30f);
+        [SerializeField] Color valuableTint = new Color(0.80f, 0.84f, 0.90f);
+        [SerializeField] Color boonTint = new Color(1.00f, 0.84f, 0.25f);
+        [SerializeField] Color eliteBoonTint = new Color(0.70f, 0.35f, 0.95f);
 
         [Header("Pickup")]
         [SerializeField, Tooltip("How close the player must stand for the prompt and the collect press to work.")]
@@ -53,23 +59,25 @@ namespace Game.Level
 
         public FirstRoomRewardPolicy FirstRoomPolicy => firstRoomPolicy;
 
-        public float TierWeight(RewardTier tier)
+        public float BandWeight(RewardBand band)
         {
-            switch (tier)
+            switch (band)
             {
-                case RewardTier.Epic: return epicWeight;
-                case RewardTier.Rare: return rareWeight;
-                default: return normalWeight;
+                case RewardBand.EliteBoon: return eliteBoonWeight;
+                case RewardBand.Boon: return boonWeight;
+                case RewardBand.Valuable: return valuableWeight;
+                default: return basicWeight;
             }
         }
 
-        public Color TierTint(RewardTier tier)
+        public Color BandTint(RewardBand band)
         {
-            switch (tier)
+            switch (band)
             {
-                case RewardTier.Epic: return epicTint;
-                case RewardTier.Rare: return rareTint;
-                default: return normalTint;
+                case RewardBand.EliteBoon: return eliteBoonTint;
+                case RewardBand.Boon: return boonTint;
+                case RewardBand.Valuable: return valuableTint;
+                default: return basicTint;
             }
         }
 
@@ -82,7 +90,8 @@ namespace Game.Level
                 {
                     TypeEntry entry = types[i];
                     if (entry != null && entry.definition != null)
-                        optionView.Add(new RewardTypeOption(entry.definition.Type, entry.enabled, entry.weight));
+                        optionView.Add(new RewardTypeOption(
+                            entry.definition.Type, entry.definition.Band, entry.enabled, entry.weight));
                 }
 
                 return optionView;

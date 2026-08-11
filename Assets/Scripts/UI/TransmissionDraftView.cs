@@ -11,22 +11,31 @@ using UnityEngine.UI;
 namespace Game.UI
 {
     /// <summary>
-    /// The capsule-phase transmission draft: gameplay pauses, three plain cards from one
-    /// giver, pick one. Implements <see cref="ITransmissionDraftPresenter"/> and registers
-    /// itself with the reward director — the director rolls WHAT is offered, this only shows
-    /// it, which is the seam the real watch-face presentation will slot into.
+    /// The capsule-phase transmission draft: gameplay pauses, up to three plain cards, pick
+    /// one. Implements <see cref="ITransmissionDraftPresenter"/> and registers itself with the
+    /// reward director — the director rolls WHAT is offered (each card carrying its own rolled
+    /// rarity), this only shows it, which is the seam the real watch-face presentation will
+    /// slot into.
     ///
-    /// Builds its own uGUI at runtime, like the wallet HUD: scaffolding should not leave scene
-    /// litter for the real UI pass to dig out.
+    /// <para>Rarity reads as the card's border (human call 2026-08-11): Normal keeps the plain
+    /// border, Rare is blue, Epic is purple. Selection therefore CANNOT be a border colour any
+    /// more — the focused card brightens and grows instead.</para>
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TransmissionDraftView : MonoBehaviour, ITransmissionDraftPresenter
     {
         [SerializeField] RewardDirector rewards;
 
-        [Header("Look")]
-        [SerializeField] Color selectedColor = new Color(1f, 0.95f, 0.8f);
-        [SerializeField] Color unselectedColor = new Color(0.45f, 0.48f, 0.55f);
+        [Header("Rarity borders")]
+        [SerializeField] Color normalBorder = new Color(0.45f, 0.48f, 0.55f);
+        [SerializeField] Color rareBorder = new Color(0.25f, 0.5f, 1f);
+        [SerializeField] Color epicBorder = new Color(0.65f, 0.3f, 0.95f);
+
+        [Header("Selection")]
+        [SerializeField, Range(1f, 1.3f), Tooltip("Scale of the focused card.")]
+        float selectedScale = 1.06f;
+        [SerializeField, Range(0f, 1f), Tooltip("How far the focused card's border is pushed toward white.")]
+        float selectedBrighten = 0.45f;
 
         [Header("Feel")]
         [SerializeField, Tooltip("Confirm is ignored this long after the panel opens, so the collecting press cannot double as a blind pick.")]
@@ -35,10 +44,10 @@ namespace Game.UI
         GameObject root;
         Text title;
         readonly List<CardWidgets> cards = new List<CardWidgets>();
-        readonly List<TransmissionBoonDefinition> offer = new List<TransmissionBoonDefinition>();
+        readonly List<TransmissionOffer> offer = new List<TransmissionOffer>();
 
         MenuSelection selection;
-        Action<TransmissionBoonDefinition> onChosen;
+        Action<TransmissionOffer> onChosen;
         float lockout;
 
         sealed class CardWidgets
@@ -66,8 +75,7 @@ namespace Game.UI
                 rewards.DraftPresenter = null;
         }
 
-        public bool Present(IReadOnlyList<TransmissionBoonDefinition> draft, RewardTier tier,
-            Action<TransmissionBoonDefinition> chosen)
+        public bool Present(IReadOnlyList<TransmissionOffer> draft, Action<TransmissionOffer> chosen)
         {
             if (IsShowing || draft == null || draft.Count == 0)
                 return false;
@@ -85,9 +93,15 @@ namespace Game.UI
             lockout = inputLockoutSeconds;
 
             if (title != null)
-                title.text = $"INCOMING TRANSMISSION — {offer[0].Giver.ToString().ToUpperInvariant()}  [{tier.ToString().ToUpperInvariant()}]";
+            {
+                // An elite draft is the one place two givers share the channel; name them both.
+                bool twoGivers = offer.Count > 1 && offer[0].Definition.Giver != offer[offer.Count - 1].Definition.Giver;
+                title.text = twoGivers
+                    ? "TWO SIGNALS ON THE CHANNEL — CHOOSE"
+                    : $"INCOMING TRANSMISSION — {offer[0].Definition.Giver.ToString().ToUpperInvariant()}";
+            }
 
-            BindCards(tier);
+            BindCards();
             root.SetActive(true);
             IsShowing = true;
 
@@ -118,7 +132,7 @@ namespace Game.UI
             if (!MenuSelection.ConfirmPressed())
                 return;
 
-            TransmissionBoonDefinition chosen = offer[Mathf.Clamp(selection.Index, 0, offer.Count - 1)];
+            TransmissionOffer chosen = offer[Mathf.Clamp(selection.Index, 0, offer.Count - 1)];
 
             root.SetActive(false);
             IsShowing = false;
@@ -127,7 +141,7 @@ namespace Game.UI
 
             AudioDirector.PlaySound(GameSound.PerfectDodge);
 
-            Action<TransmissionBoonDefinition> callback = onChosen;
+            Action<TransmissionOffer> callback = onChosen;
             onChosen = null;
             callback?.Invoke(chosen);
         }
@@ -161,7 +175,7 @@ namespace Game.UI
                 card.Root.transform.SetParent(root.transform, false);
 
                 card.Frame = card.Root.AddComponent<Image>();
-                card.Frame.color = unselectedColor;
+                card.Frame.color = normalBorder;
                 var rect = (RectTransform)card.Root.transform;
                 rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.anchoredPosition = new Vector2((i - 1) * 440f, -40f);
@@ -215,7 +229,17 @@ namespace Game.UI
             return text;
         }
 
-        void BindCards(RewardTier tier)
+        Color BorderFor(RewardTier rarity)
+        {
+            switch (rarity)
+            {
+                case RewardTier.Epic: return epicBorder;
+                case RewardTier.Rare: return rareBorder;
+                default: return normalBorder;
+            }
+        }
+
+        void BindCards()
         {
             for (int i = 0; i < cards.Count; i++)
             {
@@ -230,9 +254,13 @@ namespace Game.UI
                 var rect = (RectTransform)card.Root.transform;
                 rect.anchoredPosition = new Vector2((i - (offer.Count - 1) * 0.5f) * 440f, -40f);
 
-                TransmissionBoonDefinition boon = offer[i];
-                card.Name.text = boon.DisplayName.ToUpperInvariant();
-                card.Body.text = $"{boon.Description}\n\n[{boon.Ability}]";
+                TransmissionOffer o = offer[i];
+                card.Name.text = o.Definition.DisplayName.ToUpperInvariant();
+
+                string rarityLine = o.Rarity == RewardTier.Normal
+                    ? string.Empty
+                    : "\n" + o.Rarity.ToString().ToUpperInvariant();
+                card.Body.text = $"{o.Definition.Description}\n\n[{o.Definition.Giver} · {o.Definition.Ability}]{rarityLine}";
             }
 
             Highlight();
@@ -242,8 +270,13 @@ namespace Game.UI
         {
             for (int i = 0; i < cards.Count; i++)
             {
-                if (i < offer.Count && cards[i].Frame != null)
-                    cards[i].Frame.color = i == selection.Index ? selectedColor : unselectedColor;
+                if (i >= offer.Count || cards[i].Frame == null)
+                    continue;
+
+                bool focused = i == selection.Index;
+                Color border = BorderFor(offer[i].Rarity);
+                cards[i].Frame.color = focused ? Color.Lerp(border, Color.white, selectedBrighten) : border;
+                cards[i].Root.transform.localScale = Vector3.one * (focused ? selectedScale : 1f);
             }
         }
     }

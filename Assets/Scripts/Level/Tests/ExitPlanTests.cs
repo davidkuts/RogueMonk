@@ -48,7 +48,7 @@ namespace Game.Level.Tests
         }
 
         [Test]
-        public void TierParityHoldsOnEveryFork()
+        public void BandParityHoldsOnEveryFork()
         {
             for (uint seed = 1; seed <= 100; seed++)
             {
@@ -56,8 +56,17 @@ namespace Game.Level.Tests
                 for (int r = 0; r < plan.RoomCount - 2; r++)
                 {
                     RoomPlan room = plan.Rooms[r];
-                    Assert.That(room.ExitRewards.Select(c => c.Tier).Distinct().Count(), Is.EqualTo(1),
-                        $"seed {seed} room {r}: every door on a fork offers the same tier");
+                    Assert.That(room.ExitRewards.Select(c => c.Band).Distinct().Count(), Is.EqualTo(1),
+                        $"seed {seed} room {r}: every door on a fork shares one quality band");
+
+                    if (room.ExitRewards[0].Band == RewardBand.Boon ||
+                        room.ExitRewards[0].Band == RewardBand.EliteBoon)
+                    {
+                        Assert.That(room.ExitDoorCount, Is.EqualTo(1),
+                            $"seed {seed} room {r}: a boon fork offers only the boon door");
+                        Assert.That(room.ExitRewards[0].Type, Is.EqualTo(RewardType.Transmission),
+                            $"seed {seed} room {r}");
+                    }
                 }
             }
         }
@@ -95,7 +104,7 @@ namespace Game.Level.Tests
         }
 
         [Test]
-        public void EveryDoorCountAppearsAcrossManySeeds()
+        public void EveryReachableDoorCountAppearsAcrossManySeeds()
         {
             var seen = new System.Collections.Generic.HashSet<int>();
             for (uint seed = 1; seed <= 200; seed++)
@@ -105,26 +114,28 @@ namespace Game.Level.Tests
                     seen.Add(plan.Rooms[r].ExitDoorCount);
             }
 
-            Assert.That(seen, Is.EquivalentTo(new[] { 1, 2, 3, 4 }),
-                "across many seeds every door count from 1 to 4 should occur");
+            // The widest possible fork equals the largest band pool: Basic holds three
+            // enabled types, so three doors is the ceiling until a band grows.
+            Assert.That(seen, Is.EquivalentTo(new[] { 1, 2, 3 }),
+                "across many seeds every reachable door count should occur");
         }
 
         [Test]
-        public void EveryTierAppearsAcrossManySeeds()
+        public void EveryBandAppearsAcrossManySeeds()
         {
-            var seen = new System.Collections.Generic.HashSet<Game.Core.Economy.RewardTier>();
+            var seen = new System.Collections.Generic.HashSet<RewardBand>();
             for (uint seed = 1; seed <= 200; seed++)
             {
                 LevelPlan plan = Generate(seed);
                 for (int r = 0; r < plan.RoomCount - 2; r++)
                 {
                     foreach (RewardChoice choice in plan.Rooms[r].ExitRewards)
-                        seen.Add(choice.Tier);
+                        seen.Add(choice.Band);
                 }
             }
 
-            Assert.That(seen.Count, Is.EqualTo(3),
-                "across many seeds Normal, Rare and Epic forks should all occur");
+            Assert.That(seen.Count, Is.EqualTo(4),
+                "across many seeds Basic, Valuable, Boon and EliteBoon forks should all occur");
         }
 
         [Test]
@@ -141,8 +152,9 @@ namespace Game.Level.Tests
                     for (int d = 0; d < a.Rooms[r].ExitDoorCount; d++)
                     {
                         Assert.That(b.Rooms[r].ExitRewards[d].Type, Is.EqualTo(a.Rooms[r].ExitRewards[d].Type), $"seed {seed} room {r} door {d}");
-                        Assert.That(b.Rooms[r].ExitRewards[d].Tier, Is.EqualTo(a.Rooms[r].ExitRewards[d].Tier), $"seed {seed} room {r} door {d}");
+                        Assert.That(b.Rooms[r].ExitRewards[d].Band, Is.EqualTo(a.Rooms[r].ExitRewards[d].Band), $"seed {seed} room {r} door {d}");
                         Assert.That(b.Rooms[r].ExitRewards[d].IsBossDoor, Is.EqualTo(a.Rooms[r].ExitRewards[d].IsBossDoor), $"seed {seed} room {r} door {d}");
+                        Assert.That(b.Rooms[r].ExitRewards[d].IsLevelExit, Is.EqualTo(a.Rooms[r].ExitRewards[d].IsLevelExit), $"seed {seed} room {r} door {d}");
                     }
                 }
             }

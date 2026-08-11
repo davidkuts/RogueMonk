@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Reward_Stray
   m_EditorClassIdentifier: Game.Level::Game.Level.RewardDefinition
   type: 4
+  band: 1
   payloadNormal: 0
   payloadRare: 0
   payloadEpic: 0

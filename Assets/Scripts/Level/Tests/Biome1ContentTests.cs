@@ -120,8 +120,8 @@ namespace Game.Level.Tests
                             Assert.That(room.ExitRewards.Select(r => r.Type).Distinct().Count(),
                                 Is.EqualTo(room.ExitDoorCount),
                                 $"seed {seed} level {level} room {room.Index}: no duplicate reward types on one fork");
-                            Assert.That(room.ExitRewards.Select(r => r.Tier).Distinct().Count(), Is.EqualTo(1),
-                                $"seed {seed} level {level} room {room.Index}: tier parity - every door on a fork shares one tier");
+                            Assert.That(room.ExitRewards.Select(r => r.Band).Distinct().Count(), Is.EqualTo(1),
+                                $"seed {seed} level {level} room {room.Index}: band parity - every door on a fork shares one quality band");
                         }
                     }
 

@@ -65,14 +65,11 @@ namespace Game.UI
                 return;
             }
 
-            director.LevelCleared += OnLevelCleared;
+            // RETIRED 2026-08-11: the level-exit door leads straight into the next era and
+            // transmissions are the boon system, so nothing triggers this screen any more.
+            // The class is kept until the elemental boon system's fate is decided; the
+            // component stays inert in the scene.
             Show(false);
-        }
-
-        void OnDestroy()
-        {
-            if (director != null)
-                director.LevelCleared -= OnLevelCleared;
         }
 
         void OnLevelCleared(int levelNumber)

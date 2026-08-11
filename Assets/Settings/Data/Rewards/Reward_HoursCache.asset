@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Reward_HoursCache
   m_EditorClassIdentifier: Game.Level::Game.Level.RewardDefinition
   type: 2
+  band: 1
   payloadNormal: 1
   payloadRare: 2
   payloadEpic: 3

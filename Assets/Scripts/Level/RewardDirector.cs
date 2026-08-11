@@ -240,7 +240,7 @@ namespace Game.Level
             }
 
             RewardDefinition definition = config != null ? config.FindDefinition(choice.Type) : null;
-            Color tint = config != null ? config.TierTint(choice.Tier) : Color.white;
+            Color tint = config != null ? config.BandTint(choice.Band) : Color.white;
 
             activePickup = RewardPickup.Spawn(
                 currentRoom.RewardSpawnPosition, choice, definition, tint,
@@ -297,7 +297,7 @@ namespace Game.Level
             {
                 case RewardType.MinutesCache:
                 {
-                    int amount = Mathf.RoundToInt(definition != null ? definition.PayloadFor(choice.Tier) : 0f);
+                    int amount = Mathf.RoundToInt(definition != null ? definition.Payload : 0f);
                     if (wallet != null)
                         wallet.Wallet.Add(CurrencyType.Minutes, amount);
                     RewardFeedback?.Invoke($"+{amount} MINUTES");
@@ -307,7 +307,7 @@ namespace Game.Level
 
                 case RewardType.HoursCache:
                 {
-                    int amount = Mathf.RoundToInt(definition != null ? definition.PayloadFor(choice.Tier) : 0f);
+                    int amount = Mathf.RoundToInt(definition != null ? definition.Payload : 0f);
                     if (wallet != null)
                         wallet.Wallet.Add(CurrencyType.Hours, amount);
                     RewardFeedback?.Invoke($"+{amount} HOURS");
@@ -317,7 +317,7 @@ namespace Game.Level
 
                 case RewardType.Splice:
                 {
-                    float depth = definition != null ? definition.PayloadFor(choice.Tier) : 0f;
+                    float depth = definition != null ? definition.Payload : 0f;
                     if (strays != null)
                         depth *= strays.SpliceDepthMultiplier;
                     if (playerHealth != null)
@@ -354,7 +354,7 @@ namespace Game.Level
                 }
 
                 case RewardType.Transmission:
-                    BeginTransmissionDraft(choice.Tier, stream, onComplete);
+                    BeginTransmissionDraft(choice.Band == RewardBand.EliteBoon, stream, onComplete);
                     break;
 
                 default:
@@ -393,7 +393,7 @@ namespace Game.Level
             return candidates[index];
         }
 
-        void BeginTransmissionDraft(RewardTier tier, IRandomSource stream, Action onComplete)
+        void BeginTransmissionDraft(bool elite, IRandomSource stream, Action onComplete)
         {
             if (transmissionCatalog == null || transmissionBoons == null)
             {
@@ -402,7 +402,9 @@ namespace Game.Level
                 return;
             }
 
-            var offer = transmissionCatalog.RollDraft(stream, transmissionBoons.OwnedDefinitions);
+            var offer = elite
+                ? transmissionCatalog.RollEliteDraft(stream, transmissionBoons.OwnedDefinitions)
+                : transmissionCatalog.RollDraft(stream, transmissionBoons.OwnedDefinitions);
 
             if (offer.Count == 0)
             {
@@ -412,19 +414,19 @@ namespace Game.Level
                 return;
             }
 
-            Action<TransmissionBoonDefinition> grant = chosen =>
+            Action<TransmissionOffer> grant = chosen =>
             {
-                transmissionBoons.Grant(chosen, tier);
-                RewardFeedback?.Invoke($"{chosen.DisplayName} [{tier}]");
+                transmissionBoons.Grant(chosen.Definition, chosen.Rarity);
+                RewardFeedback?.Invoke($"{chosen.Definition.DisplayName} [{chosen.Rarity}]");
                 onComplete();
             };
 
-            if (DraftPresenter == null || !DraftPresenter.Present(offer, tier, grant))
+            if (DraftPresenter == null || !DraftPresenter.Present(offer, grant))
             {
                 // No UI in this scene: pick the front of the shuffled offer so the run can
                 // continue. Logged loudly, because a silent auto-pick in the real game would
                 // mean the draft screen broke.
-                GameLog.Warn(LogCategory.Level, $"no draft presenter - auto-installing {offer[0].DisplayName}");
+                GameLog.Warn(LogCategory.Level, $"no draft presenter - auto-installing {offer[0].Definition.DisplayName}");
                 grant(offer[0]);
             }
         }

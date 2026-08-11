@@ -1,16 +1,17 @@
 using System.Collections.Generic;
-using Game.Core.Economy;
 using Game.Core.Rng;
 
 namespace Game.Level
 {
     /// <summary>
-    /// The tier-parity door-reward generator (REWARDS.md §8): at every fork, roll ONE quality
-    /// tier, then give each door a DIFFERENT reward type at that tier. The player chooses what
-    /// KIND of help — never whether they're getting scammed.
+    /// The door-reward generator, band-first (human redesign 2026-08-11): a fork rolls ONE
+    /// quality band, and the band decides what kind of doors appear. Basic and Valuable forks
+    /// offer 1–N doors of DISTINCT types from that band's pool; Boon and EliteBoon forks offer
+    /// exactly one transmission door — when the fork rolls boons, boons are the only option,
+    /// and how good the cards are is the draft's own rarity roll, not the door's.
     ///
-    /// Engine-free and deterministic: a fork of N doors always costs exactly 1 + N draws
-    /// (one tier roll, one weighted type pick per door), so a seed reproduces every fork.
+    /// Engine-free and deterministic: a fork costs exactly one band roll plus one weighted
+    /// pick per door, so a seed reproduces every fork.
     /// </summary>
     public sealed class RewardRoller
     {
@@ -23,26 +24,23 @@ namespace Game.Level
             this.config = config;
         }
 
-        /// <summary>How many doors a fork can offer before types would have to repeat.</summary>
-        public int MaxDistinctTypes
+        /// <summary>Distinct enabled types available in one band.</summary>
+        public int DistinctTypesInBand(RewardBand band)
         {
-            get
+            int count = 0;
+            IReadOnlyList<RewardTypeOption> options = config.TypeOptions;
+            for (int i = 0; i < options.Count; i++)
             {
-                int count = 0;
-                IReadOnlyList<RewardTypeOption> options = config.TypeOptions;
-                for (int i = 0; i < options.Count; i++)
-                {
-                    if (options[i].Enabled && options[i].Weight > 0f)
-                        count++;
-                }
-
-                return count;
+                if (options[i].Enabled && options[i].Weight > 0f && options[i].Band == band)
+                    count++;
             }
+
+            return count;
         }
 
         /// <summary>
-        /// Rolls one fork. <paramref name="doorCount"/> is clamped to the number of enabled
-        /// types, because duplicate types on one fork are exactly what parity forbids.
+        /// Rolls one fork. <paramref name="doorCount"/> is an upper bound; the band's pool
+        /// clamps it, and the two boon bands always produce a single door.
         /// </summary>
         public List<RewardChoice> RollFork(IRandomSource random, int doorCount)
         {
@@ -50,43 +48,57 @@ namespace Game.Level
             if (random == null || config == null)
                 return choices;
 
-            int doors = System.Math.Min(System.Math.Max(1, doorCount), MaxDistinctTypes);
-            if (doors <= 0)
-                return choices;
+            RewardBand band = RollBand(random);
 
-            RewardTier tier = RollTier(random);
+            // Boon forks are exclusive by design: one door, one draft behind it. The elite
+            // band keeps the transmission TYPE — what differs is the draft it opens.
+            if (band == RewardBand.Boon || band == RewardBand.EliteBoon)
+            {
+                choices.Add(new RewardChoice(RewardType.Transmission, band));
+                return choices;
+            }
+
+            int doors = System.Math.Min(System.Math.Max(1, doorCount), DistinctTypesInBand(band));
+            if (doors <= 0)
+            {
+                // A band with nothing enabled degrades to one Basic minutes door rather than a
+                // doorless room.
+                choices.Add(new RewardChoice(RewardType.MinutesCache, RewardBand.Basic));
+                return choices;
+            }
 
             usedScratch.Clear();
             for (int door = 0; door < doors; door++)
             {
-                RewardType? type = PickDistinctType(random);
+                RewardType? type = PickDistinctType(random, band);
                 if (type == null)
                     break;
 
                 usedScratch.Add(type.Value);
-                choices.Add(new RewardChoice(type.Value, tier));
+                choices.Add(new RewardChoice(type.Value, band));
             }
 
             return choices;
         }
 
-        RewardTier RollTier(IRandomSource random)
+        RewardBand RollBand(IRandomSource random)
         {
             weightScratch.Clear();
-            weightScratch.Add(Positive(config.TierWeight(RewardTier.Normal)));
-            weightScratch.Add(Positive(config.TierWeight(RewardTier.Rare)));
-            weightScratch.Add(Positive(config.TierWeight(RewardTier.Epic)));
+            weightScratch.Add(Positive(config.BandWeight(RewardBand.Basic)));
+            weightScratch.Add(Positive(config.BandWeight(RewardBand.Valuable)));
+            weightScratch.Add(Positive(config.BandWeight(RewardBand.Boon)));
+            weightScratch.Add(Positive(config.BandWeight(RewardBand.EliteBoon)));
 
             int index = random.PickWeighted(weightScratch);
-            return index < 0 ? RewardTier.Normal : (RewardTier)index;
+            return index < 0 ? RewardBand.Basic : (RewardBand)index;
         }
 
         /// <summary>
-        /// One weighted draw over the enabled types not yet used on this fork. Already-used
-        /// types keep their list slot at weight zero, so the draw count per door is always
-        /// exactly one whatever was picked before — the determinism rule the run seed leans on.
+        /// One weighted draw over the band's enabled types not yet used on this fork.
+        /// Already-used types keep their list slot at weight zero, so the draw count per door
+        /// is always exactly one whatever was picked before — the determinism the seed leans on.
         /// </summary>
-        RewardType? PickDistinctType(IRandomSource random)
+        RewardType? PickDistinctType(IRandomSource random, RewardBand band)
         {
             weightScratch.Clear();
             IReadOnlyList<RewardTypeOption> options = config.TypeOptions;
@@ -94,7 +106,8 @@ namespace Game.Level
             for (int i = 0; i < options.Count; i++)
             {
                 RewardTypeOption option = options[i];
-                bool usable = option.Enabled && option.Weight > 0f && !usedScratch.Contains(option.Type);
+                bool usable = option.Enabled && option.Weight > 0f && option.Band == band &&
+                              !usedScratch.Contains(option.Type);
                 weightScratch.Add(usable ? option.Weight : 0f);
             }
 
