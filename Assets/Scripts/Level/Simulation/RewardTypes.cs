@@ -38,32 +38,40 @@ namespace Game.Level
     }
 
     /// <summary>
-    /// One door's offer: what kind of help, at what quality. The boss door is a choice with no
-    /// reward — the mark the player learns to read as "the boss is behind this one".
+    /// One door's offer: what kind of help, at what quality. Two special doors carry no
+    /// reward: the boss door (the mark the player learns to read as "the boss is behind this
+    /// one") and the level exit — the one door out of a beaten boss's arena, wearing the same
+    /// glyph after every boss so leaving an era is always the same signal.
     /// </summary>
     public readonly struct RewardChoice
     {
         public readonly RewardType Type;
         public readonly RewardTier Tier;
         public readonly bool IsBossDoor;
+        public readonly bool IsLevelExit;
 
         public RewardChoice(RewardType type, RewardTier tier)
         {
             Type = type;
             Tier = tier;
             IsBossDoor = false;
+            IsLevelExit = false;
         }
 
-        RewardChoice(RewardType type, RewardTier tier, bool isBossDoor)
+        RewardChoice(bool isBossDoor, bool isLevelExit)
         {
-            Type = type;
-            Tier = tier;
+            Type = default;
+            Tier = default;
             IsBossDoor = isBossDoor;
+            IsLevelExit = isLevelExit;
         }
 
-        public static RewardChoice BossDoor => new RewardChoice(default, default, true);
+        public static RewardChoice BossDoor => new RewardChoice(true, false);
 
-        public override string ToString() => IsBossDoor ? "BossDoor" : $"{Type}({Tier})";
+        public static RewardChoice LevelExit => new RewardChoice(false, true);
+
+        public override string ToString() =>
+            IsBossDoor ? "BossDoor" : IsLevelExit ? "LevelExit" : $"{Type}({Tier})";
     }
 
     /// <summary>One reward type's generator knobs, as the engine-free roller sees them.</summary>

@@ -80,6 +80,12 @@ namespace Game.Enemies
         /// <summary>Minutes this kill trickles.</summary>
         public int MinutesOnKill => definition != null ? definition.MinutesOnKill : 0;
 
+        /// <summary>Hours this kill guarantees. Zero for everything but bosses.</summary>
+        public int HoursOnKill => definition != null ? definition.HoursOnKill : 0;
+
+        /// <summary>Amber this kill guarantees. Bosses only.</summary>
+        public int AmberOnKill => definition != null ? definition.AmberOnKill : 0;
+
         public Health Health { get; private set; }
 
         public PoiseSystem Poise { get; private set; }

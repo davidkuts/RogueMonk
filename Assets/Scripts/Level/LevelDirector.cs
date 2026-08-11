@@ -402,10 +402,12 @@ namespace Game.Level
                 return;
 
             RewardChoice choice = plan.ExitRewards[exitIndex];
-            pendingReward = choice.IsBossDoor ? (RewardChoice?)null : choice;
+            pendingReward = choice.IsBossDoor || choice.IsLevelExit ? (RewardChoice?)null : choice;
 
             GameLog.Info(LogCategory.Level,
-                choice.IsBossDoor ? "chose the boss door" : $"chose the {choice} door");
+                choice.IsBossDoor ? "chose the boss door"
+                : choice.IsLevelExit ? "stepped through the level exit"
+                : $"chose the {choice} door");
         }
 
         void DetachRunner(RoomRunner runner)
@@ -425,8 +427,11 @@ namespace Game.Level
             Run.RecordRoomCleared();
             Game.Core.Audio.AudioDirector.PlaySound(Game.Core.Audio.GameSound.RoomClear);
 
-            // The final room needs no door: clearing it ends the level.
-            if (roomIndex >= Plan.RoomCount - 1)
+            // The beaten boss's arena ends at its own level-exit door, chosen with Interact
+            // like any other — the level must not cut away the instant the health bar empties.
+            // Only a degenerate final room with no doors at all still advances by itself,
+            // so a content set without the exit configured cannot hang the run.
+            if (roomIndex >= Plan.RoomCount - 1 && Plan.Rooms[roomIndex].ExitDoorCount == 0)
                 AdvanceRoom();
         }
 

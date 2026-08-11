@@ -19,6 +19,7 @@ namespace Game.Combat
         int offerCount = 3;
 
         readonly List<GiverId> giverScratch = new List<GiverId>();
+        readonly List<GiverId> fullGiverScratch = new List<GiverId>();
         readonly List<TransmissionBoonDefinition> boonScratch = new List<TransmissionBoonDefinition>();
         readonly List<SlotClaim> claimScratch = new List<SlotClaim>();
 
@@ -44,7 +45,12 @@ namespace Game.Combat
                     claimScratch.Add(new SlotClaim(owned[i].Giver, owned[i].Ability));
             }
 
+            // Count each giver's offerable pool, preferring givers who can still fill a WHOLE
+            // draft: a three-card choice beats fictional variety, so a giver reduced to one or
+            // two boons only calls when nobody can do better (human call 2026-08-11 — drafts
+            // were shrinking to two cards by the second pick).
             giverScratch.Clear();
+            fullGiverScratch.Clear();
             for (int i = 0; i < boons.Count; i++)
             {
                 TransmissionBoonDefinition boon = boons[i];
@@ -54,12 +60,17 @@ namespace Game.Combat
 
                 if (!giverScratch.Contains(boon.Giver))
                     giverScratch.Add(boon.Giver);
+
+                if (CountOfferable(boon.Giver, owned) >= Mathf.Max(1, offerCount) &&
+                    !fullGiverScratch.Contains(boon.Giver))
+                    fullGiverScratch.Add(boon.Giver);
             }
 
             if (giverScratch.Count == 0)
                 return offer;
 
-            GiverId giver = giverScratch[random.NextInt(0, giverScratch.Count)];
+            List<GiverId> pickFrom = fullGiverScratch.Count > 0 ? fullGiverScratch : giverScratch;
+            GiverId giver = pickFrom[random.NextInt(0, pickFrom.Count)];
 
             boonScratch.Clear();
             for (int i = 0; i < boons.Count; i++)
@@ -77,6 +88,21 @@ namespace Game.Combat
                 offer.Add(boonScratch[i]);
 
             return offer;
+        }
+
+        /// <summary>How many of one giver's boons are currently offerable. Uses the claim list built by the caller.</summary>
+        int CountOfferable(GiverId giver, IReadOnlyList<TransmissionBoonDefinition> owned)
+        {
+            int count = 0;
+            for (int i = 0; i < boons.Count; i++)
+            {
+                TransmissionBoonDefinition boon = boons[i];
+                if (boon != null && boon.Giver == giver && !IsOwned(owned, boon) &&
+                    TransmissionDraftRules.IsOfferable(boon.Giver, boon.Ability, claimScratch))
+                    count++;
+            }
+
+            return count;
         }
 
         static bool IsOwned(IReadOnlyList<TransmissionBoonDefinition> owned, TransmissionBoonDefinition boon)

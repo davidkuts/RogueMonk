@@ -20,6 +20,10 @@ namespace Game.Enemies
         int secondsOnKill = 3;
         [SerializeField, Tooltip("Minutes trickled on death, on the same proportionality rule. Small — door caches are the real Minutes income.")]
         int minutesOnKill = 1;
+        [SerializeField, Tooltip("Hours (meta currency) shed on death. Zero for everything ordinary — the Hades pattern: bosses guarantee meta currency, trash never does.")]
+        int hoursOnKill;
+        [SerializeField, Tooltip("Amber (premium meta) shed on death. Bosses only; the Tyrant sheds the most — he is saturated with temporal debris (REWARDS.md §1).")]
+        int amberOnKill;
 
         [Header("Vitals")]
         [SerializeField] float maxHealth = 60f;
@@ -76,6 +80,8 @@ namespace Game.Enemies
         public Era Era => era;
         public int SecondsOnKill => Mathf.Max(0, secondsOnKill);
         public int MinutesOnKill => Mathf.Max(0, minutesOnKill);
+        public int HoursOnKill => Mathf.Max(0, hoursOnKill);
+        public int AmberOnKill => Mathf.Max(0, amberOnKill);
         public float MaxHealth => maxHealth;
         public StaggerTier Tier => tier;
         public float PoiseMax => poiseMax;

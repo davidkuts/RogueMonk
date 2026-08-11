@@ -99,8 +99,10 @@ namespace Game.Level.Tests
                         // none leaving the boss room itself.
                         if (room.IsBossRoom)
                         {
-                            Assert.That(room.ExitDoorCount, Is.EqualTo(0),
-                                $"seed {seed} level {level}: the boss room needs no door");
+                            Assert.That(room.ExitDoorCount, Is.EqualTo(1),
+                                $"seed {seed} level {level}: the boss room ends at one door");
+                            Assert.That(room.ExitRewards[0].IsLevelExit, Is.True,
+                                $"seed {seed} level {level}: the boss room's door is the level exit, every time");
                         }
                         else if (room.Index == standardRooms - 1)
                         {

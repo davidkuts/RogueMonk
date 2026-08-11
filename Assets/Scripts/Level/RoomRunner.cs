@@ -77,11 +77,11 @@ namespace Game.Level
         public event Action EnemyKilled;
 
         /// <summary>
-        /// Raised for each enemy death with where the body fell and what it pays (seconds,
-        /// minutes) — per-archetype data, so a swarm bird and a triceratops are worth what
-        /// they cost to fight, not one flat rate per corpse.
+        /// Raised for each enemy death with the fallen body itself, so the economy can read
+        /// where it fell and what it pays — per-archetype data, so a swarm bird, a triceratops
+        /// and an amber-laden boss are each worth what they cost to fight.
         /// </summary>
-        public event Action<Vector3, int, int> EnemyKilledAt;
+        public event Action<EnemyActor> EnemyKilledActor;
 
         /// <summary>Raised when a boss enters play, so the HUD can put its bar up.</summary>
         public event Action<IBossEncounter> BossSpawned;
@@ -323,7 +323,7 @@ namespace Game.Level
             alive.Remove(actor);
             EnemyKilled?.Invoke();
             if (actor != null)
-                EnemyKilledAt?.Invoke(actor.transform.position, actor.SecondsOnKill, actor.MinutesOnKill);
+                EnemyKilledActor?.Invoke(actor);
 
             PruneAndCheckCleared();
         }

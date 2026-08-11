@@ -43,6 +43,25 @@ namespace Game.Enemies.Tests
         }
 
         [Test]
+        public void OnlyTheBossGuaranteesMetaCurrency()
+        {
+            // The Hades pattern: beating the boss pays the currencies that survive the loop
+            // reset. Trash and elites never touch the meta wallets.
+            string[] ordinary = { "Swiftjaw", "Sailspit", "Cerashorn", "Scrapfeather", "Ambershell", "TwiceStruck" };
+            foreach (string name in ordinary)
+            {
+                EnemyDefinition enemy = Load(name);
+                Assert.That(enemy.HoursOnKill, Is.EqualTo(0), $"{name} must not drop Hours");
+                Assert.That(enemy.AmberOnKill, Is.EqualTo(0), $"{name} must not drop Amber");
+            }
+
+            EnemyDefinition tyrant = Load("Boss_Tyrant");
+            Assert.That(tyrant.HoursOnKill, Is.GreaterThan(0), "the boss guarantees Hours");
+            Assert.That(tyrant.AmberOnKill, Is.GreaterThan(0),
+                "the Tyrant sheds Amber - he is saturated with temporal debris");
+        }
+
+        [Test]
         public void ElitesPayMoreThanTrashAndTheBossPaysMost()
         {
             EnemyDefinition cerashorn = Load("Cerashorn");

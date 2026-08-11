@@ -28,7 +28,10 @@ namespace Game.Level.Tests
 
                     if (room.IsBossRoom)
                     {
-                        Assert.That(room.ExitDoorCount, Is.EqualTo(0), "the boss room needs no door");
+                        Assert.That(room.ExitDoorCount, Is.EqualTo(1),
+                            "a beaten boss's arena ends at its level-exit door");
+                        Assert.That(room.ExitRewards[0].IsLevelExit, Is.True,
+                            "the one door out of a boss room is the level exit, every time");
                         continue;
                     }
 
@@ -68,7 +71,7 @@ namespace Game.Level.Tests
                 for (int r = 0; r < plan.RoomCount; r++)
                 {
                     Assert.That(plan.Rooms[r].ExitRewards.Any(
-                            c => !c.IsBossDoor &&
+                            c => !c.IsBossDoor && !c.IsLevelExit &&
                                  (c.Type == RewardType.Recalibration || c.Type == RewardType.SupplyDrop)),
                         Is.False,
                         $"seed {seed} room {r}: disabled reward types must never be generated");

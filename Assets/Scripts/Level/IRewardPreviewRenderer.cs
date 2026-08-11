@@ -31,6 +31,12 @@ namespace Game.Level
                 return;
             }
 
+            if (choice.IsLevelExit)
+            {
+                RewardIconBuilder.Build(anchor, RewardIconShape.LevelExit, RewardIconBuilder.LevelExitColor, material);
+                return;
+            }
+
             RewardIconShape shape = definition != null ? definition.IconShape : RewardIconShape.Coin;
             RewardIconBuilder.Build(anchor, shape, tierTint, material);
         }

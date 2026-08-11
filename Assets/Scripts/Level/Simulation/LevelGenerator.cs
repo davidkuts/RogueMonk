@@ -162,12 +162,16 @@ namespace Game.Level
                     template.Id, index, waves, RoomRole.Standard, DrawExitRewards(random, bossIsNext)));
             }
 
+            // The boss room ends at a door of its own: beating the boss reveals the level
+            // exit, and leaving is a deliberate Interact like every other door — never an
+            // automatic cut the moment the health bar empties.
             IRoomTemplate bossTemplate = PickTemplate(random, previous, RoomRole.Boss);
             rooms.Add(new RoomPlan(
                 bossTemplate.Id,
                 standardRooms,
                 BuildBossWaves(random, bossTemplate, standardRooms),
-                RoomRole.Boss));
+                RoomRole.Boss,
+                new List<RewardChoice>(1) { RewardChoice.LevelExit }));
 
             return new LevelPlan(run.Seed, rooms);
         }

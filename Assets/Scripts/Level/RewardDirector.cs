@@ -128,7 +128,7 @@ namespace Game.Level
 
             if (runner != null)
             {
-                runner.EnemyKilledAt += OnEnemyKilledAt;
+                runner.EnemyKilledActor += OnEnemyKilled;
                 runner.Cleared += OnRoomCleared;
             }
 
@@ -151,21 +151,24 @@ namespace Game.Level
             if (currentRunner == null)
                 return;
 
-            currentRunner.EnemyKilledAt -= OnEnemyKilledAt;
+            currentRunner.EnemyKilledActor -= OnEnemyKilled;
             currentRunner.Cleared -= OnRoomCleared;
             currentRunner = null;
         }
 
         void OnDestroy() => DetachRunner();
 
-        void OnEnemyKilledAt(Vector3 position, int seconds, int minutes)
+        void OnEnemyKilled(Game.Enemies.EnemyActor actor)
         {
-            if (economy == null || wallet == null)
+            if (economy == null || wallet == null || actor == null || playerHealth == null)
                 return;
+
+            Vector3 position = actor.transform.position;
 
             // A big kill sheds several fragments in a deterministic ring rather than one fat
             // orb — the payout should look like what it is. No RNG, so seeds are untouched.
-            if (seconds > 0 && playerHealth != null)
+            int seconds = actor.SecondsOnKill;
+            if (seconds > 0)
             {
                 int perFragment = economy.SecondsPerFragment;
                 int fragments = Mathf.Max(1, Mathf.CeilToInt(seconds / (float)perFragment));
@@ -181,14 +184,41 @@ namespace Game.Level
                         ? Vector3.zero
                         : new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.5f;
 
-                    SecondsFragment.Spawn(
-                        position + offset, carry, economy, playerHealth.transform, Primitive,
+                    CurrencyFragment.Spawn(
+                        position + offset, carry, CurrencyFragment.SecondsColor, 0.28f,
+                        economy, playerHealth.transform, Primitive,
                         amount => wallet.Wallet.Add(CurrencyType.Seconds, amount));
                 }
             }
 
-            if (minutes > 0)
-                wallet.Wallet.Add(CurrencyType.Minutes, minutes);
+            if (actor.MinutesOnKill > 0)
+                wallet.Wallet.Add(CurrencyType.Minutes, actor.MinutesOnKill);
+
+            // The Hades pattern: a beaten boss guarantees meta currency, dropped on the kill
+            // itself — bigger, distinctly coloured fragments so the moment reads as the prize.
+            if (actor.HoursOnKill > 0)
+            {
+                CurrencyFragment.Spawn(
+                    position + new Vector3(-0.6f, 0f, 0f), actor.HoursOnKill,
+                    CurrencyFragment.HoursColor, 0.45f, economy, playerHealth.transform, Primitive,
+                    amount =>
+                    {
+                        wallet.Wallet.Add(CurrencyType.Hours, amount);
+                        RewardFeedback?.Invoke($"+{amount} HOURS");
+                    });
+            }
+
+            if (actor.AmberOnKill > 0)
+            {
+                CurrencyFragment.Spawn(
+                    position + new Vector3(0.6f, 0f, 0f), actor.AmberOnKill,
+                    CurrencyFragment.AmberColor, 0.45f, economy, playerHealth.transform, Primitive,
+                    amount =>
+                    {
+                        wallet.Wallet.Add(CurrencyType.Amber, amount);
+                        RewardFeedback?.Invoke($"+{amount} AMBER");
+                    });
+            }
         }
 
         void OnRoomCleared()

@@ -19,6 +19,12 @@ namespace Game.Level
         public static readonly Color BossMarkColor = new Color(0.75f, 0.25f, 0.20f);
 
         /// <summary>
+        /// The level exit wears the Second Hand's own hue — leaving an era is the watch's
+        /// doing — and stays this colour after every boss, so the signal is learned once.
+        /// </summary>
+        public static readonly Color LevelExitColor = new Color(0.3f, 0.9f, 1f);
+
+        /// <summary>
         /// Builds one icon under <paramref name="parent"/>, centred on its local origin, about
         /// one unit tall. The caller owns placement, billboarding and any spin.
         /// </summary>
@@ -74,6 +80,14 @@ namespace Game.Level
                     MakeBlock(parent, new Vector3(-0.3f, -0.15f, 0f), new Vector3(0.2f, 0.7f, 0.13f), Quaternion.identity, tint, material);
                     MakeBlock(parent, new Vector3(0f, 0.1f, 0f), new Vector3(0.2f, 1.2f, 0.13f), Quaternion.identity, tint, material);
                     MakeBlock(parent, new Vector3(0.3f, -0.15f, 0f), new Vector3(0.2f, 0.7f, 0.13f), Quaternion.identity, tint, material);
+                    break;
+
+                case RewardIconShape.LevelExit:
+                    MakeBlock(parent, new Vector3(0f, 0.62f, 0f), new Vector3(1.0f, 0.16f, 0.13f), Quaternion.identity, tint, material);
+                    MakeBlock(parent, new Vector3(0f, -0.62f, 0f), new Vector3(1.0f, 0.16f, 0.13f), Quaternion.identity, tint, material);
+                    MakeBlock(parent, new Vector3(-0.42f, 0f, 0f), new Vector3(0.16f, 1.4f, 0.13f), Quaternion.identity, tint, material);
+                    MakeBlock(parent, new Vector3(0.42f, 0f, 0f), new Vector3(0.16f, 1.4f, 0.13f), Quaternion.identity, tint, material);
+                    MakeBlock(parent, Vector3.zero, new Vector3(0.34f, 0.34f, 0.13f), Quaternion.Euler(0f, 0f, 45f), tint, material);
                     break;
             }
         }

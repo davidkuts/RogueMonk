@@ -30,6 +30,9 @@ namespace Game.Level
 
         /// <summary>The boss door's mark: three rising spikes.</summary>
         BossMark = 6,
+
+        /// <summary>The level exit after a beaten boss: a portal frame.</summary>
+        LevelExit = 7,
     }
 
     /// <summary>

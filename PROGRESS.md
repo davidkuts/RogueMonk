@@ -37,7 +37,7 @@ The single list of everything known to be missing or unresolved, gathered from t
 ### Reward system (M16) — deliberate capsule-phase gaps
 - **The pickup prompt is a hardcoded "R1 / F" text**, not glyph-swapped by control scheme and not rebinding-aware. The *logic* is rebinding-safe (everything reads the Interact action); only the prompt string lies once someone rebinds.
 - **Level 2/3 first rooms have no reward** — no door choice precedes them (the boon screen sits between levels instead). The run's very first room is the only policy-driven pre-combat reward. Needs a human call on whether later levels should open the same way.
-- **Boss rooms grant nothing** — REWARDS.md's guaranteed Hours + Amber + high-tier reward comes with the boss-drops task. Amber currently has NO source in play (wallet + save only).
+- **Bosses now drop Hours + Amber on the kill (M16.3)**, so Amber has its source. Still missing from REWARDS.md's boss guarantee: the additional "high-tier reward from the normal pool" — deliberately, per the human's Hades-style call (currency only).
 - **Transmission catalog holds 13 boons across 4 givers** (Overclock 4, Fray/Stasis/Ward 3). Early drafts show 3 cards; late-run drafts thin out as slots get claimed and boons get owned — by design, but worth watching. Echo and Flux have no capsule-implementable boons yet.
 - **Draft/pickup SFX are reused placeholders** (RoomClear/PerfectDodge); the pickup collect has no sound of its own.
 - **Recalibration and SupplyDrop** exist in the enum and config with enabled=false; no logic.
@@ -86,7 +86,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 15.2 | Second pass: riposte breaks the guard once (then normal damage), 8-room level, one elite max per biome, room 1 never an elite | ✅ **done — level design declared complete, awaiting playthrough** |
 | 16 | **Run rewards (capsule):** wallets + save, tier-parity door rewards with icons, Interact pickup (R1/RB/F), Splice/Stray/Stopgap/caches, minimal Transmission draft, first-room policy | ✅ **done** |
 | 16.1 | First reward playtest pass: icons on clear, proportional kill drops, 13-boon catalog, giver-claims-a-slot rule, draft centering | ✅ **done** |
-| 16.2 | Second pass: combo/riposte cancel wind-ups (tiers respected), Interact-confirmed doors with focus preview, L1/H debug heal, 15-boon pool | ✅ **done — awaiting playtest** |
+| 16.2 | Second pass: combo/riposte cancel wind-ups (tiers respected), Interact-confirmed doors with focus preview, L1/H debug heal, 15-boon pool | ✅ **done** |
+| 16.3 | Third pass: boss room ends at a consistent level-exit door (Interact-gated), bosses drop Hours+Amber on kill, drafts prefer full 3-card givers | ✅ **done — awaiting playtest** |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
@@ -98,6 +99,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-11 — M16.3: the boss room ends at a door, and the boss pays like Hades
+- **A beaten boss's arena now ends at its own level-exit door.** The boss `RoomPlan` carries one `RewardChoice.LevelExit` from generation; killing the boss reveals the marker and unlocks the door, and only the Interact press on it advances (to the boon screen mid-run, to RUN COMPLETE on the last level) — the level never cuts away the instant the health bar empties. **The exit glyph is a portal frame in the Second Hand's dash-blue, the same after every boss** — leaving an era is one signal, learned once. Only a degenerate final room with no doors still auto-advances, so a broken content set cannot hang a run. **Verified live: boss died → no auto-advance, `ExitMarker_LevelExit` revealed, stepping through raised the boon screen.**
+- **Bosses drop meta currency on the kill, Hades-style — never a room reward.** `EnemyDefinition` gained `hoursOnKill`/`amberOnKill` (0 for everything ordinary, pinned by test); the Tyrant sheds **2 Hours + 3 Amber** as bigger, distinctly coloured fragments (gold Hours, amber Amber — the semantic amber channel used literally) beside his 30 Seconds / 10 Minutes. `SecondsFragment` became **`CurrencyFragment`** (colour/scale-parameterised, same drift/magnet/self-delivery). The kill event now hands the whole `EnemyActor` to the reward director. **Verified live: Tyrant kill paid +2 Hours +3 Amber into the persistent wallet.** Amber finally has a source.
+- **Drafts prefer givers who can still fill all three cards** (the human's "second draft only shows two options"): `RollDraft` counts each giver's offerable pool and rolls among full-draft givers first, falling back to partial ones only when nobody can do better. **Verified: a greedy 8-draft simulation now holds 3 cards through the first four drafts** (was 2 by draft two); beyond that the 15-boon pool genuinely thins — the content ceiling, not the roll.
+- **542/542 EditMode tests** (updated: boss room asserts exactly one level-exit door; only the boss touches meta wallets). Rebuilt.
+- Known issues / TODO next: ⚠️ **a boss killed and immediately abandoned mid-death-beat would swallow its drop** (the runner's abort guard) — irrelevant while the exit needs an Interact after the beat, but worth a guard if a skip path ever bypasses it; deeper draft depth still wants Echo/Flux mechanics (procs, rerolls — real features).
 
 ### 2026-08-11 — M16.2: wind-ups break to the combo, doors take a confirm, the pool deepens
 - **A combo or Riposte hit landing INSIDE a wind-up now cancels it** (the human's read on why melee felt off: punishing a tell with your own attack was doing nothing until poise happened to break). `WindupInterrupt` (engine-free, tested) decides whether a hit asks — player ATK/SPLIT only, mid-telegraph only, never through an intact amber zone — and `EnemyActor.ApplyStagger` keeps owning the tier answers, so **Immune bosses ignore it, Armored bodies shrug it off until stripped, Staggerable trash AND elites stop dead** (both elites are Staggerable tier — exactly the human's split). Interrupt length is `EnemyDefinition.windupInterruptStaggerSeconds` (0.45 s default, per-enemy SO). The Undertow deliberately stays out — it has its own arrival stagger. **Verified live: a Punch1 resolved mid-telegraph staggered a Swiftjaw.**

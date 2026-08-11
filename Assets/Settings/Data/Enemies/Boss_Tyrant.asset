@@ -15,6 +15,8 @@ MonoBehaviour:
   era: 1
   secondsOnKill: 30
   minutesOnKill: 10
+  hoursOnKill: 2
+  amberOnKill: 3
   maxHealth: 2700
   tier: 2
   poiseMax: 0

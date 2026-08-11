@@ -5,14 +5,22 @@ using UnityEngine;
 namespace Game.Level
 {
     /// <summary>
-    /// One loose second shed by a kill: a small glowing sphere that drifts into the Second
-    /// Hand once the player comes near (REWARDS.md §1 — Seconds auto-collect, no pickup
-    /// friction). Drawn in the reserved dash hue because it is the Second Hand's doing, the
-    /// same colour family as the whole time-kit.
+    /// One loose piece of time shed by a kill: a small glowing sphere that drifts into the
+    /// Second Hand once the player comes near (REWARDS.md §1 — auto-collect, no pickup
+    /// friction). The colour says the denomination: dash-blue Seconds from everything, and the
+    /// gold Hours / amber Amber a boss sheds — all delivered through the same drift.
     /// </summary>
-    public sealed class SecondsFragment : MonoBehaviour
+    public sealed class CurrencyFragment : MonoBehaviour
     {
-        static readonly Color FragmentColor = new Color(0.3f, 0.9f, 1f);
+        /// <summary>Seconds wear the reserved dash hue — the Second Hand's own colour family.</summary>
+        public static readonly Color SecondsColor = new Color(0.3f, 0.9f, 1f);
+
+        /// <summary>Hours read as stabilized gold.</summary>
+        public static readonly Color HoursColor = new Color(0.98f, 0.8f, 0.3f);
+
+        /// <summary>Amber is literally time preserved solid — the semantic amber channel, correctly.</summary>
+        public static readonly Color AmberColor = new Color(0.93f, 0.58f, 0.16f);
+
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         EconomySettings settings;
@@ -22,15 +30,15 @@ namespace Game.Level
         float speed;
         float age;
 
-        public static SecondsFragment Spawn(
-            Vector3 position, int amount, EconomySettings settings, Transform player,
-            Material material, Action<int> deliver)
+        public static CurrencyFragment Spawn(
+            Vector3 position, int amount, Color color, float scale, EconomySettings settings,
+            Transform player, Material material, Action<int> deliver)
         {
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = "SecondsFragment";
+            go.name = "CurrencyFragment";
             Destroy(go.GetComponent<Collider>());
             go.transform.position = position + Vector3.up * 0.5f;
-            go.transform.localScale = Vector3.one * 0.28f;
+            go.transform.localScale = Vector3.one * scale;
 
             var renderer = go.GetComponent<MeshRenderer>();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -39,10 +47,10 @@ namespace Game.Level
                 renderer.sharedMaterial = material;
 
             var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, FragmentColor);
+            block.SetColor(BaseColorId, color);
             renderer.SetPropertyBlock(block);
 
-            var fragment = go.AddComponent<SecondsFragment>();
+            var fragment = go.AddComponent<CurrencyFragment>();
             fragment.settings = settings;
             fragment.player = player;
             fragment.deliver = deliver;
