@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Combat;
 using Game.Core.Diagnostics;
 using Game.Core.Economy;
@@ -175,6 +176,97 @@ namespace Game.Level
         /// </para>
         /// </summary>
         public int SweepLooseFragmentsOnRoomExit() => CurrencyFragment.CollectAllForRoomExit(economy);
+
+        readonly List<Game.Combat.GiverId> offerableGiverScratch = new List<Game.Combat.GiverId>();
+
+        /// <summary>
+        /// Snapshots what the player can currently make use of, for the door filter.
+        ///
+        /// <para>Sampled when a room's doors are built rather than when they are revealed, because
+        /// the door COUNT has to be decided before the geometry goes in. In practice the player
+        /// enters a room carrying the damage from the last one, so the healing test still reads a
+        /// representative number — what it cannot see is damage taken inside this room.</para>
+        /// </summary>
+        public RewardOfferState BuildOfferState()
+        {
+            // Stopgaps: enabled pool entries whose own direction is still free. A disabled one is
+            // not "available", so it must not count toward the ceiling.
+            int takeable = 0;
+            if (stopgaps != null && stopgapInventory != null)
+            {
+                IReadOnlyList<StopgapDefinition> grantable = stopgaps.Grantable;
+                for (int i = 0; i < grantable.Count; i++)
+                {
+                    if (grantable[i] != null && !stopgapInventory.Has(grantable[i].Slot))
+                        takeable++;
+                }
+            }
+
+            float missing = 0f;
+            if (playerHealth != null)
+                missing = Mathf.Max(0f, playerHealth.MaxHealth - playerHealth.CurrentHealth);
+
+            // What a Splice would actually restore right now, Stray multiplier included, so the
+            // "would this be mostly wasted" test is measured against the real number.
+            float spliceHeal = 0f;
+            if (config != null)
+            {
+                RewardDefinition splice = config.FindDefinition(RewardType.Splice);
+                if (splice != null)
+                {
+                    float depth = splice.Payload;
+                    if (strays != null)
+                        depth *= strays.SpliceDepthMultiplier;
+
+                    // Payload is a fraction of the biome-entry ceiling (REWARDS.md §3).
+                    //
+                    // ⚠️ The ceiling snapshots in OnRoomStarted, which the level director calls
+                    // AFTER it builds the room's doors — so on the first room of a level it is still
+                    // 0 here. Left unguarded that makes the heal amount 0, `missing >= 0` trivially
+                    // true, and the heal door survives at full health, which is exactly the offer
+                    // this filter exists to remove. Max health is the right stand-in until the real
+                    // snapshot lands.
+                    float ceiling = spliceCeiling > 0f
+                        ? spliceCeiling
+                        : (playerHealth != null ? playerHealth.MaxHealth : 0f);
+
+                    spliceHeal = depth * Mathf.Max(0f, ceiling);
+                }
+            }
+
+            offerableGiverScratch.Clear();
+            if (transmissionCatalog != null && transmissionBoons != null && config != null)
+            {
+                IReadOnlyList<Game.Combat.GiverId> givers = config.BoonGivers;
+                for (int i = 0; givers != null && i < givers.Count; i++)
+                {
+                    if (transmissionCatalog.HasOfferableFor(givers[i], transmissionBoons.OwnedDefinitions))
+                        offerableGiverScratch.Add(givers[i]);
+                }
+            }
+
+            return new RewardOfferState(takeable, missing, spliceHeal, offerableGiverScratch);
+        }
+
+        /// <summary>
+        /// Removes offers this player could get nothing from, and guarantees a door survives.
+        /// Called by the level director as a room's exits are built.
+        /// </summary>
+        public void FilterOffers(List<RewardChoice> choices)
+        {
+            if (choices == null || config == null)
+                return;
+
+            int before = choices.Count;
+            RewardOfferFilter.Filter(choices, BuildOfferState(), config.SpliceOfferThreshold);
+
+            if (choices.Count != before)
+            {
+                GameLog.Info(LogCategory.Level,
+                    $"door filter - {before} offer(s) -> {choices.Count} after dropping what this player " +
+                    "could not use");
+            }
+        }
 
         void OnEnemyKilled(Game.Enemies.EnemyActor actor)
         {

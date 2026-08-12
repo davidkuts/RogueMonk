@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Game.Combat;
 using Game.Core.Diagnostics;
 using Game.Core.Rng;
@@ -45,6 +46,13 @@ namespace Game.Level
         int roomIndex = -1;
         int levelIndex;
         bool awaitingLevelAdvance;
+
+        /// <summary>
+        /// The offers the current room's doors were actually built from — the plan's roll after the
+        /// validity filter. Kept because a chosen door's index means nothing without the list it was
+        /// indexed into.
+        /// </summary>
+        List<RewardChoice> activeExitRewards;
 
         /// <summary>
         /// The reward promised over the door the player just walked through, waiting to become
@@ -338,8 +346,24 @@ namespace Game.Level
             // do not count), none for the final room — clearing it ends the level with no door.
             if (roomPlan.ExitDoorCount > 0)
             {
-                currentRoom.ConfigureExits(roomPlan.ExitRewards, settings.RewardConfigAsset);
+                // The plan says what the seed rolled; the filter says what this player can still
+                // use. A door offering a Stopgap with every direction full, or a heal at full
+                // health, spends the room's reward on nothing — so those offers are dropped here,
+                // against live state rather than against the state at generation time.
+                //
+                // Deterministic: substitutions are first-valid, never re-rolled, so filtering
+                // consumes no randomness and a quoted seed still reproduces its level.
+                List<RewardChoice> offers = new List<RewardChoice>(roomPlan.ExitRewards);
+                if (rewardDirector != null)
+                    rewardDirector.FilterOffers(offers);
+
+                currentRoom.ConfigureExits(offers, settings.RewardConfigAsset);
                 currentRoom.BindDoorInteraction(player, playerInput);
+                activeExitRewards = offers;
+            }
+            else
+            {
+                activeExitRewards = null;
             }
 
             RoomEntered?.Invoke(roomPlan);
@@ -400,14 +424,20 @@ namespace Game.Level
                 currentRunner.Begin();
         }
 
-        /// <summary>Remembers which offer the player walked through, for the next room's payout.</summary>
+        /// <summary>
+        /// Remembers which offer the player walked through, for the next room's payout.
+        ///
+        /// <para>Reads the FILTERED list the doors were actually built from, not the plan's raw
+        /// roll. Once filtering can drop an offer the two lists no longer line up, and indexing the
+        /// plan would pay out whatever happens to sit at that index — a door showing a heal
+        /// delivering a Stopgap, and worse the further the lists diverge.</para>
+        /// </summary>
         void OnExitChosen(int exitIndex)
         {
-            RoomPlan plan = Plan != null && roomIndex >= 0 && roomIndex < Plan.RoomCount ? Plan.Rooms[roomIndex] : null;
-            if (plan == null || exitIndex < 0 || exitIndex >= plan.ExitRewards.Count)
+            if (activeExitRewards == null || exitIndex < 0 || exitIndex >= activeExitRewards.Count)
                 return;
 
-            RewardChoice choice = plan.ExitRewards[exitIndex];
+            RewardChoice choice = activeExitRewards[exitIndex];
             pendingReward = choice.IsBossDoor || choice.IsLevelExit ? (RewardChoice?)null : choice;
 
             GameLog.Info(LogCategory.Level,

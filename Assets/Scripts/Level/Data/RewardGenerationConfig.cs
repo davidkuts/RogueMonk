@@ -80,6 +80,12 @@ namespace Game.Level
             }
         }
 
+        [Header("Offer validity (no dead doors)")]
+        [SerializeField, Range(0f, 2f), Tooltip("Fraction of a Splice's heal that must be MISSING before a healing door is offered. At 0.5 a 25-point heal needs 13 points of damage taken. A heal that would be mostly wasted is a bad offer and players resent it; raise this to be stricter, drop it to 0 to always offer healing.")]
+        float spliceOfferThreshold = 0.5f;
+
+        public float SpliceOfferThreshold => Mathf.Max(0f, spliceOfferThreshold);
+
         public Color BandTint(RewardBand band)
         {
             switch (band)

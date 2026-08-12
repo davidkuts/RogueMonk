@@ -203,6 +203,28 @@ namespace Game.Combat
         }
 
         /// <summary>How many of one giver's boons are currently offerable. Uses the claim list built by the caller.</summary>
+        /// <summary>
+        /// Whether <paramref name="giver"/> still has at least one boon this player could actually
+        /// take. Consumes NO randomness, so a door-validity check cannot shift the draft's own
+        /// rolls — the whole reason this is separate from <see cref="RollDraft"/>.
+        ///
+        /// <para>The test the brief asks for is "at least one pickable boon exists for this signal
+        /// for this player right now", which is stricter than "the signal exists": a giver whose
+        /// every boon is owned, or whose remaining boons all collide with a slot another giver has
+        /// claimed, has nothing to offer and its door would be dead.</para>
+        /// </summary>
+        public bool HasOfferableFor(GiverId giver, IReadOnlyList<TransmissionBoonDefinition> owned)
+        {
+            claimScratch.Clear();
+            for (int i = 0; owned != null && i < owned.Count; i++)
+            {
+                if (owned[i] != null)
+                    claimScratch.Add(new SlotClaim(owned[i].Giver, owned[i].Ability));
+            }
+
+            return CountOfferable(giver, owned) > 0;
+        }
+
         int CountOfferable(GiverId giver, IReadOnlyList<TransmissionBoonDefinition> owned)
         {
             int count = 0;

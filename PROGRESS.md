@@ -3,9 +3,11 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## ▶ NEXT ACTION (read this first)
-**Improvement 3 (room-exit auto-collect) is built. Next: Improvement 4 — door reward filtering (`IsOfferValid`).**
+**All four requested improvements are DONE, plus the previous session's unfinished vortex work. Nothing is queued — the whole batch wants a playtest.**
 
-⚠️ **Improvement 4 needs a human call before it can finish:** the spec says filtering must never produce a door with no reward, and asks what fallback exists. Answer that when the plan lands.
+`Builds/Win64/RogueMonk.exe` is current. What landed this session, in the order it was built: **M21A/A.1** ability interrupts · **M21.1/21.2** vortex tick damage + no stagger · **M21B** vortex VFX layers · **M21C** Sailspit rework · **M21D** room-exit auto-collect · **M21E** door reward filtering.
+
+Two architecture decisions still open, both recorded in the gaps list: **the per-room NavMesh does not exist** (build it or strike it from DESIGN.md), and **aimed ranged moves still resolve a melee hitbox**.
 
 ⚠️ **DESIGN.md's per-room NavMesh does not exist and never has** (found 2026-08-12). Not one `NavMeshSurface`, one baked asset or one `NavMeshAgent` in the project — enemies steer with `ObstacleAvoidance` instead. Anything that reaches for `NavMesh.SamplePosition` will silently fail for every query. The Sailspit lob validates ground with a downward ray plus a clearance probe instead. **Either build the NavMesh or strike it from DESIGN.md** — right now the document describes a system that isn't there.
 
@@ -37,6 +39,7 @@ What to judge, in rough order of how likely it is to be wrong:
 Open questions the human still owes an answer on are collected under "Needs a human call" below.
 
 ## Current status
+- **M21E — doors never offer a dead reward (2026-08-12), awaiting playtest.** A per-type `IsOfferValid` check runs against **live player state** as a room's doors are built: no Stopgap door when every *available* Stopgap is held (the disabled one correctly does not count toward the ceiling), no heal unless at least half of it would land, and no signal door for a giver with nothing pickable left. An exhausted boon door is **re-pinned** rather than dropped so the two-giver boon fork survives, and filtering can never produce a doorless room. **647 EditMode tests passing** (+18). Consumes no randomness — **seeds unaffected**.
 - **M21D — loose time follows you out of the room (2026-08-12), awaiting playtest.** Stepping through a room transition sends **every uncollected fragment streaking to the player** at 4× drift speed, homing from any distance rather than only inside the 6 m magnet radius. The visual is best-effort; **the income is guaranteed** by a 0.7 s hard-grant deadline plus a pay-on-destroy path for fragments the transition removes mid-flight.
 - **M21C — the Sailspit throws area denial, not a homing blob (2026-08-12), awaiting playtest.** The glob is now **lobbed at a random walkable ground point in a ring around the player**, telegraphed by a bright filling ring for its whole 1.1 s flight, and leaves a **venom-green** puddle 50% wider (3.9 m) that slows *and* deals **1 damage per whole second of continuous standing**. **It deals no contact damage at all** — the whole threat is the ground. **629 EditMode tests passing** (+14). New `TelegraphChannel.Venom`.
 - **M21B — the Undertow has its VFX layers (2026-08-12), awaiting playtest.** Three layers on top of the untouched range smear: **time-blue arm trails**, a **spiral ground disc** on one new hand-written shader, and **≤32 pooled inward streaks**. The **hit-pulse is the priority feature and it works** — every enemy damaged by every tick brightens the disc and kicks its spin, accumulating so a crowd outshines a duel, then settling. **615 EditMode tests passing** (+8). ⚠️ **Alpha-blended, not additive** — see the session log.
@@ -157,7 +160,7 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 21B | **Vortex VFX layers:** time-blue arm trails, spiral ground disc (one new shader), pooled inward streaks, hit-pulse feeding on damage | ✅ **done — awaiting playtest** |
 | 21C | **Sailspit rework:** annulus ground targeting, landing telegraph, +50% goo, venom-green channel, 1/s dwell DoT, no contact damage | ✅ **done — awaiting playtest** |
 | 21D | **Room-exit auto-collect:** loose fragments sweep to the player on the transition, income guaranteed by deadline + pay-on-destroy | ✅ **done — awaiting playtest** |
-| 21E | **Door reward filtering:** per-type `IsOfferValid`, no dead offers | ⬜ not started — needs a fallback-rule call |
+| 21E | **Door reward filtering:** per-type `IsOfferValid` against live state, boon re-pinning, currency fallback | ✅ **done — awaiting playtest** |
 | 21B | **Vortex VFX layers:** time-blue character motion trails + inner vortex disc/particles with hit-pulse feedback | ⬜ not started (specced) |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
@@ -170,6 +173,18 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-12 — M21E: a door never offers you something you cannot use
+- **Per-type `IsOfferValid`, checked against LIVE player state as a room's doors are built.** A Stopgap door with every direction full, a heal at full health, a signal with nothing left — each spends the room's reward on nothing, and players resent a wasted choice more than a smaller one. New engine-free `RewardOfferFilter` + `RewardOfferState`, structured one predicate per type so a future reward plugs into the same filter rather than adding a special case at the call site.
+- **"Available" excludes the disabled one.** The stopgap count is built from `StopgapSettings.Grantable`, so switching Wound Spring off cannot make the door permanently offerable against a ceiling it can never reach. **Verified live: 2 takeable against a carry cap of 4, falling to 0 once both grantable Stopgaps are held.**
+- **The heal test measures the real number.** Splice payload × Stray multiplier × the biome-entry ceiling, against a new `spliceOfferThreshold` (0.5). **Verified live: refused at full health, offered after 60 damage.**
+- ⚠️ **A real ordering bug found by that live check.** `spliceCeiling` snapshots in `OnRoomStarted`, which the level director calls *after* it builds the room's doors — so on the first room of a level the heal amount read **0**, `missing >= 0` was trivially true, and the heal door survived at full health. Exactly the offer this feature exists to delete, in the one room it would be most visible. Falls back to max health until the real snapshot lands. **Verified: room 0 now reads 25 rather than 0.**
+- ⚠️ **And a bug I introduced and caught before it shipped.** `OnExitChosen` indexed `plan.ExitRewards` — the *unfiltered* roll. The moment filtering can drop an offer those lists stop lining up, so a door showing a heal would have paid out whatever sat at that index. It now reads the filtered list the doors were actually built from, kept on the director as `activeExitRewards`. **Verified live: markers built == offers held.**
+- **An exhausted boon door is RE-PINNED, not dropped.** The human rule is that a boon fork always offers at least two givers; silently shrinking it to one would turn a choice into a take-it-or-leave-it. Re-pinning picks the first offerable giver not already on the fork, and drops the door only when that would duplicate one.
+- **Fallback is run currency** (`MinutesCache`/Basic) — the one reward that can never be dead, because a wallet always has room. Deliberately reuses the degrade `RewardRoller` already applies to a band with nothing enabled rather than inventing a second answer to the same question.
+- **No randomness consumed.** Substitutions are first-valid rather than re-rolled, so filtering cannot shift a seed's later draws. **Seeds unaffected.**
+- **647/647 EditMode tests** (+18: every predicate, the 25-heal/13-missing worked example verbatim, the two-giver re-pin, the no-duplicate-giver case, idempotence, and the hard guarantee that a fork filtered to nothing still yields a door).
+- Known issues / TODO next: validity is sampled when a room's doors are **built**, not when they are revealed, because the door count has to be decided before the geometry goes in — so the healing test cannot see damage taken *inside* the current room. In practice the player arrives carrying the last room's damage, so it still reads a representative number. `spliceOfferThreshold` 0.5 is the brief's default and a feel guess.
 
 ### 2026-08-12 — M21D: the loose time follows you out
 - **Leaving a room sweeps every uncollected fragment to the player**, at 4× drift speed and homing **from any distance** — the 6 m magnet radius governs an idle fragment, and the whole point of the sweep is that being out of range stops mattering. Hooked at the very top of `LevelDirector.AdvanceRoom()`, before anything is torn down, so the streak begins on the frame the player steps through — the only frame they are still looking at the room they earned it in.
