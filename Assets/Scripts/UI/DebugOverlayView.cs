@@ -170,8 +170,14 @@ namespace Game.UI
                 if (stopgaps != null)
                 {
                     builder.AppendFormat("   stopgaps {0}/{1}", stopgaps.Count, stopgaps.CarryCap);
-                    for (int i = 0; i < stopgaps.Carried.Count; i++)
-                        builder.AppendFormat(" [{0}]", stopgaps.Carried[i].DisplayName);
+
+                    // Named by their button, since that is how they are now held and spent.
+                    foreach (Game.Core.Player.StopgapSlot slot in Game.Combat.StopgapInventory.AllSlots)
+                    {
+                        Game.Combat.StopgapDefinition held = stopgaps.Get(slot);
+                        if (held != null)
+                            builder.AppendFormat(" [{0}:{1}]", slot, held.DisplayName);
+                    }
                 }
 
                 Line(builder.ToString(), new Color(0.75f, 0.9f, 0.8f));

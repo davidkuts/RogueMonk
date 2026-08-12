@@ -69,20 +69,35 @@ namespace Game.UI
 
         void BuildHud()
         {
-            var canvasGo = new GameObject("WalletHudCanvas");
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 10;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            // Use the HUD's existing canvas when there is one. A Canvas nested inside another is
+            // NOT driven to the screen rect — it keeps its own 100x100 default centred on the
+            // parent, so text anchored "to the top-right corner" landed in the middle of the
+            // screen instead. That is where these counters have quietly been sitting.
+            Canvas host = GetComponentInParent<Canvas>();
+            Transform parent;
 
-            secondsText = MakeLine(canvasGo.transform, new Vector2(-24f, -24f), 26, new Color(0.3f, 0.9f, 1f));
-            minutesText = MakeLine(canvasGo.transform, new Vector2(-24f, -58f), 26, new Color(0.95f, 0.85f, 0.5f));
-            carriedText = MakeLine(canvasGo.transform, new Vector2(-24f, -92f), 20, new Color(0.8f, 0.82f, 0.88f));
+            if (host != null)
+            {
+                parent = host.transform;
+            }
+            else
+            {
+                var canvasGo = new GameObject("WalletHudCanvas");
+                canvasGo.transform.SetParent(transform, false);
+                var canvas = canvasGo.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 10;
+                var scaler = canvasGo.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+                parent = canvasGo.transform;
+            }
 
-            feedbackText = MakeLine(canvasGo.transform, new Vector2(-24f, -140f), 30, Color.white);
+            secondsText = MakeLine(parent, new Vector2(-24f, -24f), 26, new Color(0.3f, 0.9f, 1f));
+            minutesText = MakeLine(parent, new Vector2(-24f, -58f), 26, new Color(0.95f, 0.85f, 0.5f));
+            carriedText = MakeLine(parent, new Vector2(-24f, -92f), 20, new Color(0.8f, 0.82f, 0.88f));
+
+            feedbackText = MakeLine(parent, new Vector2(-24f, -140f), 30, Color.white);
             feedbackHome = ((RectTransform)feedbackText.transform).anchoredPosition;
             feedbackText.text = string.Empty;
         }
@@ -130,9 +145,12 @@ namespace Game.UI
             if (carriedText == null)
                 return;
 
-            string pips = stopgaps != null ? $"STOPGAP {new string('■', stopgaps.Count)}{new string('□', Mathf.Max(0, stopgaps.CarryCap - stopgaps.Count))}" : string.Empty;
-            string stray = strays != null && strays.Equipped != null ? $"   STRAY: {strays.Equipped.DisplayName}" : string.Empty;
-            carriedText.text = pips + stray;
+            // Stopgaps used to draw pips here. They moved to StopgapDpadView, which shows WHICH
+            // ones are held rather than how many — a count never answered the only question the
+            // player actually has in a fight.
+            carriedText.text = strays != null && strays.Equipped != null
+                ? $"STRAY: {strays.Equipped.DisplayName}"
+                : string.Empty;
         }
 
         void OnRewardFeedback(string message)

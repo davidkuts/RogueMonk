@@ -16,14 +16,14 @@ MonoBehaviour:
   windupSeconds: 0.1
   activeSeconds: 0.22
   recoverySeconds: 0.1
-  radiusMeters: 3
+  radiusMeters: 2.5
   innerRingMeters: 1.1
   pullImpulsePerMeter: 8
   maxPullImpulse: 40
   minPullImpulse: 4
   pullImmunitySeconds: 1
   tickCount: 3
-  tickDamage: 1.5
+  tickDamage: 6
   tickPoiseDamage: 4
   damageType: 0
   tickHitstopSeconds: 0.02

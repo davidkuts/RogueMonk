@@ -3166,6 +3166,7 @@ GameObject:
   - component: {fileID: 847019510}
   - component: {fileID: 847019515}
   - component: {fileID: 847019514}
+  - component: {fileID: 847019516}
   m_Layer: 0
   m_Name: HUD
   m_TagString: Untagged
@@ -3304,6 +3305,28 @@ MonoBehaviour:
   rewards: {fileID: 673184062}
   feedbackSeconds: 2
   feedbackRise: 40
+--- !u!114 &847019516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847019509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f53a9fb2784ac84fb199f879db90e65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.UI::Game.UI.StopgapDpadView
+  inventory: {fileID: 1949805147}
+  leftMargin: 110
+  verticalOffset: -180
+  buttonSize: 34
+  buttonSpread: 38
+  heldColor: {r: 1, g: 1, b: 1, a: 1}
+  emptyColor: {r: 1, g: 1, b: 1, a: 0.18}
+  labelColor: {r: 0.96, g: 0.96, b: 0.92, a: 1}
+  labelPadding: 10
+  labelFontSize: 16
 --- !u!1 &852086377
 GameObject:
   m_ObjectHideFlags: 0
@@ -7498,7 +7521,7 @@ MonoBehaviour:
   endWidth: 0.02
   smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
   minVertexDistance: 0.02
-  reachFraction: 0.85
+  reachFraction: 0.9
 --- !u!114 &1949805146
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -87,9 +87,39 @@
                     "priority": 0
                 },
                 {
-                    "name": "Stopgap",
+                    "name": "StopgapUp",
                     "type": "Button",
-                    "id": "b1f0a1c2-000a-4a10-9f01-0d5e6a7b8c90",
+                    "id": "b1f0a1c2-000b-4a10-9f01-0d5e6a7b8c90",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "StopgapDown",
+                    "type": "Button",
+                    "id": "b1f0a1c2-000c-4a10-9f01-0d5e6a7b8c90",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "StopgapLeft",
+                    "type": "Button",
+                    "id": "b1f0a1c2-000d-4a10-9f01-0d5e6a7b8c90",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "StopgapRight",
+                    "type": "Button",
+                    "id": "b1f0a1c2-000e-4a10-9f01-0d5e6a7b8c90",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -331,23 +361,89 @@
                 },
                 {
                     "name": "",
-                    "id": "b1f0a1c2-0115-4a10-9f01-0d5e6a7b8c90",
+                    "id": "b1f0a1c2-0200-4a10-9f01-0d5e6a7b8c90",
                     "path": "<Gamepad>/dpad/up",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Stopgap",
+                    "action": "StopgapUp",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "b1f0a1c2-0116-4a10-9f01-0d5e6a7b8c90",
-                    "path": "<Keyboard>/r",
+                    "id": "b1f0a1c2-0201-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Keyboard>/upArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Stopgap",
+                    "action": "StopgapUp",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0210-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Gamepad>/dpad/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "StopgapDown",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0211-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "StopgapDown",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0220-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Gamepad>/dpad/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "StopgapLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0221-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "StopgapLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0230-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Gamepad>/dpad/right",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "StopgapRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b1f0a1c2-0231-4a10-9f01-0d5e6a7b8c90",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "StopgapRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

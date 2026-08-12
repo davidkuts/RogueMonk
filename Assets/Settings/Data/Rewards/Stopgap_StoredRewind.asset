@@ -16,3 +16,6 @@ MonoBehaviour:
   description: Instant 2-second personal rewind (position + health).
   kind: 0
   effectSeconds: 2
+  slot: 1
+  enabled: 1
+  hudLabel: REWIND

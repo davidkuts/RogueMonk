@@ -16,3 +16,6 @@ MonoBehaviour:
   description: A 1.5s stasis burst around Cole.
   kind: 1
   effectSeconds: 1.5
+  slot: 3
+  enabled: 1
+  hudLabel: FREEZE

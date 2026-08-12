@@ -4,6 +4,8 @@ using Game.Core.Feedback;
 using Game.Core.Player;
 using UnityEngine;
 
+// StopgapSlot lives in Game.Core.Player, beside the input reader that reads its button.
+
 namespace Game.Combat
 {
     /// <summary>
@@ -65,17 +67,26 @@ namespace Game.Combat
             if (health != null)
                 history.Tick(Time.deltaTime, transform.position, health.CurrentHealth);
 
-            if (input != null && input.StopgapPressedThisFrame)
-                TryActivate();
+            if (input == null)
+                return;
+
+            // Each direction is its own press. Nothing is cycled and nothing is selected — the
+            // button IS the item, which is what makes the HUD widget worth looking at.
+            for (int i = 0; i < StopgapInventory.AllSlots.Length; i++)
+            {
+                StopgapSlot slot = StopgapInventory.AllSlots[i];
+                if (input.StopgapPressedThisFrame(slot))
+                    TryActivate(slot);
+            }
         }
 
-        /// <summary>Spends the next carried Stopgap, if there is one and it can do anything.</summary>
-        public bool TryActivate()
+        /// <summary>Spends the Stopgap on <paramref name="slot"/>, if it holds one that can help.</summary>
+        public bool TryActivate(StopgapSlot slot)
         {
-            if (inventory == null || inventory.Count == 0)
+            if (inventory == null)
                 return false;
 
-            StopgapDefinition next = inventory.Next;
+            StopgapDefinition next = inventory.Get(slot);
             if (next == null)
                 return false;
 
@@ -88,7 +99,7 @@ namespace Game.Combat
                 return false;
             }
 
-            if (!inventory.TryConsume(out StopgapDefinition stopgap))
+            if (!inventory.TryConsume(slot, out StopgapDefinition stopgap))
                 return false;
 
             Apply(stopgap);

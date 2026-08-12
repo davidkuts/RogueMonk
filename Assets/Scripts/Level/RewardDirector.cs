@@ -378,13 +378,22 @@ namespace Game.Level
             }
         }
 
+        /// <summary>
+        /// A uniform draw over the ENABLED pool. A Stopgap switched off on its asset — Wound
+        /// Spring, while the vortex cooldown is 0 and it has nothing to refund — can never be
+        /// handed out, but keeps its asset and its logic for the day it makes sense again.
+        /// </summary>
         StopgapDefinition DrawStopgap(IRandomSource stream)
         {
-            if (stopgaps == null || stopgaps.Pool.Count == 0)
+            if (stopgaps == null)
                 return null;
 
-            int index = stream != null ? stream.NextInt(0, stopgaps.Pool.Count) : 0;
-            return stopgaps.Pool[index];
+            System.Collections.Generic.IReadOnlyList<StopgapDefinition> grantable = stopgaps.Grantable;
+            if (grantable.Count == 0)
+                return null;
+
+            int index = stream != null ? stream.NextInt(0, grantable.Count) : 0;
+            return grantable[index];
         }
 
         /// <summary>

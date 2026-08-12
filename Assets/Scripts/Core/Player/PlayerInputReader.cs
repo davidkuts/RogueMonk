@@ -20,7 +20,10 @@ namespace Game.Core.Player
         const string RiposteActionName = "Riposte";
         const string VortexActionName = "Vortex";
         const string InteractActionName = "Interact";
-        const string StopgapActionName = "Stopgap";
+
+        // One action per D-pad direction rather than one Stopgap action: each Stopgap lives on its
+        // own button, so "do I have the rewind" is a glance at the HUD and pressing it is one press.
+        static readonly string[] StopgapActionNames = { "StopgapUp", "StopgapDown", "StopgapLeft", "StopgapRight" };
 
         // Binding groups as named in MonkControls.inputactions. Prompts resolve through these so
         // the glyph matches the device actually in the player's hands.
@@ -36,7 +39,7 @@ namespace Game.Core.Player
         InputAction riposteAction;
         InputAction vortexAction;
         InputAction interactAction;
-        InputAction stopgapAction;
+        readonly InputAction[] stopgapActions = new InputAction[4];
 
         /// <summary>
         /// True while a menu owns the screen and gameplay must not read the pad.
@@ -81,14 +84,22 @@ namespace Game.Core.Player
             interactAction != null && !GameplayInputSuspended && interactAction.WasPressedThisFrame();
 
         /// <summary>
-        /// True on the frame the Stopgap button went down (D-pad up, or R).
+        /// True on the frame that direction's Stopgap button went down — D-pad on a pad, the
+        /// arrow keys on a keyboard, which are the obvious mirror of a D-pad and were free.
         ///
-        /// <para>The D-pad was reserved for this in M16 and left unbound until the effects
-        /// existed. ⚠️ REWARDS.md §11 open decision 2 — WHICH d-pad direction — is answered as Up
-        /// here; the other three stay free for the rest of the consumable slots if they arrive.</para>
+        /// <para>REWARDS.md §11 open decision 2 asked WHICH direction activates a Stopgap. The
+        /// answer turned out to be all four: each Stopgap owns a direction and is pressed on its
+        /// own button, so nothing has to be cycled or remembered.</para>
         /// </summary>
-        public bool StopgapPressedThisFrame =>
-            stopgapAction != null && !GameplayInputSuspended && stopgapAction.WasPressedThisFrame();
+        public bool StopgapPressedThisFrame(StopgapSlot slot)
+        {
+            int index = (int)slot;
+            if (GameplayInputSuspended || index < 0 || index >= stopgapActions.Length)
+                return false;
+
+            InputAction action = stopgapActions[index];
+            return action != null && action.WasPressedThisFrame();
+        }
 
         /// <summary>
         /// True when a pad was the last thing the player touched.
@@ -157,7 +168,8 @@ namespace Game.Core.Player
             riposteAction = playerMap.FindAction(RiposteActionName, throwIfNotFound: true);
             vortexAction = playerMap.FindAction(VortexActionName, throwIfNotFound: true);
             interactAction = playerMap.FindAction(InteractActionName, throwIfNotFound: true);
-            stopgapAction = playerMap.FindAction(StopgapActionName, throwIfNotFound: true);
+            for (int i = 0; i < StopgapActionNames.Length; i++)
+                stopgapActions[i] = playerMap.FindAction(StopgapActionNames[i], throwIfNotFound: true);
         }
 
         void OnEnable() => playerMap?.Enable();

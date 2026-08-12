@@ -16,3 +16,6 @@ MonoBehaviour:
   description: Instant Vortex recharge.
   kind: 2
   effectSeconds: 0
+  slot: 0
+  enabled: 0
+  hudLabel: SPRING
