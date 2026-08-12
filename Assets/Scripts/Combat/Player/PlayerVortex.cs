@@ -51,6 +51,11 @@ namespace Game.Combat
         readonly HashSet<IDamageable> pulledThisSpin = new HashSet<IDamageable>();
         readonly Dictionary<IDamageable, float> pullImmuneUntil = new Dictionary<IDamageable, float>();
 
+        // Per-tick working set. Reused so a spin in a crowded room allocates nothing.
+        readonly List<IDamageable> tickTargets = new List<IDamageable>();
+        readonly List<VortexTickCandidate> tickCandidates = new List<VortexTickCandidate>();
+        readonly VortexTickSelector tickSelector = new VortexTickSelector();
+
         VortexAbility ability;
         VortexSpin spin;
         bool spinning;
@@ -104,6 +109,22 @@ namespace Game.Combat
         /// already tail off over their own trail time, and that visual is final.</para>
         /// </summary>
         public event System.Action<bool, float> SpinEnded;
+
+        /// <summary>
+        /// Raised once per enemy damaged per tick — so three enemies across three ticks raise it
+        /// nine times, and no enemy can raise it twice in one tick whatever its collider count.
+        ///
+        /// <para>This is the single seam anything reacting to the spin's damage hangs off. The
+        /// vortex VFX hit-pulse is its first consumer: the effect should feed on hits, and that
+        /// means it needs an event that counts <em>enemies damaged</em> rather than colliders
+        /// overlapped, or a boss would light it up five times harder than a raptor for the same
+        /// spin.</para>
+        ///
+        /// <para>Deliberately NOT wired to cooldown reduction. The Undertow's cooldown is 0 and is
+        /// being removed outright (human call 2026-08-12), so feeding it would be machinery serving
+        /// a number that no longer exists.</para>
+        /// </summary>
+        public event System.Action<IDamageable, Vector3> DamageTick;
 
         void Awake()
         {
@@ -287,9 +308,18 @@ namespace Game.Combat
         }
 
         /// <summary>
-        /// One tick of the spin: everything in radius takes a resolved hit whose knockback is
-        /// negative, which the enemy reads as a pull. Same impulse channel as an ordinary knockback,
-        /// reversed sign — no second movement path to keep in step with the first.
+        /// One tick of the spin: every body in radius takes <em>exactly one</em> resolved hit whose
+        /// knockback is negative, which the enemy reads as a pull. Same impulse channel as an
+        /// ordinary knockback, reversed sign — no second movement path to keep in step with the first.
+        ///
+        /// <para><b>One hit per body, not one per collider.</b> This used to resolve per collider,
+        /// which quietly made vortex damage a function of an enemy's collider count: a five-collider
+        /// boss took five times the damage, poise, sparks and hitstop requests per tick, so spamming
+        /// the spin at a big single target beat the combo outright — the exact inversion of "its job
+        /// is space and setup, not damage". Every other attacker in the game already deduplicates per
+        /// <see cref="IDamageable"/> and skips the root capsule of a zoned body; the vortex was the
+        /// only one that did neither. Maximum damage to any one enemy is now
+        /// <c>tickCount × tickDamage</c>, whatever shape it is.</para>
         /// </summary>
         void Tick()
         {
@@ -299,12 +329,45 @@ namespace Game.Combat
             int count = Physics.OverlapSphereNonAlloc(
                 origin, vortex.RadiusMeters, overlapResults, hittableLayers, QueryTriggerInteraction.Collide);
 
+            tickTargets.Clear();
+            tickCandidates.Clear();
+
             for (int i = 0; i < count; i++)
             {
                 Collider collider = overlapResults[i];
                 if (collider == null || collider.transform.IsChildOf(transform))
                     continue;
 
+                // A zoned body may only be struck on a plate or a soft spot. Its root capsule is
+                // skipped for the same reason every other attacker skips it: resolving there would
+                // count as an unzoned, full-damage hit and the armour would simply not apply.
+                if (HitZones.IsNonZoneColliderOfZonedBody(collider))
+                    continue;
+
+                var target = collider.GetComponentInParent<IDamageable>();
+                if (target == null || !target.IsAlive)
+                    continue;
+
+                int targetKey = tickTargets.IndexOf(target);
+                if (targetKey < 0)
+                {
+                    tickTargets.Add(target);
+                    targetKey = tickTargets.Count - 1;
+                }
+
+                Vector3 planar = collider.transform.position - transform.position;
+                planar.y = 0f;
+                tickCandidates.Add(new VortexTickCandidate(targetKey, i, planar.sqrMagnitude));
+            }
+
+            // Nearest plate to the drain wins. A radial pull has no aim, so anything else would let
+            // armour apply intermittently depending on physics query order.
+            tickSelector.Select(tickCandidates);
+            IReadOnlyList<int> chosen = tickSelector.Chosen;
+
+            for (int c = 0; c < chosen.Count; c++)
+            {
+                Collider collider = overlapResults[chosen[c]];
                 var target = collider.GetComponentInParent<IDamageable>();
                 if (target == null || !target.IsAlive)
                     continue;
@@ -343,13 +406,16 @@ namespace Game.Combat
 
                 Vector3 direction = distance > 0.001f ? toTarget / distance : Vector3.forward;
 
+                Vector3 point = collider.ClosestPoint(origin);
                 HitContext context = HitContext.FromAttack(
-                    vortex, target, direction, collider.ClosestPoint(origin), HitZones.Resolve(collider));
+                    vortex, target, direction, point, HitZones.Resolve(collider));
                 context.Knockback = -impulse; // negative: inward
                 attacks.Resolver.Resolve(ref context);
 
                 if (!pullImmune && !caught.Contains(target))
                     caught.Add(target);
+
+                DamageTick?.Invoke(target, point);
             }
         }
 
