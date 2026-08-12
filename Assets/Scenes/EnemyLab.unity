@@ -628,6 +628,10 @@ MonoBehaviour:
   attacks: {fileID: 1949805135}
   motor: {fileID: 1949805131}
   health: {fileID: 1949805137}
+  wallet: {fileID: 0}
+  transmissions: {fileID: 0}
+  strays: {fileID: 0}
+  stopgaps: {fileID: 0}
   visibleOnStart: 1
   visibleLines: 18
   toggleKey: 94
@@ -697,6 +701,11 @@ MonoBehaviour:
   enemyLabScene: EnemyLab
   mainSceneKey: 103
   mainScene: GrayboxArena
+  godModeKey: 21
+  useRightTrigger: 1
+  healKey: 22
+  useLeftShoulder: 1
+  healAmount: 50
 --- !u!114 &209475370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2268,6 +2277,7 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: 6dc6dd9569ae68247ac45a8fb8235e27, type: 2}
   player: {fileID: 1949805134}
   gameplayCamera: {fileID: 1243274634}
+  rewardDirector: {fileID: 0}
   fixedSeed: 0
   confinerMargin: {x: 2.5, y: 1}
   confinerHeight: 30
@@ -3012,6 +3022,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -4627,7 +4642,7 @@ MonoBehaviour:
     AngularDampingMode: 0
     RotationDamping: {x: 1, y: 1, z: 1}
     QuaternionDamping: 1
-  FollowOffset: {x: 0, y: 12, z: -10}
+  FollowOffset: {x: 0, y: 15, z: -12.5}
 --- !u!114 &1243274637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5785,6 +5800,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -7011,6 +7031,11 @@ MonoBehaviour:
   staggeredColor: {r: 0.55, g: 0.4, b: 1, a: 1}
   hitFlashSeconds: 0.09
   knockbackDamping: 8
+  platingPalette: {fileID: 0}
+  intactPlateBlend: 0.85
+  crackedPlateColor: {r: 0.34, g: 0.27, b: 0.22, a: 1}
+  crackedPlateBlend: 0.7
+  crackFlashSeconds: 0.25
   statusSettings: {fileID: 0}
   deathSequenceSeconds: 0
   deathHitstopSeconds: 0
@@ -7146,6 +7171,7 @@ MonoBehaviour:
   dashPhasesThroughLayers:
     serializedVersion: 2
     m_Bits: 256
+  staggerDamping: 8
 --- !u!114 &1949805132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7294,6 +7320,8 @@ MonoBehaviour:
   afterimage: {fileID: 1949805140}
   hitFlashColor: {r: 1, g: 0.3, b: 0.3, a: 1}
   flashIntervalSeconds: 0.08
+  healFlashColor: {r: 0.35, g: 1, b: 0.75, a: 1}
+  healFlashSeconds: 0.5
 --- !u!114 &1949805138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7372,14 +7400,10 @@ MonoBehaviour:
   riposteHitColor: {r: 1, g: 0.9, b: 0.4, a: 1}
   riposteSparkScale: 2.6
   riposte: {fileID: 11400000, guid: b83f1e02a7c94d5689e34b071fa2c6de, type: 2}
-  elementColors:
-  - {r: 1, g: 0.85, b: 0.45, a: 0.9}
-  - {r: 1, g: 0.45, b: 0.15, a: 1}
-  - {r: 0.45, g: 0.8, b: 1, a: 1}
-  - {r: 0.7, g: 0.95, b: 0.9, a: 1}
-  - {r: 0.85, g: 0.7, b: 0.45, a: 1}
-  - {r: 0.5, g: 0.85, b: 0.35, a: 1}
-  - {r: 1, g: 0.85, b: 0.35, a: 1}
+  damageTypePalette: {fileID: 0}
+  hurtNumberColor: {r: 1, g: 0.32, b: 0.3, a: 1}
+  playerNumberScale: 1.5
+  playerNumberHeight: 2.1
   heavyHitstopThreshold: 0.08
   lightRumble: {x: 0.25, y: 0.45}
   heavyRumble: {x: 0.6, y: 0.8}
@@ -7469,6 +7493,7 @@ MonoBehaviour:
   endWidth: 0.02
   smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
   minVertexDistance: 0.02
+  reachFraction: 0.75
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

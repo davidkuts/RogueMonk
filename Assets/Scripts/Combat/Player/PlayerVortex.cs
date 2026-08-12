@@ -213,7 +213,17 @@ namespace Game.Combat
             float deltaTime = Time.deltaTime;
             ability.Tick(deltaTime);
 
-            if (!spinning && input != null && input.VortexPressedThisFrame)
+            // The WHOLE move locks out a recast, not just the pull.
+            //
+            // `spinning` closes with the active window, which left recovery wide open — and since
+            // the ability deliberately has no cooldown, the frame data was the only thing governing
+            // it. The result was that a spin chained straight into the next spin, which is both the
+            // cheapest thing in the kit and visually incoherent: the body restarts its turn part-way
+            // through the previous one. Recovery is the beat that makes the spin cost something.
+            bool vortexAlreadyRunning =
+                attacks.Attacks.Current != null && attacks.Attacks.Current.Id == vortex.Id;
+
+            if (!spinning && !vortexAlreadyRunning && input != null && input.VortexPressedThisFrame)
                 TryCast();
 
             // The turn is driven off the attack itself rather than off the pull window, so it keeps

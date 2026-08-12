@@ -4665,7 +4665,7 @@ MonoBehaviour:
     AngularDampingMode: 0
     RotationDamping: {x: 1, y: 1, z: 1}
     QuaternionDamping: 1
-  FollowOffset: {x: 0, y: 12, z: -10}
+  FollowOffset: {x: 0, y: 15, z: -12.5}
 --- !u!114 &1243274637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7521,7 +7521,7 @@ MonoBehaviour:
   endWidth: 0.02
   smearColor: {r: 0.29, g: 0.85, b: 0.92, a: 0.9}
   minVertexDistance: 0.02
-  reachFraction: 0.9
+  reachFraction: 0.75
 --- !u!114 &1949805146
 MonoBehaviour:
   m_ObjectHideFlags: 0
