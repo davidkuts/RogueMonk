@@ -24,12 +24,14 @@ MonoBehaviour:
   pullImmunitySeconds: 1
   tickCount: 3
   tickDamage: 6
-  tickPoiseDamage: 4
+  tickPoiseDamage: 0
   damageType: 0
   tickHitstopSeconds: 0.02
   spinRevolutions: 1
   spinClockwise: 1
   arrivalStaggerSeconds: 0
+  vortexAttackBufferTailSeconds: 0
+  vortexInterruptFadeOutSeconds: 0.12
   cooldownSeconds: 0
   perHitRefundSeconds: 0
   moveSpeedMultiplier: 0.6
