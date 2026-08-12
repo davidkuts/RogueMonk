@@ -5,7 +5,9 @@
 ## ▶ NEXT ACTION (read this first)
 **M21 Part A (ability interrupt rules) is built and awaiting an IN-EDITOR test — the human asked to check it in the editor before Part B (Vortex VFX layers) starts.** Part B is specced and not begun.
 
-**Five milestones — M17, M18, M19, M20, M21A — are built, tested and pushed but UNPLAYED.** `Builds/Win64/RogueMonk.exe` is current as of M20 and does **not** contain M21A; rebuild before the next standalone session. Corrections from playtest take priority over anything in the gaps list.
+**Five milestones — M17, M18, M19, M20, M21A — are built, tested and pushed but UNPLAYED.** `Builds/Win64/RogueMonk.exe` is **current as of M21A** (rebuilt 2026-08-12, 0 errors / 0 warnings). Corrections from playtest take priority over anything in the gaps list.
+
+⚠️ Note when checking the build is fresh: Unity reuses the launcher `.exe` stub unchanged, so **its timestamp lies** — check `RogueMonk_Data/Managed/Game.*.dll` instead.
 
 What to judge in M21A specifically: whether a dash out of a spin feels instant, whether losing the queued attack during a spin feels right (the `vortexAttackBufferTailSeconds` knob exists to soften it and is currently 0/off), and whether the riposte cutting a committed combo wind-up is too permissive.
 
