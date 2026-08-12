@@ -21,7 +21,13 @@ namespace Game.Combat
     /// because it has to strike the same enemy once per tick — see
     /// <see cref="PlayerAttackController.SuppressDefaultHitbox"/>.</para>
     /// </summary>
+    /// <remarks>
+    /// Runs at -30: after the attack controller (-50) and the motor (-40), so a dash or riposte
+    /// processed this frame has already torn the spin down before this component would tick it.
+    /// That is what makes an interrupt land on the same frame as the input rather than the next one.
+    /// </remarks>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-30)]
     [RequireComponent(typeof(PlayerAttackController))]
     public sealed class PlayerVortex : MonoBehaviour
     {
@@ -81,6 +87,24 @@ namespace Game.Combat
 
         public VortexDefinition Definition => vortex;
 
+        /// <summary>
+        /// How long the spin's VFX have to get off screen when the ability is interrupted. Read by
+        /// every visual layer the Undertow owns, so one asset field governs all of them.
+        /// </summary>
+        public float InterruptFadeOutSeconds =>
+            vortex != null ? vortex.VortexInterruptFadeOutSeconds : 0f;
+
+        /// <summary>
+        /// Raised whenever a spin stops, saying whether it was interrupted and how long its effects
+        /// have to fade. VFX layers hang off this rather than polling <see cref="IsBodySpinning"/>,
+        /// because polling cannot tell "the spin finished" from "the spin was cut short", and those
+        /// two want different exits — one settles, the other has to be gone before the dash reads.
+        ///
+        /// <para>The foot-traced range smear deliberately does <em>not</em> subscribe: its ribbons
+        /// already tail off over their own trail time, and that visual is final.</para>
+        /// </summary>
+        public event System.Action<bool, float> SpinEnded;
+
         void Awake()
         {
             if (attacks == null) attacks = GetComponent<PlayerAttackController>();
@@ -108,9 +132,14 @@ namespace Game.Combat
             ability = new VortexAbility(vortex.CooldownSeconds, vortex.PerHitRefundSeconds);
             spin = new VortexSpin(vortex.TickCount, vortex.ActiveSeconds);
 
+            // The tail window is a vortex tuning value, so it lives on the vortex asset — the attack
+            // controller is only told the number it has to enforce.
+            attacks.VortexAttackBufferTailSeconds = vortex.VortexAttackBufferTailSeconds;
+
             ability.BecameReady += OnBecameReady;
             attacks.Hit += OnHit;
             attacks.Attacks.ActiveEnded += OnActiveEnded;
+            attacks.AttackInterrupted += OnAttackInterrupted;
         }
 
         void OnDestroy()
@@ -120,7 +149,63 @@ namespace Game.Combat
             {
                 attacks.Hit -= OnHit;
                 attacks.Attacks.ActiveEnded -= OnActiveEnded;
+                attacks.AttackInterrupted -= OnAttackInterrupted;
             }
+        }
+
+        /// <summary>
+        /// The Undertow's response to being cut short by a Blink or a Split Second.
+        ///
+        /// <para>Everything stops at once: no further ticks, no further pull, the hitbox ownership
+        /// handed back, the body squared up and the effects told to fade. What survives is
+        /// deliberate and unchanged — whatever the pull already moved keeps its arrival stagger, and
+        /// the cooldown keeps whatever it had. <b>There is no refund.</b> The cast was committed
+        /// when the button was pressed, and per-hit reduction already earned during the partial
+        /// channel stays earned; paying the ability back for being cancelled would make the cancel
+        /// free, and a free cancel is not a decision.</para>
+        ///
+        /// <para>Runs before the state machine is actually cancelled (see
+        /// <see cref="PlayerAttackController.CancelFor"/>), which is what stops the trailing
+        /// <c>ActiveEnded</c> from draining the ticks this spin just forfeited.</para>
+        /// </summary>
+        void OnAttackInterrupted(IAttackDefinition definition, InterruptSource source)
+        {
+            if (definition == null || vortex == null || definition.Id != vortex.Id)
+                return;
+
+            if (!spinning && !bodySpinning)
+                return;
+
+            GameLog.Info(LogCategory.Combat,
+                $"VORTEX cut    interrupted by {source} in {attacks.Attacks.Phase}  " +
+                $"ticks {spin.Fired}/{spin.TickCount} paid, remainder forfeited  " +
+                $"cooldown {ability.CooldownRemaining:0.00}s (no refund)");
+
+            if (spinning)
+            {
+                EndSpin(cancelled: true);
+            }
+            else
+            {
+                // Interrupted during recovery: the pull already closed, but the body is still
+                // turning and the effects are still up. Both have to stop with the ability.
+                EndVisuals(interrupted: true);
+            }
+        }
+
+        /// <summary>
+        /// Stops the visual half of the move and hands the body back square.
+        ///
+        /// <para>Separate from <see cref="EndSpin"/> because the two halves genuinely end at
+        /// different times: the pull closes with the active window, the turn runs on through
+        /// recovery. Only an interrupt ends both at once.</para>
+        /// </summary>
+        void EndVisuals(bool interrupted)
+        {
+            bodySpinning = false;
+            spinElapsed = 0f;
+            RestoreModel();
+            SpinEnded?.Invoke(interrupted, InterruptFadeOutSeconds);
         }
 
         void Update()
@@ -136,19 +221,28 @@ namespace Game.Combat
             // stretch of a move whose limbs were still moving, which read as the animation freezing.
             // The rotation itself is applied in LateUpdate — see there for why.
             bool vortexRunning = attacks.Attacks.Current != null && attacks.Attacks.Current.Id == vortex.Id;
-            bodySpinning = vortexRunning;
-            spinElapsed = vortexRunning ? attacks.Attacks.Elapsed : 0f;
+            bool wasBodySpinning = bodySpinning;
 
-            if (!spinning)
-                return;
-
-            // Dash-cancelled, or interrupted some other way: keep whatever pull already happened and
-            // forfeit the remaining ticks, which is what makes cancelling a real mid-spin decision.
-            if (!vortexRunning)
+            // Backstop for a spin that stopped without announcing itself. The interrupt path raises
+            // an event and has already run by now; this catches anything else that ends the attack,
+            // and keeps the same bargain — whatever the pull already did stands, the rest is
+            // forfeited, which is what makes cancelling a real mid-spin decision.
+            if (!vortexRunning && spinning)
             {
                 EndSpin(cancelled: true);
                 return;
             }
+
+            bodySpinning = vortexRunning;
+            spinElapsed = vortexRunning ? attacks.Attacks.Elapsed : 0f;
+
+            // The move ran its full frame data and settled. Announced separately from an interrupt
+            // because the two exits look different: this one is allowed to trail off.
+            if (wasBodySpinning && !bodySpinning)
+                SpinEnded?.Invoke(false, InterruptFadeOutSeconds);
+
+            if (!spinning)
+                return;
 
             if (attacks.Attacks.Phase != AttackPhase.Active)
                 return;
@@ -329,11 +423,6 @@ namespace Game.Combat
             spinning = false;
             attacks.SuppressDefaultHitbox = false;
 
-            // Deliberately does NOT restore the model here: the pull ends with the active window but
-            // the turn runs on through recovery, and LateUpdate owns the model either way.
-            if (cancelled)
-                bodySpinning = false;
-
             float now = Time.time;
             for (int i = 0; i < caught.Count; i++)
             {
@@ -351,7 +440,18 @@ namespace Game.Combat
                 $"  stagger {vortex.ArrivalStaggerSeconds:0.00}s");
 
             caught.Clear();
+
+            // Cleared here as well as on cast. Leaving a spin's worth of targets in the set until
+            // the next TryCast is the kind of residue that survives a cancel and quietly changes
+            // what the following spin does.
+            pulledThisSpin.Clear();
             PruneImmunities(now);
+
+            // A cancelled spin ends both halves at once. A natural one does not: the pull closes
+            // with the active window but the turn runs on through recovery, and LateUpdate keeps
+            // owning the model until it does.
+            if (cancelled)
+                EndVisuals(interrupted: true);
         }
 
         /// <summary>Keeps the immunity map from growing across a whole run of dead enemies.</summary>

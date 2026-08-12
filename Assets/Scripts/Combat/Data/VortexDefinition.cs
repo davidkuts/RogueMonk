@@ -64,6 +64,12 @@ namespace Game.Combat
         [SerializeField, Tooltip("Stagger applied to everything the pull actually moved. Non-negotiable: the ability drags threats into hug range, so they must not arrive mid-wind-up.")]
         float arrivalStaggerSeconds = 0.4f;
 
+        [Header("Interrupt")]
+        [SerializeField, Tooltip("Optional window at the very END of the spin's channel (wind-up + active) during which an attack press IS buffered and fires as the spin ends. 0 = off, and off is the shipped default: an attack pressed during the channel is discarded outright. Raise it if 'I pressed attack as the spin finished and nothing came out' turns out to feel bad in play.")]
+        float vortexAttackBufferTailSeconds;
+        [SerializeField, Tooltip("How long the spin's VFX take to fade when the ability is interrupted by a dash or a riposte. Short — the effect must be gone before the next action reads on screen — but not zero, because a hard pop reads as a bug rather than as a cancel.")]
+        float vortexInterruptFadeOutSeconds = 0.12f;
+
         [Header("Recharge")]
         [SerializeField, Tooltip("Cooldown from a standing start. Tune this for the passive player — it is their whole experience of the ability.")]
         float cooldownSeconds = 10f;
@@ -131,6 +137,8 @@ namespace Game.Combat
         /// freezing part-way through. The turn now runs as long as the move does.</para>
         /// </summary>
         public float SpinSeconds => Mathf.Max(0.0001f, TotalSeconds);
+        public float VortexAttackBufferTailSeconds => Mathf.Max(0f, vortexAttackBufferTailSeconds);
+        public float VortexInterruptFadeOutSeconds => Mathf.Max(0f, vortexInterruptFadeOutSeconds);
         public int TickCount => Mathf.Max(1, tickCount);
         public float ArrivalStaggerSeconds => Mathf.Max(0f, arrivalStaggerSeconds);
         public float CooldownSeconds => Mathf.Max(0f, cooldownSeconds);

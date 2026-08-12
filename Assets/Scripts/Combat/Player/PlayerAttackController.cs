@@ -81,6 +81,13 @@ namespace Game.Combat
         /// </summary>
         public bool SuppressDefaultHitbox { get; set; }
 
+        /// <summary>
+        /// The Undertow's optional attack-buffer tail, pushed here by <see cref="PlayerVortex"/> from
+        /// its definition asset so the tuning value lives on the SO and not in this component.
+        /// 0 — the shipped default — means the channel refuses the attack button outright.
+        /// </summary>
+        public float VortexAttackBufferTailSeconds { get; set; }
+
         public AttackStateMachine Attacks => attacks;
 
         /// <summary>
@@ -110,20 +117,45 @@ namespace Game.Combat
         public event Action<IAttackDefinition> SpecialStarted;
 
         /// <summary>
+        /// Fires the instant an action is cut short by an interrupt, naming what cut it.
+        ///
+        /// <para>Raised <em>before</em> the state machine is actually cancelled — see
+        /// <see cref="CancelFor"/> for why the order is load-bearing rather than incidental.</para>
+        /// </summary>
+        public event Action<IAttackDefinition, InterruptSource> AttackInterrupted;
+
+        /// <summary>
         /// Throws a one-off attack that is not part of the combo chain — the riposte.
         ///
         /// It goes through the same state machine, hitbox query and resolver as everything else, so
         /// it is an ordinary attack that happens to be spent from a different resource. It also
         /// leaves the combo cursor alone: landing a counter should not silently reset the chain the
         /// player was building.
+        ///
+        /// <para><paramref name="interrupt"/> is what gives the Split Second its priority: passed
+        /// anything but <see cref="InterruptSource.None"/>, the attack cuts through a committed
+        /// wind-up or a running Undertow instead of being refused by it. Cancelling happens only
+        /// after every other guard has passed, so a riposte that cannot start — mid-dash, say —
+        /// can never destroy the action the player was already in as a side effect of trying.</para>
         /// </summary>
-        public bool TryStartSpecial(IAttackDefinition definition)
+        public bool TryStartSpecial(
+            IAttackDefinition definition, InterruptSource interrupt = InterruptSource.None)
         {
-            if (definition == null || attacks.IsCommitted)
+            if (definition == null)
                 return false;
 
+            // A live dash owns the character outright, interrupt rights or not: the i-frames were
+            // already earned and cutting them short to throw a counter would be a downgrade.
             if (motor != null && motor.Dash != null && motor.Dash.IsDashing)
                 return false;
+
+            if (attacks.IsCommitted)
+            {
+                if (!AllowsInterrupt(interrupt))
+                    return false;
+
+                CancelFor(interrupt);
+            }
 
             if (TryGetStickDirection(out Vector3 aimHint))
                 motor.Locomotion.SetFacing(aimHint);
@@ -149,8 +181,11 @@ namespace Game.Combat
         public float MoveSpeedMultiplier =>
             attacks.IsAttacking && attacks.Current != null ? attacks.Current.MoveSpeedMultiplier : 1f;
 
-        /// <summary>Wind-up and active frames are committed; recovery is dash-cancellable.</summary>
-        public bool AllowsDash => !attacks.IsAttacking || attacks.IsCancellable;
+        /// <summary>
+        /// Kept as the plain-language question the debug overlay asks. The Blink is now answerable
+        /// in any state, so this is simply the interrupt rule under its old name.
+        /// </summary>
+        public bool AllowsDash => AllowsInterrupt(InterruptSource.Dash);
 
         /// <summary>
         /// The attack owns facing while committed, so auto-aim survives the player strafing.
@@ -158,14 +193,50 @@ namespace Game.Combat
         /// </summary>
         public bool AllowsTurning => !attacks.IsCommitted;
 
-        public void CancelForDash()
+        public bool AllowsInterrupt(InterruptSource source) =>
+            AbilityInterruptPolicy.AllowsInterrupt(CaptureState(), source);
+
+        /// <summary>
+        /// Cuts the current action short on behalf of <paramref name="source"/>.
+        ///
+        /// <para><b>The event is raised before the cancel, and that ordering is the fix for a real
+        /// bug rather than a style choice.</b> <see cref="AttackStateMachine.Cancel"/> closes a live
+        /// hitbox by raising <c>ActiveEnded</c> synchronously, and the Undertow's handler for that
+        /// event drains and pays out every tick the window still owed. Cancelling first would
+        /// therefore hand an interrupted spin its full damage — the exact opposite of forfeiting the
+        /// remaining ticks. Announcing the interrupt first lets the vortex tear itself down, after
+        /// which its own <c>spinning</c> guard makes the trailing <c>ActiveEnded</c> a no-op.</para>
+        /// </summary>
+        public void CancelFor(InterruptSource source)
         {
             if (!attacks.IsAttacking)
                 return;
 
+            IAttackDefinition interrupted = attacks.Current;
+
             GameLog.Debug(LogCategory.Combat,
-                $"dash-cancel   {attacks.Current.Id} out of {attacks.Phase} (costs a dash charge)");
+                $"interrupt     {interrupted.Id} out of {attacks.Phase} by {source}" +
+                (source == InterruptSource.Dash ? " (costs a dash charge)" : string.Empty));
+
+            AttackInterrupted?.Invoke(interrupted, source);
             attacks.Cancel();
+
+            // An interrupt is the player changing their mind. Anything still sitting in the buffer
+            // was aimed at the action that no longer exists.
+            attackBuffer.Clear();
+        }
+
+        /// <summary>What the interrupt rules need to see. Cheap enough to build per query.</summary>
+        AbilityState CaptureState()
+        {
+            IAttackDefinition current = attacks.Current;
+            if (!attacks.IsAttacking || current == null)
+                return AbilityState.Idle;
+
+            AbilityId ability = current is IAbilityTagged tagged ? tagged.Ability : AbilityId.None;
+            float channelEnd = Mathf.Max(0f, current.WindupSeconds) + Mathf.Max(0f, current.ActiveSeconds);
+
+            return new AbilityState(true, ability, attacks.Phase, attacks.Elapsed, channelEnd);
         }
 
         void Awake()
@@ -231,7 +302,7 @@ namespace Game.Combat
             float deltaTime = Time.deltaTime;
 
             if (input != null && input.AttackPressedThisFrame)
-                attackBuffer.Press();
+                HandleAttackPress();
             attackBuffer.Tick(deltaTime, combo.InputBufferSeconds);
 
             TryConsumeBufferedAttack();
@@ -243,6 +314,30 @@ namespace Game.Combat
 
             if (attacks.Phase == AttackPhase.Active && !SuppressDefaultHitbox)
                 QueryHitbox();
+        }
+
+        /// <summary>
+        /// Routes an attack press through the interrupt policy.
+        ///
+        /// <para>The only outcome that is new is <see cref="AttackInputVerdict.Discard"/>: a press
+        /// inside the Undertow's channel is dropped on the floor rather than queued, so a spin can
+        /// never end by throwing a punch the player asked for half a second earlier. The buffer is
+        /// cleared as well as skipped — "do not queue it" has to mean nothing is left holding a
+        /// press, however it got there.</para>
+        /// </summary>
+        void HandleAttackPress()
+        {
+            AttackInputVerdict verdict =
+                AbilityInterruptPolicy.ResolveAttackInput(CaptureState(), VortexAttackBufferTailSeconds);
+
+            if (verdict == AttackInputVerdict.Discard)
+            {
+                attackBuffer.Clear();
+                GameLog.Debug(LogCategory.Combat, "attack denied  Undertow channel is not attack-cancellable");
+                return;
+            }
+
+            attackBuffer.Press();
         }
 
         void TryConsumeBufferedAttack()

@@ -24,6 +24,7 @@ namespace Game.Combat
     /// punish the player for taking a beat to look at what they just unlocked.
     /// </summary>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-45)]
     [RequireComponent(typeof(PlayerHealth))]
     public sealed class PerfectDodgeReward : MonoBehaviour
     {
@@ -93,7 +94,11 @@ namespace Game.Combat
             if (!IsArmed || input == null || !input.RipostePressedThisFrame)
                 return;
 
-            if (!attacks.TryStartSpecial(riposte))
+            // The Split Second is the highest-priority input in the game: an armed riposte answers
+            // at any moment, in any state — mid-combo, mid-wind-up, mid-Undertow. It is the button
+            // that gets the player out of trouble, so it is the one button that is never refused
+            // because of something they are already doing.
+            if (!attacks.TryStartSpecial(riposte, InterruptSource.Riposte))
                 return;
 
             SetCharges(charges - 1);

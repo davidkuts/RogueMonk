@@ -10,7 +10,14 @@ namespace Game.Core.Player
     /// collide-and-slide gives wall sliding — and dash-into-wall stopping — for free.
     /// No movement logic lives here; this only arbitrates which simulation owns the frame.
     /// </summary>
+    /// <remarks>
+    /// Execution order sits between the attack controller (-50, which publishes this frame's action
+    /// state) and <c>PlayerVortex</c> (-30, which ticks the spin). That ordering is what makes an
+    /// interrupt land on the same frame as the input: the dash cancels the vortex here, before the
+    /// vortex gets its Update and pays out another tick of a spin that no longer exists.
+    /// </remarks>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-40)]
     [RequireComponent(typeof(CharacterController))]
     public sealed class PlayerMotor : MonoBehaviour
     {
@@ -172,16 +179,20 @@ namespace Game.Core.Player
             if (staggerRemaining > 0f)
                 staggerRemaining = Mathf.Max(0f, staggerRemaining - deltaTime);
 
-            // An attack's wind-up and active frames are committed; recovery is dash-cancellable.
-            // A stagger also blocks *starting* a dash — but never cancels one already running,
-            // because those i-frames were earned before the hit landed.
-            bool dashAllowed = (actions == null || actions.AllowsDash) && !IsStaggered;
+            // The Blink is answerable in ANY state — mid-combo, mid-wind-up, mid-Undertow — and cuts
+            // whatever is running short. A stagger still blocks *starting* a dash, and a dash
+            // already running is never cancelled, because those i-frames were earned before the hit
+            // landed.
+            //
+            // The cancel happens only after TryStart has actually succeeded, so a dash refused for
+            // want of a charge leaves the player's attack completely untouched.
+            bool dashAllowed = (actions == null || actions.AllowsInterrupt(InterruptSource.Dash)) && !IsStaggered;
             if (dashAllowed && dashBuffer.HasInput && Dash.CanStart && Dash.TryStart(ResolveDashDirection(moveAxis)))
             {
                 dashBuffer.Clear();
                 Locomotion.SetFacing(Dash.Direction);
                 if (actions != null)
-                    actions.CancelForDash();
+                    actions.CancelFor(InterruptSource.Dash);
             }
 
             // Attacks slow the player and may take ownership of facing.
