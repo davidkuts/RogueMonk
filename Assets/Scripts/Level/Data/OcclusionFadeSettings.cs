@@ -41,8 +41,8 @@ namespace Game.Level
         [SerializeField, Tooltip("Which layers can occlude. Walls sit on Default alongside the floor; occluders are identified by carrying a WallOccluder, never by their layer — M21C's ground and clearance probes depend on walls staying on Default.")]
         LayerMask occluderLayers = 1;
 
-        [SerializeField, Tooltip("Height above an actor's feet that the cast aims at and the reveal centres on. Chest height, so the hole covers the body and its wind-up rather than the ground under it.")]
-        float trackHeightOffset = 1f;
+        [SerializeField, Tooltip("Height added to an actor's transform for the cast and the reveal centre. Both the player and the enemies are CharacterController capsules whose transform already sits at the BODY CENTRE, so zero is chest height and is what you want: aiming a metre higher pointed the cast above the character's own head, which made a wall have to be taller than the actor before it counted as hiding them, and pushed the reveal disc off the body it is meant to cover.")]
+        float trackHeightOffset;
 
         [SerializeField, Range(1, MaxTrackedActorsCeiling), Tooltip("Most actors tracked at once. Over the cap, the player is always kept and the nearest enemies to the camera win — those are the ones the near wall is hiding.")]
         int maxTrackedActors = MaxTrackedActorsCeiling;
@@ -50,12 +50,15 @@ namespace Game.Level
         [SerializeField, Tooltip("Track live enemies as well as the player. Off makes this a player-only camera fix.")]
         bool trackEnemies = true;
 
+        [SerializeField, Range(0f, 1f), Tooltip("How squarely a wall must face the camera before it may fade. The camera looks north and down, so only the SOUTH wall is ever genuinely in the way; the side walls run alongside the view and used to open a hole right next to a player standing in front of them. 0.5 admits the camera-facing wall and nothing else. Zero switches the filter off and lets any occluder fade.")]
+        float cameraFacingDot = 0.5f;
+
         [Header("Reveal disc")]
-        [SerializeField, Range(0.01f, 0.5f), Tooltip("Radius of the dithered hole, as a fraction of screen HEIGHT. This is what keeps a 20 m wall from dissolving whole — only the patch actually covering the actor goes.")]
-        float revealRadiusScreenHeights = 0.12f;
+        [SerializeField, Range(0.01f, 0.5f), Tooltip("Radius of the dithered hole, as a fraction of screen HEIGHT. This is what keeps a 20 m wall from dissolving whole — only the patch actually covering the actor goes. Size it against the body PLUS its wind-up: a telegraph that reads half-cut is the failure this feature exists to prevent.")]
+        float revealRadiusScreenHeights = 0.16f;
 
         [SerializeField, Range(0f, 0.2f), Tooltip("Soft edge on the hole, in the same units. Zero gives a hard-edged circle, which reads as a hole cut in the wall rather than the wall thinning out.")]
-        float revealSoftnessScreenHeights = 0.04f;
+        float revealSoftnessScreenHeights = 0.05f;
 
         public float FadedVisibility => Mathf.Clamp01(fadedVisibility);
         public float FadeInSeconds => Mathf.Max(0f, fadeInSeconds);
@@ -66,6 +69,7 @@ namespace Game.Level
         public float TrackHeightOffset => trackHeightOffset;
         public int MaxTrackedActors => Mathf.Clamp(maxTrackedActors, 1, MaxTrackedActorsCeiling);
         public bool TrackEnemies => trackEnemies;
+        public float CameraFacingDot => Mathf.Clamp01(cameraFacingDot);
         public float RevealRadiusScreenHeights => Mathf.Max(0.001f, revealRadiusScreenHeights);
         public float RevealSoftnessScreenHeights => Mathf.Max(0f, revealSoftnessScreenHeights);
     }

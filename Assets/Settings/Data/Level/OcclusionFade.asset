@@ -20,8 +20,9 @@ MonoBehaviour:
   occluderLayers:
     serializedVersion: 2
     m_Bits: 1
-  trackHeightOffset: 1
+  trackHeightOffset: 0
   maxTrackedActors: 8
   trackEnemies: 1
-  revealRadiusScreenHeights: 0.12
-  revealSoftnessScreenHeights: 0.04
+  cameraFacingDot: 0.5
+  revealRadiusScreenHeights: 0.16
+  revealSoftnessScreenHeights: 0.05

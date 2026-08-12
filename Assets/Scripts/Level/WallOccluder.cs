@@ -44,6 +44,10 @@ namespace Game.Level
         Collider[] colliders;
         MaterialPropertyBlock block;
 
+        /// <summary>Centre of the room this wall belongs to, handed over by <see cref="WallOccluderGroup"/>.</summary>
+        Vector3 groupCentre;
+        bool hasGroupCentre;
+
         /// <summary>Last value actually pushed, so an unchanged wall costs nothing per frame.</summary>
         float pushed = -1f;
 
@@ -92,6 +96,51 @@ namespace Game.Level
             state.Reset();
             occluding = false;
             Push(0f, 1f);
+        }
+
+        /// <summary>
+        /// Tells this wall where the middle of its room is, which is the only thing needed to know
+        /// which way it faces. Called by <see cref="WallOccluderGroup"/> as it fits the wall.
+        /// </summary>
+        public void SetGroupCentre(Vector3 centre)
+        {
+            groupCentre = centre;
+            hasGroupCentre = true;
+        }
+
+        /// <summary>
+        /// True when this wall stands between the camera and the room — the only wall that can hide
+        /// anything standing on the floor.
+        ///
+        /// <para><b>Why this filter exists.</b> The camera looks north and down at ~50°, so only the
+        /// south wall is ever genuinely in the way. The side walls run <em>alongside</em> the view
+        /// instead: a cast from the camera to somebody hugging one grazes its length, and the
+        /// stretch of it nearer the camera than they are overlaps them on screen. The result was a
+        /// hole opening in a wall the player was standing in <em>front</em> of, which reads as a
+        /// glitch rather than as help (human call 2026-08-12: "only apply this to the south wall").
+        /// The far wall has the same problem from the other side and cannot hide anyone at all.</para>
+        ///
+        /// <para>Decided from geometry rather than from a name or a hand-ticked flag, so a rotated
+        /// room, or a camera that is ever re-aimed, picks the right wall without anybody
+        /// remembering to re-author four prefabs. A wall with no group — one fitted by hand — cannot
+        /// answer the question and is left alone rather than silently excluded.</para>
+        /// </summary>
+        public bool FacesCamera(Vector3 cameraForwardPlanar, float minDot)
+        {
+            if (!hasGroupCentre || minDot <= 0f)
+                return true;
+
+            Vector3 outward = transform.position - groupCentre;
+            outward.y = 0f;
+
+            // A wall sitting on the room's own centre line — a free-standing pillar — has no
+            // outward direction, so the test cannot speak for it.
+            if (outward.sqrMagnitude < 0.0001f)
+                return true;
+
+            // Outward points away from the room. It faces the camera when it points back along the
+            // view direction, which is what makes the dot negative.
+            return Vector3.Dot(outward.normalized, cameraForwardPlanar) <= -minDot;
         }
 
         /// <summary>Clears the flag at the top of a detection pass. Called only on detection frames.</summary>

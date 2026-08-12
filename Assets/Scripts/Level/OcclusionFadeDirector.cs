@@ -175,22 +175,39 @@ namespace Game.Level
             Vector3 origin = view.transform.position;
             int layers = settings.OccluderLayers;
             float radius = settings.SpherecastRadius;
+            float minFacingDot = settings.CameraFacingDot;
+
+            Vector3 forward = view.transform.forward;
+            forward.y = 0f;
+            forward = forward.sqrMagnitude > 0.0001f ? forward.normalized : Vector3.forward;
 
             for (int i = 0; i < tracked.Count; i++)
             {
                 Vector3 toActor = tracked[i] - origin;
                 float distance = toActor.magnitude;
-                if (distance <= 0.01f)
+
+                // Stop the sweep a sphere-radius short of the actor. Sweeping all the way means the
+                // sphere's own body reaches past them, so a wall they are standing directly in front
+                // of registers as one they are standing behind.
+                float sweep = distance - radius;
+                if (sweep <= 0.01f)
                     continue;
 
                 int hits = Physics.SphereCastNonAlloc(
-                    origin, radius, toActor / distance, castHits, distance, layers,
+                    origin, radius, toActor / distance, castHits, sweep, layers,
                     QueryTriggerInteraction.Ignore);
 
                 for (int h = 0; h < hits; h++)
                 {
-                    if (WallOccluder.TryGet(castHits[h].collider, out WallOccluder occluder))
-                        occluder.MarkOccluding();
+                    if (!WallOccluder.TryGet(castHits[h].collider, out WallOccluder occluder))
+                        continue;
+
+                    // Only the wall between the camera and the room may fade. See the note on
+                    // WallOccluder.FacesCamera for why the side walls were doing harm.
+                    if (!occluder.FacesCamera(forward, minFacingDot))
+                        continue;
+
+                    occluder.MarkOccluding();
                 }
             }
         }

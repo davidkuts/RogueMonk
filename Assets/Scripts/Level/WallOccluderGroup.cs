@@ -20,20 +20,50 @@ namespace Game.Level
         {
             Renderer[] renderers = GetComponentsInChildren<Renderer>(includeInactive);
 
+            // The centre of everything under this node is the room's middle, which is all a wall
+            // needs to work out which way it faces. Measured from the walls themselves rather than
+            // taken from this transform, so a group parented somewhere off-centre still answers
+            // correctly.
+            var bounds = new Bounds();
+            bool hasBounds = false;
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null || !Qualifies(renderers[i]))
+                    continue;
+
+                if (hasBounds)
+                {
+                    bounds.Encapsulate(renderers[i].bounds);
+                }
+                else
+                {
+                    bounds = renderers[i].bounds;
+                    hasBounds = true;
+                }
+            }
+
+            if (!hasBounds)
+                return;
+
             for (int i = 0; i < renderers.Length; i++)
             {
                 Renderer renderer = renderers[i];
-                if (renderer == null)
+                if (renderer == null || !Qualifies(renderer))
                     continue;
 
-                // Detection is a physics cast, so a renderer with no collider can never be found by
-                // one. Fitting it would be dead weight that reads as coverage.
-                if (renderer.GetComponent<Collider>() == null)
-                    continue;
+                WallOccluder occluder = renderer.GetComponent<WallOccluder>();
+                if (occluder == null)
+                    occluder = renderer.gameObject.AddComponent<WallOccluder>();
 
-                if (renderer.GetComponent<WallOccluder>() == null)
-                    renderer.gameObject.AddComponent<WallOccluder>();
+                occluder.SetGroupCentre(bounds.center);
             }
         }
+
+        /// <summary>
+        /// Detection is a physics cast, so a renderer with no collider can never be found by one.
+        /// Fitting it would be dead weight that reads as coverage.
+        /// </summary>
+        static bool Qualifies(Renderer renderer) => renderer.GetComponent<Collider>() != null;
     }
 }

@@ -605,6 +605,7 @@ GameObject:
   - component: {fileID: 209475370}
   - component: {fileID: 209475372}
   - component: {fileID: 209475371}
+  - component: {fileID: 209475373}
   m_Layer: 0
   m_Name: Diagnostics
   m_TagString: Untagged
@@ -747,6 +748,21 @@ MonoBehaviour:
   sounds: {fileID: 11400000, guid: 69bde257463bd2648be409d6466bcf9b, type: 2}
   voiceCount: 12
   masterVolume: 0.8
+--- !u!114 &209475373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209475363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18221ef3abf44a94f8f2377eb8def3a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Level::Game.Level.OcclusionFadeDirector
+  settings: {fileID: 11400000, guid: 11c8d6a8e1d41424b9b5f2a3dd36f320, type: 2}
+  player: {fileID: 1949805134}
+  view: {fileID: 267404233}
 --- !u!1 &261461479
 GameObject:
   m_ObjectHideFlags: 0
@@ -2255,7 +2271,6 @@ GameObject:
   m_Component:
   - component: {fileID: 673184061}
   - component: {fileID: 673184060}
-  - component: {fileID: 673184062}
   m_Layer: 0
   m_Name: LevelDirector
   m_TagString: Untagged
@@ -2297,21 +2312,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &673184062
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 673184059}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18221ef3abf44a94f8f2377eb8def3a3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Level::Game.Level.OcclusionFadeDirector
-  settings: {fileID: 11400000, guid: 11c8d6a8e1d41424b9b5f2a3dd36f320, type: 2}
-  player: {fileID: 1949805134}
-  view: {fileID: 267404233}
 --- !u!1 &674026211
 GameObject:
   m_ObjectHideFlags: 0
@@ -6877,7 +6877,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1868784703}
-  - component: {fileID: 1868784704}
   m_Layer: 0
   m_Name: Obstacles
   m_TagString: Untagged
@@ -6904,19 +6903,6 @@ Transform:
   - {fileID: 308929478}
   m_Father: {fileID: 1527262954}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1868784704
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1868784702}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 15a46f27b3856dd4985dc4d6123d0b26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Game.Level::Game.Level.WallOccluderGroup
-  includeInactive: 1
 --- !u!1 &1870423021
 GameObject:
   m_ObjectHideFlags: 0
