@@ -7174,6 +7174,7 @@ GameObject:
   - component: {fileID: 1949805147}
   - component: {fileID: 1949805146}
   - component: {fileID: 1949805150}
+  - component: {fileID: 1949805151}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -7601,6 +7602,22 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   spentTextColor: {r: 0.55, g: 0.9, b: 1, a: 1}
+--- !u!114 &1949805151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949805130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22dc3eeb838b8834085916a3c56a5a23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexVfx
+  vortex: {fileID: 1949805144}
+  settings: {fileID: 11400000, guid: af37afcc2e9223e46ad1bf1b88f65128, type: 2}
+  discMaterial: {fileID: 2100000, guid: 2c3312b8613f2724baed465b31142e64, type: 2}
+  streakMaterial: {fileID: 2100000, guid: e384319810fb92043a523d4f2aad9551, type: 2}
 --- !u!1 &2005052881
 GameObject:
   m_ObjectHideFlags: 0

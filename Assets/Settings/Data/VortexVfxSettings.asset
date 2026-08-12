@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 902e461e58970ac41aef493a1b17696b, type: 3}
+  m_Name: VortexVfxSettings
+  m_EditorClassIdentifier: Game.Combat::Game.Combat.VortexVfxSettings
+  timeBlue: {r: 0.29, g: 0.85, b: 0.92, a: 1}
+  discRadiusFraction: 0.55
+  spiralBaseAlpha: 0.22
+  spiralScrollSpeed: 1.35
+  spiralArms: 3
+  spiralTightness: 1.6
+  discGroundOffset: 0.02
+  hitPulseIntensity: 0.28
+  hitPulseDurationSeconds: 0.35
+  hitPulseSpinKick: 1.1
+  streakBudget: 32
+  streakSpawnRate: 46
+  streakTravelSeconds: 0.42
+  streakSwirlDegrees: 190
+  streakDeathRadiusFraction: 0.12
+  streakSize: {x: 0.45, y: 0.05}
+  streakAlpha: 0.55
+  trailBoneNameSuffixes:
+  - LeftHand
+  - RightHand
+  trailSeconds: 0.22
+  trailStartWidth: 0.13
+  trailEndWidth: 0.01
+  trailAlpha: 0.38
