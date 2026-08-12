@@ -18,3 +18,4 @@ MonoBehaviour:
   groundHazard: {r: 0.8, g: 0.95, b: 0.2, a: 1}
   hardenedTime: {r: 1, g: 0.67, b: 0.13, a: 1}
   echo: {r: 0.78, g: 0.95, b: 0.98, a: 1}
+  venom: {r: 0.2, g: 0.62, b: 0.3, a: 1}

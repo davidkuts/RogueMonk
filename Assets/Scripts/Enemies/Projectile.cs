@@ -34,6 +34,23 @@ namespace Game.Enemies
         float radius;
         float arcRange;
 
+        // --- lob mode ---
+        bool isLob;
+        Vector3 lobFrom;
+        Vector3 lobTo;
+        float lobDuration;
+        float lobElapsed;
+        ImpactTelegraph lobTelegraph;
+
+        /// <summary>
+        /// The footprint whatever this leaves behind will actually have, read off the prefab it
+        /// will spawn. Lets a landing telegraph be drawn at the true size before the thing exists,
+        /// so the warning cannot describe a different patch of ground from the one that appears.
+        /// Zero when this projectile leaves nothing.
+        /// </summary>
+        public float ImpactFootprintRadius =>
+            impactPrefab != null && impactPrefab.TryGetComponent(out StallZone zone) ? zone.EffectiveRadius : 0f;
+
         /// <summary>
         /// Arms the projectile. The resolver is the <em>shooter's</em>, so a projectile hit
         /// runs the same modifier pipeline as any other hit from that enemy.
@@ -68,8 +85,55 @@ namespace Game.Enemies
             transform.localScale = Vector3.one * (radius * 2f);
         }
 
+        /// <summary>
+        /// Lobs this projectile onto a chosen patch of ground rather than at anybody.
+        ///
+        /// <para><b>It deals no contact damage at all.</b> That is the point of the rework: aimed at
+        /// the player, a glob is either dodgeable — so it always lands where they just were and
+        /// denies nothing — or it is not, which breaks DESIGN.md's no-guaranteed-damage rule.
+        /// Thrown at the ground <em>near</em> them it becomes an area-denial tool whose whole threat
+        /// is the puddle it leaves, and the answer is where you stand rather than whether you
+        /// reacted in time.</para>
+        ///
+        /// <para>Walls stop mattering for the same reason: the shot arcs over the arena to a point
+        /// already validated as walkable, so it can no longer paint a puddle onto a wall the way
+        /// stopping-on-impact used to.</para>
+        /// </summary>
+        public void LaunchLob(
+            Vector3 origin,
+            Vector3 groundTarget,
+            float airtimeSeconds,
+            IAttackDefinition attack,
+            HitResolver hitResolver,
+            Transform shooter,
+            RangedProfile profile,
+            ImpactTelegraph telegraph)
+        {
+            payload = attack;
+            resolver = hitResolver;
+            owner = shooter;
+            radius = Mathf.Max(0.05f, profile.ProjectileRadius);
+
+            isLob = true;
+            lobFrom = origin;
+            lobTo = groundTarget;
+            lobDuration = Mathf.Max(0.05f, airtimeSeconds);
+            lobElapsed = 0f;
+            lobTelegraph = telegraph;
+
+            arcRange = Vector3.Distance(new Vector3(origin.x, 0f, origin.z), new Vector3(groundTarget.x, 0f, groundTarget.z));
+            transform.position = origin;
+            transform.localScale = Vector3.one * (radius * 2f);
+        }
+
         void Update()
         {
+            if (isLob)
+            {
+                TickLob();
+                return;
+            }
+
             if (motion == null)
                 return;
 
@@ -106,6 +170,38 @@ namespace Game.Enemies
 
             float t = Mathf.Clamp01(motion.DistanceTravelled / arcRange);
             visualRoot.localPosition = new Vector3(0f, visualArcHeight * Mathf.Sin(t * Mathf.PI), 0f);
+        }
+
+        /// <summary>
+        /// Flies the lob to its chosen point. Purely kinematic — no sweep, no overlap, no hit — so
+        /// the only thing this can do to anybody is arrive.
+        /// </summary>
+        void TickLob()
+        {
+            lobElapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(lobElapsed / lobDuration);
+
+            Vector3 planar = Vector3.Lerp(lobFrom, lobTo, t);
+
+            // The arc is the whole read at a glance: a lobbed blob rather than a flicked spine.
+            // Here it may move the object outright, because there is no hitbox to keep honest.
+            float lift = visualArcHeight > 0f ? visualArcHeight : Mathf.Max(1f, arcRange * 0.28f);
+            planar.y = Mathf.Lerp(lobFrom.y, lobTo.y, t) + lift * Mathf.Sin(t * Mathf.PI);
+            transform.position = planar;
+
+            if (t < 1f)
+                return;
+
+            // The warning dies on the same frame the puddle is born, so the two are never both on
+            // screen and "about to happen" can never be mistaken for "here now".
+            if (lobTelegraph != null)
+                lobTelegraph.Dismiss();
+
+            if (impactPrefab != null)
+                Instantiate(impactPrefab, lobTo, Quaternion.identity);
+
+            GameLog.Debug(LogCategory.Enemy, $"glob landed at {lobTo}  after {lobDuration:0.##}s");
+            Destroy(gameObject);
         }
 
         /// <summary>Returns true if the projectile was consumed this frame.</summary>
@@ -162,6 +258,17 @@ namespace Game.Enemies
             }
 
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// A lob removed before it lands — a room cleared, a scene swapped — must take its warning
+        /// with it. A landing indicator outliving the thing it was warning about is a promise of an
+        /// impact that will never come, which is worse than no warning at all.
+        /// </summary>
+        void OnDestroy()
+        {
+            if (lobTelegraph != null)
+                lobTelegraph.Dismiss();
         }
     }
 }

@@ -692,6 +692,8 @@ MonoBehaviour:
   avoidanceStrength: 0.85
   gravity: -25
   groundedStickSpeed: 2
+  impactTelegraphMaterial: {fileID: 2100000, guid: 5e93b1c7d0a24f68b3c791ea6d40852f, type: 2}
+  impactTelegraphPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
   telegraph: {fileID: 5352288248812532690}
 --- !u!114 &-4906919447294401279
 MonoBehaviour:

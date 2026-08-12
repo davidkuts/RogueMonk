@@ -54,5 +54,23 @@ namespace Game.Combat
         /// signature colour on the thing trying to kill them.</para>
         /// </summary>
         Echo = 6,
+
+        /// <summary>
+        /// Deep venom green. Lingering toxic ground that both slows and damages — Sailspit's goo.
+        ///
+        /// <para>Added 2026-08-12, and it exists because a mechanic outgrew its channel rather than
+        /// because anything was mis-coloured. The glob's puddle was <see cref="HardenedTime"/> and
+        /// that was correct while it only slowed: amber's learned rule is "it blocks stagger or it
+        /// blocks movement". Giving it a damage-over-time made it a floor that <em>hurts</em>, which
+        /// is a different promise — and the player must not have to learn that one amber patch is
+        /// safe to stand in and another is not.</para>
+        ///
+        /// <para>⚠️ It is deliberately NOT <see cref="GroundHazard"/> lime-yellow, even though
+        /// "this floor hurts" is that channel's sentence. Lime-yellow means a <em>delayed static</em>
+        /// hazard that resolves once — the Eruption, the junk-rain — and is answered by stepping out
+        /// before it fires. Venom is already resolved and stays dangerous for as long as it lasts,
+        /// so it is answered by not walking back in. Same warning, opposite timing.</para>
+        /// </summary>
+        Venom = 7,
     }
 }

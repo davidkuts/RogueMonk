@@ -48,6 +48,28 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Overrides the enemy's RangedProfile speed for this move only. 0 uses the profile. A lobbed glob and a flicked spine should not travel at the same speed.")]
         float projectileSpeedOverride;
 
+        [Header("Lob (area denial)")]
+        [SerializeField, Tooltip("ON turns this move from a shot AT the player into a shot at the GROUND near them: no contact damage, all the threat in whatever it leaves behind. Off leaves the ordinary aimed projectile untouched.")]
+        bool lobAtGround;
+
+        [SerializeField, Tooltip("Closest the landing point may be to the player. Above zero so the lob cannot simply be a point-blank hit wearing a different name.")]
+        float lobMinRadius = 1.6f;
+
+        [SerializeField, Tooltip("Furthest the landing point may be. Wide enough that the player cannot stand still and predict it; tight enough that it still costs them the ground they wanted.")]
+        float lobMaxRadius = 4.5f;
+
+        [SerializeField, Tooltip("Seconds in the air. This is the reaction window — the landing ring is drawn for the whole of it, so this is how long the player has to leave.")]
+        float lobAirtimeSeconds = 1.1f;
+
+        [SerializeField, Tooltip("How many times to re-roll a landing point that is off the floor or inside a wall before giving up and using the last ring point anyway. It never falls back to the player's own position — a glob clipping scenery is cosmetic, a glob landing on the player is a guaranteed hit.")]
+        int lobWalkableAttempts = 8;
+
+        public bool LobAtGround => lobAtGround;
+        public float LobMinRadius => Mathf.Max(0f, lobMinRadius);
+        public float LobMaxRadius => Mathf.Max(LobMinRadius, lobMaxRadius);
+        public float LobAirtimeSeconds => Mathf.Max(0.05f, lobAirtimeSeconds);
+        public int LobWalkableAttempts => Mathf.Max(1, lobWalkableAttempts);
+
         IReadOnlyList<IAttackDefinition> cachedLinks;
 
         public string Id => id;

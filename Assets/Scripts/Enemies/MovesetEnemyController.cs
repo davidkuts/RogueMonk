@@ -58,6 +58,24 @@ namespace Game.Enemies
         [SerializeField] protected float groundedStickSpeed = 2f;
 
         [Header("Telegraph")]
+        [SerializeField, Tooltip("Geometry a lobbed shot tests against — the floor it must land on and the walls it must not. Floor and walls share the Default layer here, which is why the wall probe is taken above ground level rather than at it.")]
+        LayerMask lobGroundLayers = 1;
+
+        [SerializeField, Tooltip("How far above the floor to probe for a wall. High enough to clear the floor itself, low enough that a low crate still counts as blocked.")]
+        float lobClearanceHeight = 0.6f;
+
+        [SerializeField, Tooltip("Radius of that probe. Roughly the glob's own size, so it refuses points it could not physically sit on.")]
+        float lobClearanceRadius = 0.5f;
+
+        [SerializeField, Tooltip("How far a landing point's floor may sit from the floor the player is on. This is what keeps globs off the roofs of walls, which a downward ray otherwise reports as excellent ground.")]
+        float lobMaxHeightDelta = 0.6f;
+
+        [SerializeField, Tooltip("Material for a lobbed shot's landing ring. Uses Monk/Telegraph, same as every other ground decal. Only read by moves with Lob At Ground on.")]
+        Material impactTelegraphMaterial;
+
+        [SerializeField, Tooltip("Hue table for the landing ring, so the venom is the one venom.")]
+        TelegraphPalette impactTelegraphPalette;
+
         [SerializeField, Tooltip("Draws the wind-up. Without one the enemy still fights, but its attacks arrive unannounced — which DESIGN.md forbids, so its absence is logged loudly.")]
         protected TelegraphPresenter telegraph;
 
@@ -224,7 +242,15 @@ namespace Game.Enemies
             motion.y = verticalSpeed * deltaTime;
             controller.Move(motion);
 
-            if (attacks.Phase == AttackPhase.Active)
+            // A lob has no live hitbox at all: the whole threat is the ground it leaves, and the
+            // shape on its asset describes the warning rather than a volume that hurts.
+            //
+            // ⚠️ This was live before the rework and nobody had noticed: the active window queried
+            // the glob's box every frame, so standing near a Sailspit as it spat cost 6 hp on top of
+            // whatever the projectile did. With the projectile now dealing nothing, that stray box
+            // was the only damage left — and it was neither telegraphed as a melee arc nor dodgeable
+            // by reading the lob.
+            if (attacks.Phase == AttackPhase.Active && !CurrentMoveIsLob)
                 QueryHitbox();
 
             UpdateTelegraph();
@@ -414,6 +440,12 @@ namespace Game.Enemies
         protected void QueryHitbox() => QueryHitbox(attacks.Current, transform.forward, ActiveHitLayers);
 
         /// <summary>
+        /// True while the running move throws area denial at the ground rather than at anybody.
+        /// Such a move must not resolve a contact hitbox — it is not aimed at the player at all.
+        /// </summary>
+        bool CurrentMoveIsLob => CurrentMove is EnemyMove lob && lob.LobAtGround;
+
+        /// <summary>
         /// What this enemy's live attack can hit. Normally just the player.
         ///
         /// <para>Overridable because ENEMIES_BIOME1.md § 2.2 makes Cerashorn's charge damage and
@@ -537,6 +569,12 @@ namespace Game.Enemies
             int count = Mathf.Max(1, move.ProjectileCount);
             RangedProfile profile = move.ResolveProfile(definition.Ranged);
 
+            if (move.LobAtGround)
+            {
+                FireLobs(attack, move, origin, profile, count);
+                return;
+            }
+
             for (int i = 0; i < count; i++)
             {
                 float t = count == 1 ? 0.5f : i / (float)(count - 1);
@@ -552,6 +590,123 @@ namespace Game.Enemies
             GameLog.Info(LogCategory.Enemy,
                 $"fire {definition.Id}  {move.Id}  {count} shot(s) over {move.ProjectileSpreadDegrees:0}deg  " +
                 $"speed {profile.ProjectileSpeed:0.##}m/s");
+        }
+
+        /// <summary>
+        /// Throws area-denial lobs at the ground around the player instead of at the player.
+        ///
+        /// <para>Each landing point is drawn from the ring, then <b>validated against the NavMesh</b>
+        /// so a puddle can never appear inside a wall or off the edge of the arena. If sampling
+        /// fails every attempt — a pathological room, or no NavMesh at all in the enemy lab — it
+        /// falls back to the player's own position, which is walkable by definition because they
+        /// are standing on it.</para>
+        /// </summary>
+        void FireLobs(IAttackDefinition attack, EnemyMove move, Vector3 origin, RangedProfile profile, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 landing = PickLandingPoint(move);
+
+                // The warning is drawn at the footprint the puddle will ACTUALLY have, read off the
+                // prefab it will spawn. Same principle as the attack decals: a telegraph that could
+                // differ from the volume it describes would be worse than none.
+                ImpactTelegraph warning = ImpactTelegraph.Spawn(
+                    landing,
+                    move.ProjectilePrefab.ImpactFootprintRadius,
+                    move.LobAirtimeSeconds,
+                    TelegraphPalette.Resolve(impactTelegraphPalette, TelegraphChannel.Venom, new Color(0.20f, 0.62f, 0.30f, 1f)),
+                    impactTelegraphMaterial,
+                    0.02f);
+
+                Projectile shot = Instantiate(move.ProjectilePrefab, origin, Quaternion.identity);
+                shot.LaunchLob(origin, landing, move.LobAirtimeSeconds, attack, resolver, transform, profile, warning);
+            }
+
+            GameLog.Info(LogCategory.Enemy,
+                $"lob {definition.Id}  {move.Id}  {count} glob(s)  ring {move.LobMinRadius:0.#}-{move.LobMaxRadius:0.#}m  " +
+                $"airtime {move.LobAirtimeSeconds:0.##}s");
+        }
+
+        /// <summary>
+        /// A walkable ground point in the ring around the player.
+        ///
+        /// <para>⚠️ Draws from <see cref="Random"/>, which <c>RoomRunner</c> already hands every
+        /// moveset enemy as a stream DERIVED off the run. That matters: how many globs a Sailspit
+        /// throws depends entirely on how the player fights, so spending RUN draws here would
+        /// desynchronise every later draw and stop a quoted seed reproducing its level. Adding draws
+        /// to the enemy's own derived stream leaves the run stream untouched.</para>
+        ///
+        /// <para><b>Validated with physics, not with a NavMesh.</b> DESIGN.md specifies a NavMesh
+        /// baked per room prefab, but none has ever been built — there is not one surface, one baked
+        /// asset or one agent in the project, and enemies steer with <c>ObstacleAvoidance</c>
+        /// instead. Asking <c>NavMesh.SamplePosition</c> therefore fails for every candidate, and a
+        /// fallback onto the player's own position would land every glob directly on them, which is
+        /// both the opposite of area denial and a guaranteed hit. A downward ray plus a clearance
+        /// probe answers the same question against the geometry that actually exists.</para>
+        /// </summary>
+        Vector3 PickLandingPoint(EnemyMove move)
+        {
+            Vector3 centre = target.position;
+
+            // The floor the PLAYER is standing on, measured the same way a candidate is. Everything
+            // is then judged against it, which is what stops a glob landing on top of a wall: the
+            // ray happily finds the wall's roof, and without this it counts as perfectly good
+            // ground four metres in the air.
+            float referenceY = Physics.Raycast(
+                centre + Vector3.up * 4f, Vector3.down, out RaycastHit under,
+                12f, lobGroundLayers, QueryTriggerInteraction.Ignore)
+                ? under.point.y
+                : centre.y;
+
+            Vector3 lastCandidate = centre + AnnulusTargeting.PickOffset(Random, move.LobMinRadius, move.LobMaxRadius);
+
+            if (TryResolveLanding(lastCandidate, referenceY, out Vector3 resolved))
+                return resolved;
+
+            for (int attempt = 1; attempt < move.LobWalkableAttempts; attempt++)
+            {
+                lastCandidate = centre + AnnulusTargeting.PickOffset(Random, move.LobMinRadius, move.LobMaxRadius);
+                if (TryResolveLanding(lastCandidate, referenceY, out resolved))
+                    return resolved;
+            }
+
+            // Deliberately the last RING point rather than the player's feet. If the geometry is odd
+            // enough that nothing validated, a glob clipping a wall is a cosmetic problem; a glob
+            // landing on the player is a guaranteed hit, which DESIGN.md forbids outright.
+            GameLog.Debug(LogCategory.Enemy,
+                $"lob found no clear ground in {move.LobWalkableAttempts} tries - using the last ring point");
+            return lastCandidate;
+        }
+
+        /// <summary>
+        /// True when <paramref name="candidate"/> is real, standable ground with nothing built on it.
+        ///
+        /// <para>Three questions, because they fail differently. The downward ray asks "is there a
+        /// floor here at all", which rejects a point past the edge of the arena. The height check
+        /// asks "is it the floor the player is on", which rejects the <em>roof of a wall</em> — the
+        /// ray finds one perfectly happily, and without this a glob lands three metres up on top of
+        /// the arena boundary. And the clearance sphere asks "is something standing on it", which
+        /// rejects walls and props; it is probed <em>above</em> the floor deliberately, because here
+        /// the floor and the walls share the Default layer, so a probe at ground level would report
+        /// the floor itself as an obstruction and reject every point in the room.</para>
+        /// </summary>
+        bool TryResolveLanding(Vector3 candidate, float referenceY, out Vector3 landing)
+        {
+            landing = candidate;
+
+            if (!Physics.Raycast(
+                    candidate + Vector3.up * 4f, Vector3.down, out RaycastHit ground,
+                    12f, lobGroundLayers, QueryTriggerInteraction.Ignore))
+                return false;
+
+            landing = ground.point;
+
+            if (Mathf.Abs(landing.y - referenceY) > lobMaxHeightDelta)
+                return false;
+
+            return !Physics.CheckSphere(
+                landing + Vector3.up * lobClearanceHeight, lobClearanceRadius,
+                lobGroundLayers, QueryTriggerInteraction.Ignore);
         }
 
         protected virtual void OnActiveEnded(IAttackDefinition attack) => ClearAlreadyHit();

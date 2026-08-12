@@ -34,6 +34,9 @@ namespace Game.Combat
         [SerializeField, Tooltip("Temporal echo. Paler than the locked dash blue on purpose, so the player's own colour stays theirs.")]
         Color echo = new Color(0.78f, 0.95f, 0.98f, 1f);
 
+        [SerializeField, Tooltip("Lingering toxic ground that slows AND damages — Sailspit's goo. Deep and blue-shifted on purpose: it has to sit clear of lime-yellow (a delayed hazard that fires once) and clear of the two bright greens already spoken for, Nature's element FX and Fray's boon identity. Neither of those ever paints the floor, so the only real competitor for this space is the ground-hazard hue.")]
+        Color venom = new Color(0.20f, 0.62f, 0.30f, 1f);
+
         /// <summary>
         /// The colour for <paramref name="channel"/>, or <paramref name="authored"/> when the
         /// attack declares itself Custom.
@@ -48,6 +51,7 @@ namespace Game.Combat
                 case TelegraphChannel.GroundHazard: return groundHazard;
                 case TelegraphChannel.HardenedTime: return hardenedTime;
                 case TelegraphChannel.Echo: return echo;
+                case TelegraphChannel.Venom: return venom;
                 default: return authored;
             }
         }

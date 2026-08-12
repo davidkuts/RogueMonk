@@ -15,6 +15,8 @@ MonoBehaviour:
   era: 1
   secondsOnKill: 3
   minutesOnKill: 1
+  hoursOnKill: 0
+  amberOnKill: 0
   maxHealth: 90
   tier: 0
   poiseMax: 20
@@ -22,6 +24,7 @@ MonoBehaviour:
   poiseRegenRate: 12
   armorMax: 0
   staggerDurationSeconds: 1.1
+  windupInterruptStaggerSeconds: 0.45
   moveSpeed: 3.4
   aggroRange: 16
   attackRange: 10
@@ -29,6 +32,7 @@ MonoBehaviour:
   spawnGraceSeconds: 1.2
   lungeDistance: 0
   attack: {fileID: 11400000, guid: 6ac193174d00fad4f824db8784461277, type: 2}
+  onlyDamagedBy: {fileID: 0}
   ranged:
     PreferredMinRange: 4.5
     PreferredMaxRange: 10
@@ -50,6 +54,11 @@ MonoBehaviour:
     projectileCount: 1
     projectileSpreadDegrees: 0
     projectileSpeedOverride: 7
+    lobAtGround: 1
+    lobMinRadius: 1.6
+    lobMaxRadius: 4.5
+    lobAirtimeSeconds: 1.1
+    lobWalkableAttempts: 8
   - id: SpineFan
     links:
     - {fileID: 11400000, guid: 360dafd0836a18a42b5b826ccf4341a3, type: 2}
@@ -63,6 +72,11 @@ MonoBehaviour:
     projectileCount: 5
     projectileSpreadDegrees: 40
     projectileSpeedOverride: 0
+    lobAtGround: 0
+    lobMinRadius: 1.6
+    lobMaxRadius: 4.5
+    lobAirtimeSeconds: 1.1
+    lobWalkableAttempts: 8
   repeatWeightMultiplier: 0.4
   tokenKind: 1
   concurrentAttackerCap: 2

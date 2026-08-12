@@ -36,6 +36,6 @@ MonoBehaviour:
   aimSnapSpeedDegPerSec: 0
   moveSpeedMultiplier: 0
   threat: 1
-  telegraphChannel: 5
+  telegraphChannel: 7
   telegraphColor: {r: 1, g: 0.25, b: 0.2, a: 1}
   telegraphEmphasis: 1.3

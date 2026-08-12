@@ -25,8 +25,11 @@ namespace Game.Enemies
     [DisallowMultipleComponent]
     public sealed class StallZone : MonoBehaviour
     {
-        [SerializeField, Tooltip("Radius of the slowed ground.")]
+        [SerializeField, Tooltip("Authored radius of the slowed ground, before the multiplier below.")]
         float radius = 1.5f;
+
+        [SerializeField, Tooltip("Scales the authored radius. Kept as a separate number rather than folded into it so the rework's +50% is visible as a decision instead of hiding inside a retuned value.")]
+        float radiusMultiplier = 1.5f;
 
         [SerializeField, Tooltip("How long the amber holds before it thins out.")]
         float durationSeconds = 2f;
@@ -40,8 +43,27 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Height above the floor. Enough to beat z-fighting, little enough to still read as painted on.")]
         float groundOffset = 0.02f;
 
-        [SerializeField, Tooltip("The hue table, so the amber is the one amber rather than this component's idea of it.")]
+        [SerializeField, Tooltip("The hue table, so the venom is the one venom rather than this component's idea of it.")]
         TelegraphPalette palette;
+
+        [Header("Venom")]
+        [SerializeField, Tooltip("Damage per tick to anything standing in it. The goo is area denial with a price for ignoring it, not a damage source to be farmed.")]
+        float dotDamagePerTick = 1f;
+
+        [SerializeField, Tooltip("Seconds of CONTINUOUS standing per tick. Nothing is dealt on entry: the first second inside is free, so walking through costs nothing and only loitering does.")]
+        float dotIntervalSeconds = 1f;
+
+        [SerializeField, Range(0f, 0.4f), Tooltip("How much the landed pool breathes. Motion is most of what separates 'arrived and dangerous' from the bright filling ring that warned about it.")]
+        float pulseAmplitude = 0.08f;
+
+        [SerializeField, Tooltip("Breaths per second of the landed pool.")]
+        float pulseHz = 0.7f;
+
+        [SerializeField, Range(0f, 1f), Tooltip("Base alpha once landed. Deliberately below the incoming telegraph's, so the warning is always the louder of the two.")]
+        float landedAlpha = 0.5f;
+
+        readonly DwellDamageClock dwell = new DwellDamageClock();
+        PlayerHealth playerHealth;
 
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int FillId = Shader.PropertyToID("_Fill");
@@ -53,7 +75,15 @@ namespace Game.Enemies
         PlayerMotor player;
         float remaining;
 
+        /// <summary>The authored radius, before the multiplier.</summary>
         public float Radius => radius;
+
+        /// <summary>
+        /// The radius the puddle actually has. Everything — the overlap test, the decal, and the
+        /// landing warning drawn before it exists — reads this one number, so the warning cannot
+        /// promise a different footprint from the thing it warns about.
+        /// </summary>
+        public float EffectiveRadius => Mathf.Max(0.1f, radius * Mathf.Max(0f, radiusMultiplier));
 
         public float SpeedMultiplier => speedMultiplier;
 
@@ -78,7 +108,10 @@ namespace Game.Enemies
             // change while a two-second puddle is alive.
             GameObject found = GameObject.FindWithTag("Player");
             if (found != null)
+            {
                 player = found.GetComponent<PlayerMotor>();
+                playerHealth = found.GetComponent<PlayerHealth>();
+            }
 
             ApplyDecal();
         }
@@ -104,8 +137,17 @@ namespace Game.Enemies
             Vector3 delta = player.transform.position - transform.position;
             delta.y = 0f;
 
-            if (delta.sqrMagnitude <= radius * radius)
+            float effective = EffectiveRadius;
+            bool inside = delta.sqrMagnitude <= effective * effective;
+            if (inside)
                 player.ApplyExternalSpeedMultiplier(speedMultiplier);
+
+            // The slow is what the goo IS; the damage is the price of ignoring it. One tick per
+            // whole second of unbroken standing, nothing on entry — see DwellDamageClock for why
+            // the first second is deliberately free.
+            int ticks = dwell.Tick(deltaTime, inside, dotIntervalSeconds);
+            if (ticks > 0 && playerHealth != null && dotDamagePerTick > 0f)
+                playerHealth.ApplyDamageOverTime(dotDamagePerTick * ticks, "venom");
 
             FadeDecal();
         }
@@ -115,7 +157,7 @@ namespace Game.Enemies
             if (decal == null)
                 return;
 
-            decal.transform.localScale = new Vector3(radius * 2f, radius * 2f, 1f);
+            decal.transform.localScale = new Vector3(EffectiveRadius * 2f, EffectiveRadius * 2f, 1f);
 
             Vector3 position = decal.transform.position;
             decal.transform.position = new Vector3(position.x, transform.position.y + groundOffset, position.z);
@@ -124,9 +166,14 @@ namespace Game.Enemies
                 block = new MaterialPropertyBlock();
 
             decal.GetPropertyBlock(block);
-            block.SetColor(ColorId, TelegraphPalette.Resolve(palette, TelegraphChannel.HardenedTime, new Color(1f, 0.67f, 0.13f, 1f)));
+
+            // Venom green, not amber. The puddle was amber while it only slowed — amber's learned
+            // rule is "it blocks stagger or it blocks movement" and that was honest. Now that it
+            // also damages, it is a floor that hurts, and it must not look like the armour plates
+            // and stall patches the player has learned are merely expensive to walk on.
+            block.SetColor(ColorId, TelegraphPalette.Resolve(palette, TelegraphChannel.Venom, new Color(0.20f, 0.62f, 0.30f, 1f)));
             block.SetFloat(FillId, 1f);      // already resolved, so it is filled rather than filling
-            block.SetFloat(AlphaId, 0.6f);
+            block.SetFloat(AlphaId, landedAlpha);
             block.SetFloat(RectId, 0f);
             block.SetFloat(ArcId, 360f);
             decal.SetPropertyBlock(block);
@@ -143,8 +190,13 @@ namespace Game.Enemies
 
             float fade = Mathf.Clamp01(remaining / Mathf.Min(0.6f, durationSeconds));
 
+            // A slow breath, so a landed pool reads as alive and static where the incoming warning
+            // read as a boundary being drawn. Motion is the clearest separator the two have — the
+            // ring grows once and stops; this never stops.
+            float pulse = 1f + Mathf.Sin(Time.time * pulseHz * Mathf.PI * 2f) * pulseAmplitude;
+
             decal.GetPropertyBlock(block);
-            block.SetFloat(AlphaId, 0.6f * fade);
+            block.SetFloat(AlphaId, landedAlpha * fade * pulse);
             decal.SetPropertyBlock(block);
         }
 

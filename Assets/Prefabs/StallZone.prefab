@@ -136,8 +136,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Enemies::Game.Enemies.StallZone
   radius: 2.6
-  durationSeconds: 2.6
+  radiusMultiplier: 1.5
+  durationSeconds: 5
   speedMultiplier: 0.45
   decal: {fileID: 1920863157392789954}
   groundOffset: 0.02
   palette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
+  dotDamagePerTick: 1
+  dotIntervalSeconds: 1
+  pulseAmplitude: 0.08
+  pulseHz: 0.7
+  landedAlpha: 0.5

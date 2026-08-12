@@ -202,6 +202,50 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Damage from standing in something, rather than from being hit by something.
+        ///
+        /// <para><b>It ignores the post-hit invulnerability window, and deliberately does not grant
+        /// one.</b> Routing goo ticks through <see cref="ApplyHit"/> would mean standing in poison
+        /// made the player periodically immune to everything else in the room — a defensive reward
+        /// for bad positioning, and a way to walk into a puddle to survive a Cerashorn charge. It
+        /// follows M12's rule for the enemy-side equivalent: damage-over-time is the consequence of
+        /// a situation that has already resolved, so it does not re-enter the hit pipeline.</para>
+        ///
+        /// <para>God mode and death still apply. Dash i-frames deliberately do <em>not</em> — a
+        /// Blink is an answer to an attack, not a way to stand in venom for free.</para>
+        ///
+        /// <para>This does not violate DESIGN.md's no-guaranteed-damage rule: the goo is telegraphed
+        /// for its whole flight, the first second inside is free, and leaving resets the clock. A
+        /// player who reads it and keeps moving pays nothing.</para>
+        /// </summary>
+        public void ApplyDamageOverTime(float amount, string source)
+        {
+            if (amount <= 0f || CurrentHealth <= 0f)
+                return;
+
+            if (GodMode)
+            {
+                GameLog.Debug(LogCategory.Combat, $"GOD MODE ignored {source} tick");
+                return;
+            }
+
+            float applied = Mathf.Min(amount, CurrentHealth);
+            CurrentHealth -= applied;
+
+            GameLog.Warn(LogCategory.Combat,
+                $"PLAYER DOT  {source}  -{applied:0.##} hp  ({CurrentHealth:0.##}/{maxHealth:0.##})");
+
+            Damaged?.Invoke(applied);
+
+            if (CurrentHealth <= 0f)
+            {
+                CurrentHealth = 0f;
+                GameLog.Error(LogCategory.Combat, $"PLAYER DIED  ({source})");
+                Died?.Invoke();
+            }
+        }
+
         /// <summary>Full restore. Run setup only — the Splice is the one in-run heal.</summary>
         public void ResetForNewRun()
         {
