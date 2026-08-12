@@ -269,6 +269,12 @@ namespace Game.Level
 
         void AdvanceRoom()
         {
+            // Before anything is torn down: send the loose time on the floor after the player.
+            // Placed at the very top of the transition so the streak begins on the frame they step
+            // through, which is the only frame they are still looking at the room they earned it in.
+            if (rewardDirector != null)
+                rewardDirector.SweepLooseFragmentsOnRoomExit();
+
             if (currentRunner != null)
             {
                 DetachRunner(currentRunner);

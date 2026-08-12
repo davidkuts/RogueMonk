@@ -167,6 +167,15 @@ namespace Game.Level
 
         void OnDestroy() => DetachRunner();
 
+        /// <summary>
+        /// The player is leaving the room, so every loose fragment on the floor comes with them.
+        ///
+        /// <para>Called by the level director on the transition, keeping the ownership rule this
+        /// component is built on: the director drives the room lifecycle, the economy lives here.
+        /// </para>
+        /// </summary>
+        public int SweepLooseFragmentsOnRoomExit() => CurrencyFragment.CollectAllForRoomExit(economy);
+
         void OnEnemyKilled(Game.Enemies.EnemyActor actor)
         {
             if (economy == null || wallet == null || actor == null || playerHealth == null)

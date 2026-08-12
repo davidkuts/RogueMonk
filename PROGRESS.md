@@ -3,7 +3,9 @@
 > **Claude Code: read this at the start of every session. Update it before ending every session or completing any milestone/sub-task.** Keep entries terse — this file is context, not a diary. When a milestone is done, collapse its sub-tasks into one line.
 
 ## ▶ NEXT ACTION (read this first)
-**Improvement 2 (Sailspit rework) is built. Next: Improvement 3 (room-exit auto-collect), then Improvement 4 (door reward filtering).**
+**Improvement 3 (room-exit auto-collect) is built. Next: Improvement 4 — door reward filtering (`IsOfferValid`).**
+
+⚠️ **Improvement 4 needs a human call before it can finish:** the spec says filtering must never produce a door with no reward, and asks what fallback exists. Answer that when the plan lands.
 
 ⚠️ **DESIGN.md's per-room NavMesh does not exist and never has** (found 2026-08-12). Not one `NavMeshSurface`, one baked asset or one `NavMeshAgent` in the project — enemies steer with `ObstacleAvoidance` instead. Anything that reaches for `NavMesh.SamplePosition` will silently fail for every query. The Sailspit lob validates ground with a downward ray plus a clearance probe instead. **Either build the NavMesh or strike it from DESIGN.md** — right now the document describes a system that isn't there.
 
@@ -35,6 +37,7 @@ What to judge, in rough order of how likely it is to be wrong:
 Open questions the human still owes an answer on are collected under "Needs a human call" below.
 
 ## Current status
+- **M21D — loose time follows you out of the room (2026-08-12), awaiting playtest.** Stepping through a room transition sends **every uncollected fragment streaking to the player** at 4× drift speed, homing from any distance rather than only inside the 6 m magnet radius. The visual is best-effort; **the income is guaranteed** by a 0.7 s hard-grant deadline plus a pay-on-destroy path for fragments the transition removes mid-flight.
 - **M21C — the Sailspit throws area denial, not a homing blob (2026-08-12), awaiting playtest.** The glob is now **lobbed at a random walkable ground point in a ring around the player**, telegraphed by a bright filling ring for its whole 1.1 s flight, and leaves a **venom-green** puddle 50% wider (3.9 m) that slows *and* deals **1 damage per whole second of continuous standing**. **It deals no contact damage at all** — the whole threat is the ground. **629 EditMode tests passing** (+14). New `TelegraphChannel.Venom`.
 - **M21B — the Undertow has its VFX layers (2026-08-12), awaiting playtest.** Three layers on top of the untouched range smear: **time-blue arm trails**, a **spiral ground disc** on one new hand-written shader, and **≤32 pooled inward streaks**. The **hit-pulse is the priority feature and it works** — every enemy damaged by every tick brightens the disc and kicks its spin, accumulating so a crowd outshines a duel, then settling. **615 EditMode tests passing** (+8). ⚠️ **Alpha-blended, not additive** — see the session log.
 - **M21.1 — the Undertow is a tick clock, not a hitbox (2026-08-12).** A tick now strikes each **body** once instead of each **collider** once, so a cast deals at most `tickCount × tickDamage` = **18** to any enemy whatever its shape. The Tyrant was taking **18 resolves per cast instead of 3**. **607 EditMode tests passing** (+8). **Verified live: Swiftjaw 3 events / exactly 18 damage; Ambershell 3 events where 7 colliders previously meant 21.**
@@ -153,6 +156,8 @@ The single list of everything known to be missing or unresolved, gathered from t
 | 21.2 | Vortex tick poise 4 → 0: the spin never staggers | ✅ **done — awaiting playtest** |
 | 21B | **Vortex VFX layers:** time-blue arm trails, spiral ground disc (one new shader), pooled inward streaks, hit-pulse feeding on damage | ✅ **done — awaiting playtest** |
 | 21C | **Sailspit rework:** annulus ground targeting, landing telegraph, +50% goo, venom-green channel, 1/s dwell DoT, no contact damage | ✅ **done — awaiting playtest** |
+| 21D | **Room-exit auto-collect:** loose fragments sweep to the player on the transition, income guaranteed by deadline + pay-on-destroy | ✅ **done — awaiting playtest** |
+| 21E | **Door reward filtering:** per-type `IsOfferValid`, no dead offers | ⬜ not started — needs a fallback-rule call |
 | 21B | **Vortex VFX layers:** time-blue character motion trails + inner vortex disc/particles with hit-pulse feedback | ⬜ not started (specced) |
 | — | Biome 1 environment / meshes (ASSETS_BIOME1.md pipeline) | ⬜ not started (now unblocked) |
 
@@ -165,6 +170,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done · ⏸️ parked
 - Decisions made: ... (anything not already in DESIGN.md)
 - Known issues / TODO next: ...
 -->
+
+### 2026-08-12 — M21D: the loose time follows you out
+- **Leaving a room sweeps every uncollected fragment to the player**, at 4× drift speed and homing **from any distance** — the 6 m magnet radius governs an idle fragment, and the whole point of the sweep is that being out of range stops mattering. Hooked at the very top of `LevelDirector.AdvanceRoom()`, before anything is torn down, so the streak begins on the frame the player steps through — the only frame they are still looking at the room they earned it in.
+- ⚠️ **The income was never actually at risk, and that is the real point of the feature.** A fragment already delivered itself on a 20 s lifetime timer, and fragments live at the scene root so they survive the room being destroyed — nothing was being lost. What was missing is that the player had no way to *know* that: walking out over a floor still littered with time you earned reads as leaving money behind, and **a reward the player believes they lost is a reward that did not land**. This is a legibility fix wearing an economy fix's clothes, and it is worth recording as such so nobody later "optimises" it away as redundant.
+- **The guarantee is belt and braces, because the spec asked for the visual to be expendable and the grant not to be.** Three paths lead to payment: reaching the player, a **0.7 s hard-grant deadline** whatever the visual managed, and **pay-on-destroy** for a fragment the transition removes mid-flight. All three funnel through one `Deliver()` guarded by a `delivered` flag, so no route can pay twice. Pay-on-destroy is deliberately scoped to *swept* fragments only — an ordinary one destroyed for some other reason was never promised to anybody.
+- **A live static list, not a `FindObjectsByType` sweep.** The collect happens on the exact frame a room is being torn down and rebuilt, which is when a scene-wide search is least trustworthy and most expensive.
+- **Two tunables on `EconomySettings`**: `autoCollectSpeedMultiplier` (4) and `autoCollectHardGrantSeconds` (0.7, deliberately shorter than a room transition).
+- **No EditMode tests, deliberately.** This is a thin MonoBehaviour adapter over transform motion and `Destroy` with no simulation layer to extract — the same category as `ExitMarkerView`, which the test-debt list already records as "pure adapter, verified live". **Verified in Play Mode instead, all three acceptance paths: 5 fragments dropped 25 m away (far outside magnet range) paid all 25 Seconds and left 0 in the air; 4 fragments destroyed the same frame they were swept still paid all 40; a fragment collected AND then destroyed paid exactly +7 rather than +14; and a second sweep in a row reported 0 rather than double-counting.**
+- **629/629 EditMode tests** (unchanged — nothing in the simulation layer moved).
+- Known issues / TODO next: the 4× / 0.7 s pair is a feel guess — if the streak does not visibly finish before the next room draws, raise the multiplier rather than the deadline. The **door reward pickup is deliberately untouched**: it is Interact-gated and the door is held shut until it is collected (M16), so it cannot be left behind in the first place.
 
 ### 2026-08-12 — M21C: the Sailspit stops throwing at you and starts taking the room away
 - **The glob is lobbed at the GROUND now, in a ring around the player, and deals no contact damage whatsoever.** Aimed at the player a glob is either dodgeable — so it always lands where they just were and denies nothing — or it is not, which breaks the no-guaranteed-damage rule. Thrown near them it becomes an area-denial tool answered by *where you stand*. New engine-free `AnnulusTargeting`, with the radius drawn through a **square root** so points spread evenly over the ring's area; interpolating linearly bunches them toward the middle and a room teaches that pattern in two casts.
