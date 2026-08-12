@@ -13,6 +13,7 @@ namespace Game.Combat.Tests
         {
             public bool IsAlive { get; set; } = true;
             public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
+            public DotContainer Dots { get; } = new DotContainer();
             public float TakenFromEchoes { get; private set; }
             public int EchoCount { get; private set; }
 

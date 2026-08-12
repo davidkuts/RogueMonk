@@ -5,22 +5,22 @@ namespace Game.Combat
     /// <summary>
     /// What each status actually does, globally.
     ///
-    /// The magnitudes live here rather than on the boon that applies them, so Burning always burns
-    /// at the same rate whatever inflicted it. That keeps the statuses learnable — the player reads
-    /// "on fire" once and knows what it costs — and it keeps boons to the one decision that is
+    /// The magnitudes live here rather than on the boon that applies them, so a chill always slows
+    /// by the same amount whatever inflicted it. That keeps the statuses learnable — the player
+    /// reads "slowed" once and knows what it costs — and it keeps boons to the one decision that is
     /// theirs: <em>whether</em> to apply a status, not how hard it bites.
+    ///
+    /// ⚠️ Burning's magnitudes are NO LONGER HERE (M22B). Burn became a stacking damage-over-time,
+    /// and the whole point of that model is that each instance carries its own total, scaled by the
+    /// rarity of the boon that applied it — a single global rate cannot express it. What survives
+    /// here is the tint: the flag says a body is burning, this says what that looks like. The damage
+    /// lives on <see cref="DotDefinition"/>.
     ///
     /// <see cref="StatusEffectContainer"/> deliberately stores only durations for the same reason.
     /// </summary>
     [CreateAssetMenu(menuName = "Monk/Status Settings", fileName = "StatusSettings")]
     public sealed class StatusSettings : ScriptableObject
     {
-        [Header("Burning")]
-        [SerializeField, Tooltip("Damage per second while Burning. Applied in ticks rather than continuously so it reads as a series of hits.")]
-        float burnDamagePerSecond = 9f;
-        [SerializeField, Tooltip("Seconds between burn ticks. Each tick is its own damage number and its own flash.")]
-        float burnTickSeconds = 0.4f;
-
         [Header("Chilled")]
         [SerializeField, Range(0f, 1f), Tooltip("Move speed multiplier while Chilled. The point is to make a runner catchable, not to freeze it.")]
         float chillMoveSpeedMultiplier = 0.45f;
@@ -33,14 +33,11 @@ namespace Game.Combat
         [SerializeField] Color burningTint = new Color(1f, 0.45f, 0.15f);
         [SerializeField] Color chilledTint = new Color(0.45f, 0.8f, 1f);
         [SerializeField] Color rootedTint = new Color(0.5f, 0.85f, 0.35f);
+        [SerializeField, Tooltip("Fray's decay lane. Sicklier and browner than Nature's green so a decaying body does not read as a healthy one.")]
+        Color decayingTint = new Color(0.62f, 0.72f, 0.35f);
 
-        public float BurnDamagePerSecond => burnDamagePerSecond;
-        public float BurnTickSeconds => Mathf.Max(0.05f, burnTickSeconds);
         public float ChillMoveSpeedMultiplier => chillMoveSpeedMultiplier;
         public float RootMoveSpeedMultiplier => rootMoveSpeedMultiplier;
-
-        /// <summary>Damage dealt by one burn tick.</summary>
-        public float BurnDamagePerTick => burnDamagePerSecond * BurnTickSeconds;
 
         /// <summary>
         /// Combined move-speed multiplier for whatever is currently active. Root outranks chill:
@@ -68,6 +65,7 @@ namespace Game.Combat
 
             // Ordered by how much the player needs to know about it.
             if (statuses.Has(StatusEffect.Burning)) return burningTint;
+            if (statuses.Has(StatusEffect.Decaying)) return decayingTint;
             if (statuses.Has(StatusEffect.Rooted)) return rootedTint;
             if (statuses.Has(StatusEffect.Chilled)) return chilledTint;
             return null;

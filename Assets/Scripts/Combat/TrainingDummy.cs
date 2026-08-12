@@ -38,6 +38,9 @@ namespace Game.Combat
 
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
 
+        /// <summary>The dummy has no health, so DoTs land on it and are simply never paid out.</summary>
+        public DotContainer Dots { get; } = new DotContainer();
+
         /// <summary>Running total, so a playtest can sanity-check damage numbers.</summary>
         public float TotalDamageTaken { get; private set; }
 

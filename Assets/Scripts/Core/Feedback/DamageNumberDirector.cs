@@ -86,7 +86,9 @@ namespace Game.Core.Feedback
         /// to whole numbers — a "7.3" tells the player nothing a "7" does not, and the fractions
         /// only ever arrive from modifier maths.
         /// </summary>
-        public void Pop(Vector3 worldPosition, float amount, Color color, float scaleMultiplier = 1f, bool allowZero = false)
+        public void Pop(
+            Vector3 worldPosition, float amount, Color color, float scaleMultiplier = 1f,
+            bool allowZero = false, bool punch = true)
         {
             int value = Mathf.RoundToInt(amount);
 
@@ -108,7 +110,7 @@ namespace Game.Core.Feedback
 
             label.Show(
                 worldPosition + Vector3.up * heightOffset,
-                value, color, scale * scaleMultiplier, lifetimeSeconds, drift, arcGravity);
+                value, color, scale * scaleMultiplier, lifetimeSeconds, drift, arcGravity, punch);
         }
 
         DamageNumberLabel Take()
@@ -123,10 +125,12 @@ namespace Game.Core.Feedback
         }
 
         /// <summary>Convenience for callers that may run before the director exists.</summary>
-        public static void Show(Vector3 worldPosition, float amount, Color color, float scaleMultiplier = 1f, bool allowZero = false)
+        public static void Show(
+            Vector3 worldPosition, float amount, Color color, float scaleMultiplier = 1f,
+            bool allowZero = false, bool punch = true)
         {
             if (Instance != null)
-                Instance.Pop(worldPosition, amount, color, scaleMultiplier, allowZero);
+                Instance.Pop(worldPosition, amount, color, scaleMultiplier, allowZero, punch);
         }
     }
 }

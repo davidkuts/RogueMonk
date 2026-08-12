@@ -32,13 +32,26 @@ namespace Game.Combat
         /// </summary>
         public readonly float HitstopSeconds;
 
-        public DamageReport(float amount, Vector3 point, DamageType type, bool refused, float hitstopSeconds)
+        /// <summary>
+        /// The damage-over-time type this tick came from, or null for an ordinary hit.
+        ///
+        /// <para>Carried rather than inferred, because a DoT tick and a Fire hit are the same
+        /// <see cref="DamageType"/> and must not look the same on screen: a tick is smaller, wears
+        /// its own colour, does not punch, and is pooled into one figure a second. A presentation
+        /// layer that had to guess would eventually guess wrong.</para>
+        /// </summary>
+        public readonly IDotDefinition Dot;
+
+        public DamageReport(
+            float amount, Vector3 point, DamageType type, bool refused, float hitstopSeconds,
+            IDotDefinition dot = null)
         {
             Amount = amount;
             Point = point;
             Type = type;
             Refused = refused;
             HitstopSeconds = hitstopSeconds;
+            Dot = dot;
         }
     }
 }

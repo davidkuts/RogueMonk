@@ -52,6 +52,15 @@ namespace Game.Combat
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
 
         /// <summary>
+        /// Present so the player is a complete <see cref="IDamageable"/>, and deliberately never
+        /// ticked. Every DoT in the game is boon-applied, and boons only ever hit enemies; the one
+        /// damage-over-time the player takes is the Sailspit's goo, which runs on its own dwell
+        /// clock through <see cref="ApplyDamageOverTime"/> because it has to bypass the i-frame
+        /// window. Wiring a tick here would be machinery serving nothing.
+        /// </summary>
+        public DotContainer Dots { get; } = new DotContainer();
+
+        /// <summary>
         /// Debug: while true, no hit ever lands. Toggled by <c>DebugCheats</c> (R2 / G) so the
         /// whole run can be tested without health pressure. Deliberately checked *after* the
         /// dash i-frame branch, so perfect dodges still register and the Riposte loop — the

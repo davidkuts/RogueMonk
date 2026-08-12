@@ -96,7 +96,6 @@ namespace Game.Enemies
         /// </summary>
         bool damageGateBroken;
 
-        float burnTickRemaining;
         float deathRemaining;
         float deathTotal;
         Vector3 deathStartScale;
@@ -127,6 +126,9 @@ namespace Game.Enemies
         public PoiseSystem Poise { get; private set; }
 
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
+
+        /// <summary>Stacking damage-over-time instances, applied by boons through the hit pipeline.</summary>
+        public DotContainer Dots { get; } = new DotContainer();
 
         public bool IsAlive => Health != null && Health.IsAlive;
 
@@ -547,7 +549,7 @@ namespace Game.Enemies
 
             Poise.Tick(deltaTime);
             Statuses.Tick(deltaTime);
-            TickBurn(deltaTime);
+            TickDots(deltaTime);
 
             if (flashRemaining > 0f)
                 flashRemaining -= deltaTime;
@@ -584,43 +586,71 @@ namespace Game.Enemies
         }
 
         /// <summary>
-        /// Burns in discrete ticks rather than continuously, so each one is its own damage number
-        /// and its own flash. A smooth drain would be invisible — the same mistake the passive
-        /// empowered strike made.
+        /// Advances every damage-over-time instance and pays out whatever whole damage came due.
         ///
-        /// Burn damage does not go through the hit resolver: it is the *consequence* of a hit that
-        /// already resolved, and running it back through the pipeline would let a modifier that
-        /// applies Burning re-apply it from its own damage, forever.
+        /// <para>Replaces the old single-duration burn. That model stored one timer that
+        /// reapplication refreshed, so a second application of burn bought nothing, and rarity
+        /// scaled how <em>long</em> it burned rather than how hard. Instances stack independently
+        /// now, which is what makes one Undertow cast worth three of them.</para>
         /// </summary>
-        void TickBurn(float deltaTime)
+        void TickDots(float deltaTime)
         {
-            // A guarded enemy does not burn: the gate promises that nothing moves the health bar
-            // before the counter lands, and a boon's DoT trickling past it would quietly break
-            // that promise (burn bypasses the hit resolver, so the ApplyHit gate never sees it).
-            // Once the guard is broken, burning works like on anyone else.
-            if (statusSettings == null || !Statuses.Has(StatusEffect.Burning) || !Health.IsAlive || IsGuarded)
+            if (Dots.Types.Count == 0)
+                return;
+
+            Dots.Tick(deltaTime);
+
+            IReadOnlyList<IDotDefinition> types = Dots.Types;
+            for (int i = 0; i < types.Count; i++)
             {
-                burnTickRemaining = 0f;
-                return;
+                IDotDefinition dot = types[i];
+
+                // Hold the status flag in step with the stack. The flag carries no damage — it is
+                // there so "bonus damage vs burning" boons and the body tint keep reading the same
+                // answer they always did — and driving it from the longest live instance means the
+                // DoT stays the single source of truth for when it ends.
+                Statuses.Apply(dot.StatusFlag, Dots.LongestRemaining(dot));
+
+                int due = Dots.DueWhole(dot);
+                if (due > 0)
+                    ApplyDotDamage(dot, due);
             }
+        }
 
-            burnTickRemaining -= deltaTime;
-            if (burnTickRemaining > 0f)
+        /// <summary>
+        /// Takes damage-over-time damage. Built to be INERT, and deliberately shaped like
+        /// <see cref="ApplyEchoRepeat"/> rather than like a hit.
+        ///
+        /// <para>It never touches <see cref="HitResolver"/>, which is where per-hit cooldown
+        /// reduction, the Echo cadence counter, the Flux crit roll and the Ward shield counter all
+        /// listen — so a DoT cannot feed any of them. It never touches <see cref="PoiseSystem"/>,
+        /// so it builds no stagger and chips no armour. It applies no status of its own, so burn
+        /// can never apply burn. Those are not four checks that could be forgotten; they are four
+        /// systems this method simply cannot reach.</para>
+        ///
+        /// <para>Refused while the damage gate is up, for the same reason burn always was: the
+        /// guard promises nothing moves the health bar before the counter lands, and a DoT
+        /// trickling past it would break that promise from a direction the gate never sees. The
+        /// instances still burn down on their own clocks while it stands.</para>
+        ///
+        /// <para><b>No hit flash.</b> The flash means "a hit just landed". A body carrying several
+        /// stacks pays out several times a second, and flashing on each would strobe; the status
+        /// tint already colours the body for the whole duration, which is the continuous read this
+        /// wants.</para>
+        /// </summary>
+        public void ApplyDotDamage(IDotDefinition dot, int damage)
+        {
+            if (dot == null || damage <= 0 || !IsAlive || IsDying || IsGuarded)
                 return;
 
-            burnTickRemaining = statusSettings.BurnTickSeconds;
+            float applied = Health.TakeDamage(damage);
 
-            float applied = Health.TakeDamage(statusSettings.BurnDamagePerTick);
-            flashRemaining = hitFlashSeconds;
-
-            // Ticks get their own number for the same reason they are discrete at all: a smooth
-            // drain would be invisible, and so would a burn that never showed a figure.
             DamageResolved?.Invoke(new DamageReport(
-                applied, transform.position + Vector3.up, DamageType.Fire, false, 0f));
+                applied, transform.position + Vector3.up, dot.DamageType, false, 0f, dot));
 
             GameLog.Debug(LogCategory.Enemy,
-                $"burn {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
-                $"{Statuses.Remaining(StatusEffect.Burning):0.0}s left");
+                $"dot {dot.Id} on {definition.Id}  -{applied:0.##} hp ({Health.Current:0.##}/{Health.Max:0.##})  " +
+                $"{Dots.StackCount(dot)} stack(s), {Dots.LongestRemaining(dot):0.0}s left");
         }
 
         /// <summary>

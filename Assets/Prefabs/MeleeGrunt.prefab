@@ -278,6 +278,7 @@ MonoBehaviour:
   heavyHitstopThreshold: 0.08
   heavyScale: 1.45
   showRefusedHits: 1
+  dotSettings: {fileID: 11400000, guid: 6a77259345db28c4094aed26bbc97cf2, type: 2}
 --- !u!1 &7690767806985288440
 GameObject:
   m_ObjectHideFlags: 0

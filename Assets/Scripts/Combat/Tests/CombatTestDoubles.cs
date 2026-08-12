@@ -33,6 +33,7 @@ namespace Game.Combat.Tests
         public bool IsAlive { get; set; } = true;
         public Era Era { get; set; } = Era.None;
         public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
+        public DotContainer Dots { get; } = new DotContainer();
         public List<HitContext> Hits { get; } = new List<HitContext>();
 
         public HitContext LastHit => Hits[Hits.Count - 1];

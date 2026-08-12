@@ -692,6 +692,12 @@ MonoBehaviour:
   avoidanceStrength: 0.85
   gravity: -25
   groundedStickSpeed: 2
+  lobGroundLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  lobClearanceHeight: 0.6
+  lobClearanceRadius: 0.5
+  lobMaxHeightDelta: 0.6
   impactTelegraphMaterial: {fileID: 2100000, guid: 5e93b1c7d0a24f68b3c791ea6d40852f, type: 2}
   impactTelegraphPalette: {fileID: 11400000, guid: acb3584d068410346a78d188db2e097e, type: 2}
   telegraph: {fileID: 5352288248812532690}
@@ -753,6 +759,7 @@ MonoBehaviour:
   heavyHitstopThreshold: 0.08
   heavyScale: 1.45
   showRefusedHits: 1
+  dotSettings: {fileID: 11400000, guid: 6a77259345db28c4094aed26bbc97cf2, type: 2}
 --- !u!1 &7994343053237849033
 GameObject:
   m_ObjectHideFlags: 0

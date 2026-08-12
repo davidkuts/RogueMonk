@@ -16,15 +16,24 @@ MonoBehaviour:
   ability: 3
   displayName: Rot Well
   description: Enemies caught in the vortex fray with every tick.
-  scaledStat: 2
+  scaledStat: 11
   damageBonus: 0
   poiseBonus: 0
   status: 1
-  statusSeconds: 2
+  statusSeconds: 0
+  dot: {fileID: 11400000, guid: 1953fde51f8b2114b9e0282910437746, type: 2}
   iFrameBonus: 0
   dodgeGraceBonus: 0
   shieldEveryNHits: 0
   shieldRegenSeconds: 0
+  repeatFraction: 0
+  repeatDelaySeconds: 0.8
+  repeatEveryNHits: 1
+  repeatAnyAbility: 0
+  procChance: 0
+  procMultiplier: 3
+  procHitstopBonus: 0.05
+  dashRefundChance: 0
   vsStatus: 1
   vsStatusDamageBonus: 0
   vsStatusPoiseBonus: 0

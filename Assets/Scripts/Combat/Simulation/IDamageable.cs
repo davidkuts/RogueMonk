@@ -11,6 +11,17 @@ namespace Game.Combat
         StatusEffectContainer Statuses { get; }
 
         /// <summary>
+        /// The stacking damage-over-time instances riding this target.
+        ///
+        /// <para>Separate from <see cref="Statuses"/> because the two answer different questions.
+        /// A status is one flag with one duration that reapplication refreshes; a DoT is a pile of
+        /// independent instances, each with its own clock and its own damage, that reapplication
+        /// only ever adds to. Trying to make one container serve both is what the old burn model
+        /// did, and it is why rarity used to buy a longer burn instead of a harder one.</para>
+        /// </summary>
+        DotContainer Dots { get; }
+
+        /// <summary>
         /// Applies a fully resolved hit. By the time this runs the modifier pipeline has
         /// already had its say, so implementations must use the context's values rather than
         /// reading the attack definition again.

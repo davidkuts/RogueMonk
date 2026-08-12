@@ -107,6 +107,12 @@ namespace Game.Combat
                 installed.Add(new ShieldProcModifier(
                     boon.Ability, boon.ScaledShieldEveryNHits(scalar), health.GrantOneHitShield));
 
+            // Fray's DoT lane: every damage event of the slot applies its own instance. No ability
+            // needs to know about it — the Undertow already resolves one hit per enemy per tick, so
+            // a single cast lands three burns through this one modifier.
+            if (boon.Dot != null)
+                installed.Add(new DotApplicationModifier(boon.Ability, boon.Dot, boon.ScaledDotDamage(scalar)));
+
             // Entropy Field's lane: bonus against targets already under a status.
             if (boon.VsStatusDamageBonus > 0f || boon.VsStatusPoiseBonus > 0f)
             {

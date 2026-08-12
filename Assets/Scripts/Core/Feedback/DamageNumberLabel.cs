@@ -29,6 +29,13 @@ namespace Game.Core.Feedback
         float baseScale;
         float gravity;
 
+        /// <summary>
+        /// Whether this number pops on arrival. A direct hit does; a damage-over-time tick does
+        /// not — the punch means "something just landed", which is exactly what a DoT tick is not,
+        /// and a body carrying several stacks would otherwise pulse continuously.
+        /// </summary>
+        bool punch;
+
         /// <summary>True while this label is in flight and must not be handed out again.</summary>
         public bool InUse => remaining > 0f;
 
@@ -61,8 +68,10 @@ namespace Game.Core.Feedback
         /// </summary>
         public void Show(
             Vector3 worldPosition, int value, Color tint, float scale,
-            float lifetimeSeconds, Vector3 drift, float arcGravity)
+            float lifetimeSeconds, Vector3 drift, float arcGravity, bool punchOnArrival = true)
         {
+            punch = punchOnArrival;
+
             bool negative = value < 0;
             int magnitude = Mathf.Abs(value);
             int digits = Mathf.Min(DigitBuilder.DigitCount(magnitude), MaxDigits);
@@ -130,8 +139,11 @@ namespace Game.Core.Feedback
             velocity += Vector3.down * (gravity * deltaTime);    // gentle arc, so it lofts and settles
             transform.position += velocity * deltaTime;
 
-            // Pops slightly larger on arrival, then shrinks away as it fades.
-            float pop = t < 0.15f ? Mathf.Lerp(0.6f, 1.15f, t / 0.15f) : Mathf.Lerp(1.15f, 0.9f, (t - 0.15f) / 0.85f);
+            // Pops slightly larger on arrival, then shrinks away as it fades. A DoT tick holds its
+            // size instead: it did not "land", and a punch would claim it did.
+            float pop = punch
+                ? (t < 0.15f ? Mathf.Lerp(0.6f, 1.15f, t / 0.15f) : Mathf.Lerp(1.15f, 0.9f, (t - 0.15f) / 0.85f))
+                : 1f;
             transform.localScale = Vector3.one * (baseScale * pop);
 
             if (view == null)

@@ -7,9 +7,19 @@ namespace Game.Combat
     public enum StatusEffect
     {
         Stagger = 0,
+
+        /// <summary>
+        /// Raised while a burn DoT is running. A PRESENCE FLAG ONLY since M22B — the damage lives
+        /// in <see cref="DotContainer"/>, and this exists so "bonus damage vs burning" boons and
+        /// the body tint keep answering the same question.
+        /// </summary>
         Burning = 1,
+
         Chilled = 2,
         Rooted = 3,
+
+        /// <summary>Fray's other lane. Presence flag for a decay DoT, same shape as Burning.</summary>
+        Decaying = 4,
     }
 
     /// <summary>

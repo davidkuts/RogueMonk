@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Combat;
 using Game.Core.Feedback;
 using UnityEngine;
@@ -30,6 +31,18 @@ namespace Game.Enemies
         [SerializeField, Tooltip("Show a 0 in the amber hue when a guard refuses a hit. This is the 'that did nothing' read in numbers rather than in colour.")]
         bool showRefusedHits = true;
 
+        [SerializeField, Tooltip("Flush interval and size for damage-over-time numbers. Left empty, DoT ticks fall back to one number a second at 70% size.")]
+        DotSettings dotSettings;
+
+        /// <summary>
+        /// Pools this body's DoT damage so a stack of burns prints one figure a second rather than
+        /// a stream of ones. Per body, because it lives on the body.
+        /// </summary>
+        readonly DotNumberAccumulator dotNumbers = new DotNumberAccumulator();
+
+        const float FallbackFlushSeconds = 1f;
+        const float FallbackDotScale = 0.7f;
+
         void Awake()
         {
             if (actor == null)
@@ -45,8 +58,44 @@ namespace Game.Enemies
                 actor.DamageResolved -= OnDamageResolved;
         }
 
+        /// <summary>
+        /// Lets the pooled DoT damage out on its interval.
+        ///
+        /// <para>The figure is drawn at the body's CURRENT position rather than where the tick
+        /// landed: up to a second has passed, and a number left behind at a stale point would
+        /// describe a body that has walked away from it.</para>
+        /// </summary>
+        void Update()
+        {
+            float interval = dotSettings != null ? dotSettings.NumberFlushIntervalSeconds : FallbackFlushSeconds;
+            float dotScale = dotSettings != null ? dotSettings.NumberScale : FallbackDotScale;
+
+            IReadOnlyList<DotNumberAccumulator.Flush> due = dotNumbers.Tick(Time.deltaTime, interval);
+            if (due.Count == 0)
+                return;
+
+            Vector3 point = transform.position + Vector3.up;
+            for (int i = 0; i < due.Count; i++)
+            {
+                // Smaller, in the DoT's own colour, and deliberately without the arrival punch:
+                // a tick is not a hit, and it must never compete with the number that says the
+                // player landed something.
+                DamageNumberDirector.Show(
+                    point, due[i].Amount, due[i].Definition.NumberColor, dotScale,
+                    allowZero: false, punch: false);
+            }
+        }
+
         void OnDamageResolved(DamageReport report)
         {
+            // A DoT tick is pooled rather than shown, which is the whole answer to an enemy under
+            // nine stacks throwing a number every few frames.
+            if (report.Dot != null)
+            {
+                dotNumbers.Add(report.Dot, Mathf.RoundToInt(report.Amount));
+                return;
+            }
+
             if (report.Refused)
             {
                 // A refused hit reports zero, which Pop would otherwise discard — and a hit that

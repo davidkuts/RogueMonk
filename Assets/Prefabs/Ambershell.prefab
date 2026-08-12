@@ -927,6 +927,14 @@ MonoBehaviour:
   avoidanceStrength: 0.85
   gravity: -25
   groundedStickSpeed: 2
+  lobGroundLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  lobClearanceHeight: 0.6
+  lobClearanceRadius: 0.5
+  lobMaxHeightDelta: 0.6
+  impactTelegraphMaterial: {fileID: 0}
+  impactTelegraphPalette: {fileID: 0}
   telegraph: {fileID: 4007614955643909447}
   chargeMoveId: RollingCharge
   wallLayers:
@@ -1043,6 +1051,7 @@ MonoBehaviour:
   heavyHitstopThreshold: 0.08
   heavyScale: 1.45
   showRefusedHits: 1
+  dotSettings: {fileID: 11400000, guid: 6a77259345db28c4094aed26bbc97cf2, type: 2}
 --- !u!1 &8456897243738204198
 GameObject:
   m_ObjectHideFlags: 0

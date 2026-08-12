@@ -9,6 +9,7 @@ namespace Game.Combat.Tests
         {
             public bool IsAlive => true;
             public StatusEffectContainer Statuses { get; } = new StatusEffectContainer();
+            public DotContainer Dots { get; } = new DotContainer();
             public void ApplyHit(in HitContext context) { }
             public void ApplyStagger(float seconds) { }
         }

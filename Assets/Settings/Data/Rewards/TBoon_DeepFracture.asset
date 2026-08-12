@@ -16,15 +16,24 @@ MonoBehaviour:
   ability: 4
   displayName: Deep Fracture
   description: Riposte +10% damage, heavy fray (burn) for 4s.
-  scaledStat: 1
+  scaledStat: 11
   damageBonus: 0.1
   poiseBonus: 0.5
   status: 1
-  statusSeconds: 4
+  statusSeconds: 0
+  dot: {fileID: 11400000, guid: 1953fde51f8b2114b9e0282910437746, type: 2}
   iFrameBonus: 0
   dodgeGraceBonus: 0
   shieldEveryNHits: 0
   shieldRegenSeconds: 0
+  repeatFraction: 0
+  repeatDelaySeconds: 0.8
+  repeatEveryNHits: 1
+  repeatAnyAbility: 0
+  procChance: 0
+  procMultiplier: 3
+  procHitstopBonus: 0.05
+  dashRefundChance: 0
   vsStatus: 1
   vsStatusDamageBonus: 0
   vsStatusPoiseBonus: 0

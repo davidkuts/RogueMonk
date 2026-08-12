@@ -54,6 +54,13 @@ namespace Game.Combat
 
         /// <summary>Flux's lane: higher rarity makes the roll come up more often.</summary>
         ProcChance = 10,
+
+        /// <summary>
+        /// A damage-over-time's total damage per instance. Higher rarity burns HARDER, never
+        /// LONGER — DoT duration is fixed across every tier by rule, so it is deliberately not a
+        /// scalable stat at all.
+        /// </summary>
+        DotDamage = 11,
     }
 
     /// <summary>
@@ -87,6 +94,10 @@ namespace Game.Combat
         StatusEffect status = StatusEffect.Burning;
         [SerializeField, Tooltip("Status duration at Normal tier. Zero applies nothing. Magnitude stays StatusSettings' business.")]
         float statusSeconds;
+
+        [Header("DoT lane — the slot's hits APPLY a stacking damage-over-time")]
+        [SerializeField, Tooltip("The DoT type this boon's hits apply. Empty for boons with no DoT. Every damage event of the slot applies its own independent instance — one Undertow cast is three of them — so this is the whole of 'a burn boon on the vortex'. The instance's total damage is the type's base scaled by this card's rarity; its DURATION is fixed and never scales.")]
+        DotDefinition dot;
 
         [Header("Dash patch (Ward's lane — not a hit modifier)")]
         [SerializeField, Tooltip("Added dash i-frame fraction: 0.4 = i-frames cover 40% more of the dash. Zero for every boon that is not Ward BLINK.")]
@@ -138,6 +149,15 @@ namespace Game.Combat
         public float PoiseBonus => poiseBonus;
         public StatusEffect Status => status;
         public float StatusSeconds => statusSeconds;
+        public DotDefinition Dot => dot;
+
+        /// <summary>
+        /// Total damage one applied instance deals, at this rarity. Rarity scales the DAMAGE and
+        /// never the duration — <see cref="DotDefinition.DurationSeconds"/> is not reachable from
+        /// any scaling path, so the rule cannot be broken from here.
+        /// </summary>
+        public float ScaledDotDamage(float rarityScalar) =>
+            dot != null ? Scale(ScaledStat.DotDamage, dot.BaseTotalDamage, rarityScalar) : 0f;
         public float IFrameBonus => iFrameBonus;
         public float DodgeGraceBonus => dodgeGraceBonus;
         public int ShieldEveryNHits => shieldEveryNHits;
@@ -233,6 +253,13 @@ namespace Game.Combat
                     return repeatEveryNHits > 1
                         ? $"EVERY {Ordinal(repeatEveryNHits)} HIT REPEATS AT {Mathf.RoundToInt(ScaledRepeatFraction(rarityScalar) * 100f)}%"
                         : $"REPEATS AT {Mathf.RoundToInt(ScaledRepeatFraction(rarityScalar) * 100f)}%";
+                case ScaledStat.DotDamage:
+                    // The duration is quoted alongside the damage on purpose: it is the number that
+                    // does NOT move between tiers, and the card should make that visible rather
+                    // than leave a player assuming an Epic also lasts longer.
+                    return dot != null
+                        ? $"{dot.DisplayName} {ScaledDotDamage(rarityScalar):0.#} OVER {dot.DurationSeconds:0.#}s"
+                        : string.Empty;
                 case ScaledStat.ProcChance:
                     // Flux must telegraph its odds on the card (BOONS.md §5) — a variance giver
                     // whose distribution is invisible is just a worse damage giver.
