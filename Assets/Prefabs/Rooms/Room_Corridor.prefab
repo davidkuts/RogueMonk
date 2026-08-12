@@ -420,6 +420,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8886187162583545300}
+  - component: {fileID: 6052576375680972626}
   m_Layer: 0
   m_Name: Walls
   m_TagString: Untagged
@@ -446,6 +447,19 @@ Transform:
   - {fileID: 304359714299836784}
   m_Father: {fileID: 5287960077047776296}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6052576375680972626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3736373203732193878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15a46f27b3856dd4985dc4d6123d0b26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Level::Game.Level.WallOccluderGroup
+  includeInactive: 1
 --- !u!1 &5476458528466776288
 GameObject:
   m_ObjectHideFlags: 0
@@ -730,6 +744,11 @@ MonoBehaviour:
   doorBlocker: {fileID: 1283402891197885870}
   exitTrigger: {fileID: 1830575962864150739}
   cameraBounds: {fileID: 1261147447136380070}
+  rewardSpawnPoint: {fileID: 0}
+  exitDoorPitch: 3.6
+  exitRevealStagger: 0.12
+  doorInteractRange: 3
+  doorSelectLockoutSeconds: 0.3
   bossTint: {r: 0.2, g: 0.21, b: 0.27, a: 1}
   bossTintStrength: 0.55
   bossMarker: {fileID: 0}

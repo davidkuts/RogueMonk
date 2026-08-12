@@ -26,6 +26,13 @@ Shader "Monk/Toon"
         // Width is multiplied by view depth to keep constant screen thickness, so the useful
         // range is small: at a 13 m camera distance, 0.002 is already a ~26 mm shell.
         _OutlineWidth("Outline Width", Range(0, 0.008)) = 0.0022
+
+        [Header(Occlusion Fade)]
+        // Driven per-renderer by WallOccluder through a MaterialPropertyBlock. Zero here so every
+        // material that is not a wall — every character in the game shares this shader — behaves
+        // exactly as it did before the feature existed.
+        _OccludeFade("Occlusion Fade", Range(0, 1)) = 0
+        _OccludeKeep("Occluded Visibility", Range(0, 1)) = 0.25
     }
 
     SubShader
@@ -66,7 +73,11 @@ Shader "Monk/Toon"
                 half _RimPower;
                 half4 _OutlineColor;
                 half _OutlineWidth;
+                half _OccludeFade;
+                half _OccludeKeep;
             CBUFFER_END
+
+            #include "MonkOcclusionFade.hlsl"
 
             struct OutlineAttributes
             {
@@ -77,6 +88,7 @@ Shader "Monk/Toon"
             struct OutlineVaryings
             {
                 float4 positionHCS : SV_POSITION;
+                float3 positionVS : TEXCOORD0;
             };
 
             OutlineVaryings OutlineVertex(OutlineAttributes input)
@@ -89,12 +101,16 @@ Shader "Monk/Toon"
                 float3 normalVS = TransformWorldToViewDir(TransformObjectToWorldNormal(input.normalOS), true);
                 positionVS += normalVS * _OutlineWidth * -positionVS.z;
 
+                output.positionVS = positionVS;
                 output.positionHCS = TransformWViewToHClip(positionVS);
                 return output;
             }
 
             half4 OutlineFragment(OutlineVaryings input) : SV_Target
             {
+                // The outline fades with the fill and on the same threshold pattern, so a hole in
+                // a wall never comes ringed in a dark rectangle the wall no longer has.
+                ApplyOcclusionFade(input.positionHCS, input.positionVS, _OccludeFade, _OccludeKeep);
                 return _OutlineColor;
             }
             ENDHLSL
@@ -135,7 +151,11 @@ Shader "Monk/Toon"
                 half _RimPower;
                 half4 _OutlineColor;
                 half _OutlineWidth;
+                half _OccludeFade;
+                half _OccludeKeep;
             CBUFFER_END
+
+            #include "MonkOcclusionFade.hlsl"
 
             TEXTURE2D(_BaseMap);
             SAMPLER(sampler_BaseMap);
@@ -154,6 +174,7 @@ Shader "Monk/Toon"
                 float3 normalWS : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
                 float fogFactor : TEXCOORD3;
+                float3 positionVS : TEXCOORD4;
             };
 
             Varyings ToonVertex(Attributes input)
@@ -164,6 +185,7 @@ Shader "Monk/Toon"
 
                 output.positionHCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
+                output.positionVS = positions.positionVS;
                 output.normalWS = normals.normalWS;
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 output.fogFactor = ComputeFogFactor(positions.positionCS.z);
@@ -183,6 +205,8 @@ Shader "Monk/Toon"
 
             half4 ToonFragment(Varyings input) : SV_Target
             {
+                ApplyOcclusionFade(input.positionHCS, input.positionVS, _OccludeFade, _OccludeKeep);
+
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
                 float3 normalWS = normalize(input.normalWS);
 
@@ -238,13 +262,21 @@ Shader "Monk/Toon"
                 half _RimPower;
                 half4 _OutlineColor;
                 half _OutlineWidth;
+                half _OccludeFade;
+                half _OccludeKeep;
             CBUFFER_END
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
             ENDHLSL
         }
 
-        // Depth prepass / depth-normals, so URP features that need them keep working.
+        // Depth prepass, so URP features that need them keep working.
+        //
+        // Hand-written rather than including URP's DepthOnlyPass.hlsl, because the occlusion clip
+        // has to happen HERE too and a fixed include has nowhere to put it. PC_RPAsset requests a
+        // depth texture, so a wall that skipped the clip in this pass would keep writing depth
+        // where its colour had already been discarded — and everything reading that texture would
+        // go on hiding the actor behind a surface that is no longer on screen.
         Pass
         {
             Name "DepthOnly"
@@ -271,9 +303,37 @@ Shader "Monk/Toon"
                 half _RimPower;
                 half4 _OutlineColor;
                 half _OutlineWidth;
+                half _OccludeFade;
+                half _OccludeKeep;
             CBUFFER_END
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            #include "MonkOcclusionFade.hlsl"
+
+            struct DepthAttributes
+            {
+                float4 positionOS : POSITION;
+            };
+
+            struct DepthVaryings
+            {
+                float4 positionHCS : SV_POSITION;
+                float3 positionVS : TEXCOORD0;
+            };
+
+            DepthVaryings DepthOnlyVertex(DepthAttributes input)
+            {
+                DepthVaryings output;
+                VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
+                output.positionHCS = positions.positionCS;
+                output.positionVS = positions.positionVS;
+                return output;
+            }
+
+            half4 DepthOnlyFragment(DepthVaryings input) : SV_Target
+            {
+                ApplyOcclusionFade(input.positionHCS, input.positionVS, _OccludeFade, _OccludeKeep);
+                return 0;
+            }
             ENDHLSL
         }
     }

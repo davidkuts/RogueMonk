@@ -15,6 +15,19 @@ namespace Game.Enemies
     [DisallowMultipleComponent]
     public sealed class EnemyActor : MonoBehaviour, IDamageable, IEraTagged, IEchoRepeatTarget
     {
+        static readonly List<EnemyActor> live = new List<EnemyActor>();
+
+        /// <summary>
+        /// Every enemy body currently in the scene, alive or playing out a death beat.
+        ///
+        /// <para>A live list maintained on enable/disable rather than a <c>FindObjectsByType</c>
+        /// sweep, for the reason M21D recorded when it built the fragment sweep the same way: rooms
+        /// are torn down and rebuilt whole, which is exactly when a scene-wide search is least
+        /// trustworthy and most expensive. Callers filter on <see cref="IsAlive"/> themselves —
+        /// what counts as "active" is the caller's question, not the body's.</para>
+        /// </summary>
+        public static IReadOnlyList<EnemyActor> Live => live;
+
         [SerializeField] EnemyDefinition definition;
 
         [Header("Telegraph")]
@@ -508,8 +521,12 @@ namespace Game.Enemies
                 gameObject.SetActive(false);
         }
 
+        void OnEnable() => live.Add(this);
+
         void OnDisable()
         {
+            live.Remove(this);
+
             // Safety hatch. Being disabled or destroyed part-way through the beat must still
             // resolve the death, or the runner waits forever for an enemy that is already gone.
             if (IsDying)
