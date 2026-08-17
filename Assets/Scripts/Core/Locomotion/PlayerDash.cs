@@ -35,6 +35,14 @@ namespace Game.Core.Locomotion
             !IsDashing || settings.DurationSeconds <= 0f ? 0f : Mathf.Clamp01(elapsed / settings.DurationSeconds);
 
         /// <summary>
+        /// Ground distance still left to cover this dash. Zero when not dashing. The adapter uses
+        /// this to judge whether a dash-phaseable prop ahead can actually be cleared, rather than
+        /// against the dash's full distance, which would let a prop hit near the very end of the
+        /// dash count as clearable when there is no travel left to carry the player past it.
+        /// </summary>
+        public float RemainingDistance => IsDashing ? Mathf.Max(0f, settings.DistanceMeters - travelled) : 0f;
+
+        /// <summary>
         /// Runtime multiplier on the settings' i-frame fraction, for boons that extend the
         /// Blink's protection (Ward's lane). 1 leaves the asset value untouched; the product is
         /// clamped to 0..1 like the fraction itself. Owned wholesale by the boon system, which

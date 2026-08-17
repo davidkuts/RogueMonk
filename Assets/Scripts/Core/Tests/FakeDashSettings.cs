@@ -27,6 +27,7 @@ namespace Game.Core.Tests
         public float RechargeSeconds { get; set; } = 2.5f;
         public float BufferSeconds { get; set; } = 0.15f;
         public float ExitSpeedFraction { get; set; } = 1f;
+        public float ObstaclePhaseLeewayMeters { get; set; } = 0.3f;
 
         /// <summary>Defaults to linear travel; override to test curve shapes.</summary>
         public Func<float, float> TravelCurve { get; set; } = t => t;

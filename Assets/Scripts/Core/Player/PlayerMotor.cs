@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game.Core.Input;
 using Game.Core.Locomotion;
 using UnityEngine;
@@ -28,8 +29,32 @@ namespace Game.Core.Player
         [SerializeField, Tooltip("Layers the dash passes straight through — enemies. Walls are deliberately not included: a dash that phased through geometry would break room containment.")]
         LayerMask dashPhasesThroughLayers;
 
+        [SerializeField, Tooltip("Layers probed ahead of the player for dash-phaseable props. Only bounds the physics query — an object still needs a DashPhaseable component to actually be phased through.")]
+        LayerMask dashObstacleProbeLayers = 1;
+
         CharacterController controller;
         readonly InputBuffer dashBuffer = new InputBuffer();
+        readonly RaycastHit[] obstacleCastHits = new RaycastHit[8];
+
+        /// <summary>
+        /// Props currently moved onto <see cref="dashPhasedPropLayer"/> for this dash, with the
+        /// layer to hand back when it ends.
+        ///
+        /// <para>Reassigning the object's own layer rather than calling
+        /// <c>Physics.IgnoreCollision</c> deliberately reuses the exact mechanism
+        /// <see cref="dashPhasesThroughLayers"/> already uses for enemies — <c>excludeLayers</c> is
+        /// the one phase-through path proven to actually stop a CharacterController colliding
+        /// mid-dash; per-pair IgnoreCollision toggles against a CharacterController's internal sweep
+        /// were tried first and did not reliably take effect.</para>
+        /// </summary>
+        readonly List<(Collider Collider, int OriginalLayer)> phasedProps = new List<(Collider, int)>();
+
+        /// <summary>
+        /// Resolved once from the "DashPhasedProp" layer by name, so nothing here depends on a
+        /// per-prefab Inspector wire-up. -1 (found by no layer of that name) simply disables phasing.
+        /// </summary>
+        int dashPhasedPropLayer = -1;
+
         float verticalSpeed;
 
         /// <summary>Combat's veto on movement and dashing. Null when nothing restricts the player.</summary>
@@ -148,6 +173,7 @@ namespace Game.Core.Player
         {
             controller = GetComponent<CharacterController>();
             baseExcludeLayers = controller.excludeLayers;
+            dashPhasedPropLayer = LayerMask.NameToLayer("DashPhasedProp");
 
             if (input == null)
                 input = GetComponent<PlayerInputReader>();
@@ -213,6 +239,14 @@ namespace Game.Core.Player
 
             // Dash.Tick always runs — it owns charge recharge whether or not a dash is live.
             bool wasDashing = Dash.IsDashing;
+
+            // Captured BEFORE Tick, not after: a dash that finishes on this exact frame (its
+            // final, often-partial step, or — under a frame hitch — its entire distance in one
+            // oversized frame) reads RemainingDistance as 0 once Tick has already closed it out,
+            // which would silently skip the phasing check on precisely the frame most likely to be
+            // carrying the player through an obstacle.
+            float remainingBeforeTick = Dash.RemainingDistance;
+
             Vector3 dashStep = Dash.Tick(deltaTime);
             Vector3 planarMotion;
 
@@ -231,9 +265,22 @@ namespace Game.Core.Player
             // Recomputed every frame from the dash state rather than toggled on the start and
             // end events: it is self-healing, so a cancelled or interrupted dash can never
             // strand the player permanently phased through enemies.
-            controller.excludeLayers = Dash.IsDashing
-                ? baseExcludeLayers | dashPhasesThroughLayers
+            // Gated on wasDashing (the frame's pre-Tick state), not the post-Tick Dash.IsDashing:
+            // the frame a dash finishes still has to Move() its last chunk of displacement, and
+            // that motion needs the same exclusion the rest of the dash got.
+            LayerMask phasedPropMask = dashPhasedPropLayer >= 0 ? (LayerMask)(1 << dashPhasedPropLayer) : (LayerMask)0;
+            controller.excludeLayers = wasDashing
+                ? baseExcludeLayers | dashPhasesThroughLayers | phasedPropMask
                 : baseExcludeLayers;
+
+            if (wasDashing)
+                UpdateObstaclePhasing(remainingBeforeTick);
+
+            // Restoration still keys off the post-Tick state: the instant the dash is actually
+            // over, normal collision must come back, whether or not this same frame also just ran
+            // UpdateObstaclePhasing() above.
+            if (!Dash.IsDashing)
+                RestoreObstaclePhasing();
 
             verticalSpeed = controller.isGrounded
                 ? -settings.GroundedStickSpeed
@@ -274,6 +321,82 @@ namespace Game.Core.Player
             return conditioned.sqrMagnitude > 0f
                 ? new Vector3(conditioned.x, 0f, conditioned.y).normalized
                 : Locomotion.Facing;
+        }
+
+        /// <summary>
+        /// Lets the dash carry the player through a marked prop it is about to hit, if the dash
+        /// has enough distance left to actually reach the far side of it (plus the player's own
+        /// radius and <see cref="DashSettings.ObstaclePhaseLeewayMeters"/>). A prop the dash cannot
+        /// clear is left alone — the collision resolves exactly as it would against a wall.
+        ///
+        /// <para>Recomputed every dashing frame from the player's current position rather than
+        /// decided once at dash start, the same self-healing shape as
+        /// <see cref="dashPhasesThroughLayers"/> above: an interrupted or cancelled dash can never
+        /// strand a collider permanently ignored, because <see cref="RestoreObstaclePhasing"/> runs
+        /// the moment the dash is no longer live.</para>
+        /// </summary>
+        void UpdateObstaclePhasing(float remaining)
+        {
+            if (dashPhasedPropLayer < 0)
+                return; // no "DashPhasedProp" layer in this project — phasing quietly disables itself
+
+            if (remaining <= 0f)
+                return;
+
+            Vector3 halfAxis = Vector3.up * Mathf.Max(0f, controller.height * 0.5f - controller.radius);
+            Vector3 capsuleCenter = transform.position + controller.center;
+            Vector3 point1 = capsuleCenter + halfAxis;
+            Vector3 point2 = capsuleCenter - halfAxis;
+
+            int hitCount = Physics.CapsuleCastNonAlloc(
+                point1, point2, controller.radius, Dash.Direction, obstacleCastHits, remaining,
+                dashObstacleProbeLayers, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider hitCollider = obstacleCastHits[i].collider;
+                if (hitCollider == null || hitCollider.gameObject.layer == dashPhasedPropLayer)
+                    continue;
+
+                if (!DashPhaseable.TryGet(hitCollider, out _))
+                    continue;
+
+                // How far along the dash direction the player must travel to clear the object's
+                // far edge: project the AABB corner furthest along that direction.
+                Bounds bounds = hitCollider.bounds;
+                Vector3 farCorner = new Vector3(
+                    Dash.Direction.x >= 0f ? bounds.max.x : bounds.min.x,
+                    transform.position.y,
+                    Dash.Direction.z >= 0f ? bounds.max.z : bounds.min.z);
+
+                float distanceToFarEdge = Vector3.Dot(farCorner - transform.position, Dash.Direction);
+                float clearanceNeeded = distanceToFarEdge + controller.radius + dashSettings.ObstaclePhaseLeewayMeters;
+
+                if (remaining < clearanceNeeded)
+                    continue;
+
+                // Moved onto its own layer rather than Physics.IgnoreCollision-ed — see the field
+                // doc on phasedProps for why. controller.excludeLayers already carries this layer
+                // whenever Dash.IsDashing, so the very next Move() this frame ignores it.
+                phasedProps.Add((hitCollider, hitCollider.gameObject.layer));
+                hitCollider.gameObject.layer = dashPhasedPropLayer;
+            }
+        }
+
+        /// <summary>Hands every prop this dash phased through back its original layer.</summary>
+        void RestoreObstaclePhasing()
+        {
+            if (phasedProps.Count == 0)
+                return;
+
+            for (int i = 0; i < phasedProps.Count; i++)
+            {
+                (Collider phasedCollider, int originalLayer) = phasedProps[i];
+                if (phasedCollider != null)
+                    phasedCollider.gameObject.layer = originalLayer;
+            }
+
+            phasedProps.Clear();
         }
     }
 }

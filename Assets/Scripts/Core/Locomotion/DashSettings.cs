@@ -20,6 +20,10 @@ namespace Game.Core.Locomotion
         [SerializeField, Range(0f, 1.5f), Tooltip("Speed carried out of the dash, as a fraction of walking top speed.")]
         float exitSpeedFraction = 1f;
 
+        [Header("Obstacle phasing")]
+        [SerializeField, Tooltip("Extra clearance past a DashPhaseable prop's far edge, on top of the player's own radius, required before the dash phases through it instead of stopping against it.")]
+        float obstaclePhaseLeewayMeters = 0.3f;
+
         [Header("Invulnerability")]
         [SerializeField, Range(0f, 1f), Tooltip("Fraction of the dash covered by i-frames. The uncovered tail is the punish window.")]
         float iFrameFraction = 0.85f;
@@ -47,6 +51,7 @@ namespace Game.Core.Locomotion
         public float RechargeSeconds => rechargeSeconds;
         public float BufferSeconds => bufferSeconds;
         public float ExitSpeedFraction => exitSpeedFraction;
+        public float ObstaclePhaseLeewayMeters => obstaclePhaseLeewayMeters;
 
         public float EvaluateTravel(float normalizedTime) => travelCurve.Evaluate(normalizedTime);
     }

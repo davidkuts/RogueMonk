@@ -132,6 +132,14 @@ namespace Game.Level
             {
                 currentRoom.ExitReached -= OnExitReached;
                 currentRoom.ExitChosen -= OnExitChosen;
+                // Destroy() is deferred to the end of the frame — its colliders stay live in the
+                // physics world until then. Every room instantiates at the same Vector3.zero, so
+                // without this the old room's walls and the new room's walls briefly coexist at
+                // identical coordinates the moment the player is teleported into the new one, which
+                // is what let the player land wedged between two overlapping wall sets. Deactivating
+                // first pulls its colliders out of physics immediately; Destroy then only has to
+                // reclaim memory.
+                currentRoom.gameObject.SetActive(false);
                 Destroy(currentRoom.gameObject);
                 currentRoom = null;
             }
@@ -293,6 +301,11 @@ namespace Game.Level
             {
                 currentRoom.ExitReached -= OnExitReached;
                 currentRoom.ExitChosen -= OnExitChosen;
+                // See the matching comment in RestartRun(): deactivate before Destroy so the old
+                // room's wall colliders are gone from physics this frame, not at frame end — the
+                // new room instantiates at the same Vector3.zero the old one occupied, and the
+                // player is teleported into it a few lines below, in this same frame.
+                currentRoom.gameObject.SetActive(false);
                 Destroy(currentRoom.gameObject);
             }
 

@@ -135,6 +135,40 @@ namespace Game.Core.Tests
         }
 
         [Test]
+        public void RemainingDistance_IsZeroWhenIdle()
+        {
+            PlayerDash dash = Make(out _);
+            Assert.That(dash.RemainingDistance, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void RemainingDistance_IsFullDistanceAtDashStart()
+        {
+            PlayerDash dash = Make(out FakeDashSettings settings);
+            dash.TryStart(Vector3.right);
+            Assert.That(dash.RemainingDistance, Is.EqualTo(settings.DistanceMeters).Within(Tolerance));
+        }
+
+        [Test]
+        public void RemainingDistance_CountsDownAsTheDashTravels()
+        {
+            PlayerDash dash = Make(out FakeDashSettings settings);
+            dash.TryStart(Vector3.right);
+            dash.Tick(settings.DurationSeconds * 0.5f);
+
+            Assert.That(dash.RemainingDistance, Is.EqualTo(settings.DistanceMeters * 0.5f).Within(Tolerance));
+        }
+
+        [Test]
+        public void RemainingDistance_IsZeroOnceTheDashEnds()
+        {
+            PlayerDash dash = Make(out _);
+            dash.TryStart(Vector3.right);
+            RunToEnd(dash);
+            Assert.That(dash.RemainingDistance, Is.EqualTo(0f));
+        }
+
+        [Test]
         public void TickWhileIdle_ProducesNoDisplacement()
         {
             PlayerDash dash = Make(out _);

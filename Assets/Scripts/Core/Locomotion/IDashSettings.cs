@@ -52,6 +52,14 @@ namespace Game.Core.Locomotion
         float ExitSpeedFraction { get; }
 
         /// <summary>
+        /// Extra clearance, past a dash-phaseable prop's far edge, required before the Blink is
+        /// allowed to carry the player through it instead of stopping against it. Guards against
+        /// popping out flush with the object's silhouette, and against phasing through something
+        /// the dash does not actually have enough distance left to clear.
+        /// </summary>
+        float ObstaclePhaseLeewayMeters { get; }
+
+        /// <summary>
         /// Distance travelled by normalized time, as a 0..1 fraction of <see cref="DistanceMeters"/>.
         /// Must be 0 at t=0 and 1 at t=1; the shape between is the dash's feel.
         /// </summary>

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27dcaf577f2730f42b8056e191ffa6b2, type: 3}
   m_Name: DashSettings
   m_EditorClassIdentifier: Game.Core::Game.Core.Locomotion.DashSettings
-  distanceMeters: 4
+  distanceMeters: 5
   durationSeconds: 0.18
   travelCurve:
     serializedVersion: 2
@@ -39,8 +39,10 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   exitSpeedFraction: 1
+  obstaclePhaseLeewayMeters: 0.3
   iFrameFraction: 0.85
   perfectDodgeGraceSeconds: 0.2
+  projectileDodgeGraceSeconds: 0.05
   maxCharges: 2
   rechargeSeconds: 1.5
   bufferSeconds: 0.15
